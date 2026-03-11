@@ -52,8 +52,6 @@ services:
 
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
     volumes:
       - redisdata:/data
 
@@ -64,8 +62,6 @@ services:
       POOL_MODE: transaction
       MAX_CLIENT_CONN: 200
       DEFAULT_POOL_SIZE: 20
-    ports:
-      - "6432:6432"
     depends_on:
       postgres:
         condition: service_healthy
@@ -74,8 +70,6 @@ services:
     image: datalust/seq:latest
     environment:
       ACCEPT_EULA: "Y"
-    ports:
-      - "5341:80"
     volumes:
       - seqdata:/data
 
