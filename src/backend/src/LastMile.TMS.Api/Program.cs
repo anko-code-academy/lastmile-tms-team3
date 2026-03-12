@@ -3,6 +3,7 @@ using Hangfire.PostgreSql;
 using LastMile.TMS.Application;
 using LastMile.TMS.Infrastructure;
 using LastMile.TMS.Persistence;
+using LastMile.TMS.Persistence.Identity;
 using Serilog;
 
 Log.Logger = new LoggerConfiguration()
@@ -20,6 +21,34 @@ try
         .AddApplication()
         .AddInfrastructure(builder.Configuration)
         .AddPersistence(builder.Configuration);
+
+    builder.Services.AddOpenIddict()
+        .AddCore(options =>
+        {
+            options.UseEntityFrameworkCore()
+                   .UseDbContext<AppDbContext>();
+        })
+        .AddServer(options =>
+        {
+            options.SetTokenEndpointUris("/connect/token");
+
+            options.AllowPasswordFlow();
+            options.AllowRefreshTokenFlow();
+
+            options.AcceptAnonymousClients();
+
+            options.AddEphemeralEncryptionKey()
+                   .AddEphemeralSigningKey()
+                   .DisableAccessTokenEncryption();
+
+            options.UseAspNetCore()
+                   .EnableTokenEndpointPassthrough();
+        })
+        .AddValidation(options =>
+        {
+            options.UseLocalServer();
+            options.UseAspNetCore();
+        });
 
     builder.Services.AddControllers();
     builder.Services.AddEndpointsApiExplorer();
