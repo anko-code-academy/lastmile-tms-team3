@@ -11,6 +11,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
 {
     public DbSet<Depot> Depots => Set<Depot>();
     public DbSet<Zone> Zones => Set<Zone>();
+    public DbSet<Parcel> Parcels => Set<Parcel>();
+    public DbSet<Address> Addresses => Set<Address>();
+    public DbSet<DeliveryConfirmation> DeliveryConfirmations => Set<DeliveryConfirmation>();
+    public DbSet<ParcelContentItem> ParcelContentItems => Set<ParcelContentItem>();
+    public DbSet<TrackingEvent> TrackingEvents => Set<TrackingEvent>();
+    public DbSet<ParcelWatcher> ParcelWatchers => Set<ParcelWatcher>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -18,5 +24,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         base.OnModelCreating(modelBuilder);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
         modelBuilder.UseOpenIddict<Guid>();
+    }
+
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        // Could add automatic audit trail here
+        return base.SaveChangesAsync(cancellationToken);
     }
 }
