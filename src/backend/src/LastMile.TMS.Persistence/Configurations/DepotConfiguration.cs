@@ -1,4 +1,5 @@
 using LastMile.TMS.Domain.Entities;
+using LastMile.TMS.Domain.Common;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

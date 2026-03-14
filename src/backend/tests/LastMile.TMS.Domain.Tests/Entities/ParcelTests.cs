@@ -180,4 +180,33 @@ public class ParcelTests
         // This is a private method, but we can test through TransitionToStatus
         // Already covered by other tests
     }
+
+    [Fact]
+    public void Parcel_Should_Have_Optional_Zone_Relationship()
+    {
+        // Arrange
+        var zone = new Zone
+        {
+            Id = Guid.NewGuid(),
+            Name = "Test Zone",
+            IsActive = true,
+            DepotId = Guid.NewGuid()
+        };
+
+        // Act
+        _parcel.ZoneId = zone.Id;
+        _parcel.Zone = zone;
+
+        // Assert
+        _parcel.ZoneId.Should().Be(zone.Id);
+        _parcel.Zone.Should().BeSameAs(zone);
+    }
+
+    [Fact]
+    public void Parcel_ZoneId_Can_Be_Null()
+    {
+        // Act & Assert
+        _parcel.ZoneId.Should().BeNull();
+        _parcel.Zone.Should().BeNull();
+    }
 }

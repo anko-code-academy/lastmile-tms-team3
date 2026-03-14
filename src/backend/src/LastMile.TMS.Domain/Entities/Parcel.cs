@@ -51,6 +51,10 @@ public class Parcel : BaseAuditableEntity
     [MaxLength(100)]
     public string? ParcelType { get; set; }
 
+    // Zone assignment (auto-assigned via geocoding)
+    public Guid? ZoneId { get; set; }
+    public Zone? Zone { get; set; }
+
     // Navigation properties
     public ICollection<TrackingEvent> TrackingEvents { get; set; } = new List<TrackingEvent>();
     public ICollection<ParcelContentItem> ContentItems { get; set; } = new List<ParcelContentItem>();

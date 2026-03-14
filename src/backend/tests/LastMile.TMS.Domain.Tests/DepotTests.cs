@@ -52,7 +52,7 @@ public class DepotTests
     [Fact]
     public void Address_Record_ShouldHaveAllProperties()
     {
-        var address = new Address
+        var address = new Common.Address
         {
             Street = "123 Main St",
             City = "New York",
