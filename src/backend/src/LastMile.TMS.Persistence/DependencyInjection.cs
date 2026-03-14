@@ -1,4 +1,7 @@
 using LastMile.TMS.Application.Common.Interfaces;
+using LastMile.TMS.Persistence.Identity;
+using LastMile.TMS.Persistence.Seeding;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,6 +22,21 @@ public static class DependencyInjection
                 }));
 
         services.AddScoped<IAppDbContext>(provider => provider.GetRequiredService<AppDbContext>());
+
+        services.AddIdentity<AppUser, AppRole>(options =>
+            {
+                options.Password.RequireDigit = true;
+                options.Password.RequireLowercase = true;
+                options.Password.RequireUppercase = true;
+                options.Password.RequireNonAlphanumeric = true;
+                options.Password.RequiredLength = 8;
+                options.User.RequireUniqueEmail = true;
+            })
+            .AddEntityFrameworkStores<AppDbContext>()
+            .AddDefaultTokenProviders();
+
+        services.AddScoped<IDbSeeder, ApplicationDbSeeder>();
+        services.AddHostedService<DbSeederHostedService>();
 
         return services;
     }
