@@ -1,5 +1,4 @@
 using LastMile.TMS.Domain.Entities;
-using LastMile.TMS.Domain.Common;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -20,16 +19,13 @@ public class DepotConfiguration : IEntityTypeConfiguration<Depot>
         builder.Property(d => d.IsActive)
             .HasDefaultValue(true);
 
-        builder.OwnsOne(d => d.Address, a =>
-        {
-            a.Property(p => p.Street).HasMaxLength(500).HasColumnName("Street");
-            a.Property(p => p.City).HasMaxLength(100).HasColumnName("City");
-            a.Property(p => p.State).HasMaxLength(100).HasColumnName("State");
-            a.Property(p => p.PostalCode).HasMaxLength(20).HasColumnName("PostalCode");
-            a.Property(p => p.Country).HasMaxLength(100).HasColumnName("Country");
-            a.Property(p => p.Latitude).HasColumnName("Latitude");
-            a.Property(p => p.Longitude).HasColumnName("Longitude");
-        });
+        builder.HasOne(d => d.Address)
+            .WithMany()
+            .HasForeignKey(d => d.AddressId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Property(d => d.AddressId)
+            .HasColumnName("AddressId");
 
         builder.OwnsOne(d => d.OperatingHours, oh =>
         {

@@ -5,7 +5,8 @@ namespace LastMile.TMS.Domain.Entities;
 public class Depot : BaseAuditableEntity
 {
     public string Name { get; set; } = string.Empty;
-    public LastMile.TMS.Domain.Common.Address Address { get; set; } = new();
+    public Guid AddressId { get; set; }
+    public Address Address { get; set; } = new();
     public bool IsActive { get; set; }
     public OperatingHours OperatingHours { get; set; } = new();
 
