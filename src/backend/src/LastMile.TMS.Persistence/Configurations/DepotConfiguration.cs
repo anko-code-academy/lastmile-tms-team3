@@ -1,5 +1,4 @@
 using LastMile.TMS.Domain.Entities;
-using LastMile.TMS.Domain.Common;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -22,13 +21,18 @@ public class DepotConfiguration : IEntityTypeConfiguration<Depot>
 
         builder.OwnsOne(d => d.Address, a =>
         {
-            a.Property(p => p.Street).HasMaxLength(500).HasColumnName("Street");
-            a.Property(p => p.City).HasMaxLength(100).HasColumnName("City");
-            a.Property(p => p.State).HasMaxLength(100).HasColumnName("State");
-            a.Property(p => p.PostalCode).HasMaxLength(20).HasColumnName("PostalCode");
-            a.Property(p => p.Country).HasMaxLength(100).HasColumnName("Country");
-            a.Property(p => p.Latitude).HasColumnName("Latitude");
-            a.Property(p => p.Longitude).HasColumnName("Longitude");
+            a.Property(p => p.Street1).IsRequired().HasMaxLength(200).HasColumnName("Street1");
+            a.Property(p => p.Street2).HasMaxLength(200).HasColumnName("Street2");
+            a.Property(p => p.City).IsRequired().HasMaxLength(100).HasColumnName("City");
+            a.Property(p => p.State).IsRequired().HasMaxLength(100).HasColumnName("State");
+            a.Property(p => p.PostalCode).IsRequired().HasMaxLength(20).HasColumnName("PostalCode");
+            a.Property(p => p.CountryCode).IsRequired().HasMaxLength(2).HasColumnName("CountryCode");
+            a.Property(p => p.IsResidential).HasColumnName("IsResidential");
+            a.Property(p => p.ContactName).HasMaxLength(150).HasColumnName("ContactName");
+            a.Property(p => p.CompanyName).HasMaxLength(200).HasColumnName("CompanyName");
+            a.Property(p => p.Phone).HasMaxLength(20).HasColumnName("Phone");
+            a.Property(p => p.Email).HasMaxLength(254).HasColumnName("Email");
+            a.Property(p => p.GeoLocation).HasColumnType("geometry (point)").HasColumnName("GeoLocation");
         });
 
         builder.OwnsOne(d => d.OperatingHours, oh =>
