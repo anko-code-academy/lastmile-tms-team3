@@ -191,17 +191,21 @@ public class DriverTests
             DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)));
         var availability = new DriverAvailability
         {
-            ShiftStart = new TimeOnly(8, 0),
-            ShiftEnd = new TimeOnly(17, 0),
-            DaysOff = new[] { DayOfWeek.Saturday, DayOfWeek.Sunday }
+            Schedule = new List<DailyAvailability>
+            {
+                new() { DayOfWeek = "Monday", StartTime = new TimeOnly(8, 0), EndTime = new TimeOnly(17, 0) },
+                new() { DayOfWeek = "Tuesday", StartTime = new TimeOnly(8, 0), EndTime = new TimeOnly(17, 0) },
+                new() { DayOfWeek = "Wednesday", StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) },
+                new() { DayOfWeek = "Thursday", StartTime = new TimeOnly(8, 0), EndTime = new TimeOnly(17, 0) },
+                new() { DayOfWeek = "Friday", StartTime = new TimeOnly(8, 0), EndTime = new TimeOnly(16, 0) }
+            }
         };
 
         driver.UpdateAvailability(availability);
 
-        driver.Availability.ShiftStart.Should().Be(new TimeOnly(8, 0));
-        driver.Availability.ShiftEnd.Should().Be(new TimeOnly(17, 0));
-        driver.Availability.DaysOff.Should().Contain(DayOfWeek.Saturday);
-        driver.Availability.DaysOff.Should().Contain(DayOfWeek.Sunday);
+        driver.Availability.Schedule.Should().HaveCount(5);
+        driver.Availability.Schedule.Should().Contain(a => a.DayOfWeek == "Monday" && a.StartTime == new TimeOnly(8, 0));
+        driver.Availability.Schedule.Should().Contain(a => a.DayOfWeek == "Friday" && a.EndTime == new TimeOnly(16, 0));
     }
 
     [Fact]

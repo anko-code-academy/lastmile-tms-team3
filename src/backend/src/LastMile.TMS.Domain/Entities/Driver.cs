@@ -87,7 +87,12 @@ public class Driver : BaseAuditableEntity
 
 public record DriverAvailability
 {
-    public TimeOnly? ShiftStart { get; init; }
-    public TimeOnly? ShiftEnd { get; init; }
-    public DayOfWeek[] DaysOff { get; init; } = [];
+    public List<DailyAvailability> Schedule { get; init; } = [];
+}
+
+public record DailyAvailability
+{
+    public string DayOfWeek { get; init; } = string.Empty;
+    public TimeOnly? StartTime { get; init; }
+    public TimeOnly? EndTime { get; init; }
 }

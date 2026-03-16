@@ -62,22 +62,23 @@ public class DriverConfiguration : IEntityTypeConfiguration<Driver>
 
         builder.OwnsOne(d => d.Availability, a =>
         {
-            a.Property(p => p.ShiftStart)
-                .HasColumnName("ShiftStart");
-            a.Property(p => p.ShiftEnd)
-                .HasColumnName("ShiftEnd");
-            a.Property(p => p.DaysOff)
+            a.Property(p => p.Schedule)
                 .HasConversion(
-                    v => string.Join(',', v.Select(d => (int)d)),
-                    v => v.Split(',', StringSplitOptions.RemoveEmptyEntries)
-                        .Select(s => (DayOfWeek)int.Parse(s))
-                        .ToArray())
-                .HasColumnName("DaysOff");
+                    v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
+                    v => DeserializeSchedule(v))
+                .HasColumnName("AvailabilitySchedule");
         });
 
         builder.HasIndex(d => d.IsActive);
         builder.HasIndex(d => d.ZoneId);
         builder.HasIndex(d => d.DepotId);
         builder.HasIndex(d => d.UserId);
+    }
+
+    private static List<DailyAvailability> DeserializeSchedule(string json)
+    {
+        return string.IsNullOrEmpty(json)
+            ? new List<DailyAvailability>()
+            : System.Text.Json.JsonSerializer.Deserialize<List<DailyAvailability>>(json) ?? new List<DailyAvailability>();
     }
 }
