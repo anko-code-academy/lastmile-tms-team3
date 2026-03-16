@@ -33,6 +33,7 @@ public class VehicleTests
         vehicle.Status.Should().Be(default(VehicleStatus));
         vehicle.ParcelCapacity.Should().Be(0);
         vehicle.WeightCapacity.Should().Be(0);
+        vehicle.WeightUnit.Should().Be(default(WeightUnit));
         vehicle.DepotId.Should().BeEmpty();
         vehicle.Depot.Should().BeNull();
     }
@@ -46,7 +47,8 @@ public class VehicleTests
             Type = VehicleType.Van,
             Status = VehicleStatus.Available,
             ParcelCapacity = 100,
-            WeightCapacity = 2000.50m,
+            WeightCapacity = 2000,
+            WeightUnit = WeightUnit.Kg,
             DepotId = Guid.NewGuid()
         };
 
@@ -54,7 +56,8 @@ public class VehicleTests
         vehicle.Type.Should().Be(VehicleType.Van);
         vehicle.Status.Should().Be(VehicleStatus.Available);
         vehicle.ParcelCapacity.Should().Be(100);
-        vehicle.WeightCapacity.Should().Be(2000.50m);
+        vehicle.WeightCapacity.Should().Be(2000);
+        vehicle.WeightUnit.Should().Be(WeightUnit.Kg);
         vehicle.DepotId.Should().NotBeEmpty();
     }
 

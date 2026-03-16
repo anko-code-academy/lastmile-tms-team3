@@ -18,8 +18,10 @@ public class Vehicle : BaseAuditableEntity
     [Range(1, int.MaxValue)]
     public int ParcelCapacity { get; set; }
 
-    [Range(0.01, double.MaxValue)]
-    public decimal WeightCapacity { get; set; }
+    [Range(1, int.MaxValue)]
+    public int WeightCapacity { get; set; }
+
+    public WeightUnit WeightUnit { get; set; }
 
     public Guid DepotId { get; set; }
 

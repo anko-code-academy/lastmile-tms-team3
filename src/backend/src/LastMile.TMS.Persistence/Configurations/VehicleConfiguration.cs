@@ -32,8 +32,11 @@ public class VehicleConfiguration : IEntityTypeConfiguration<Vehicle>
             .IsRequired();
 
         builder.Property(v => v.WeightCapacity)
+            .IsRequired();
+
+        builder.Property(v => v.WeightUnit)
             .IsRequired()
-            .HasPrecision(10, 3);
+            .HasConversion<string>();
 
         // Relationships
         builder.HasOne(v => v.Depot)
