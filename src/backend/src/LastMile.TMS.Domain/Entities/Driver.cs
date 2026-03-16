@@ -13,7 +13,7 @@ public class Driver : BaseAuditableEntity
     public string Phone { get; private set; } = string.Empty;
     public string Email { get; private set; } = string.Empty;
     public string LicenseNumber { get; private set; } = string.Empty;
-    public DateTime LicenseExpiryDate { get; private set; }
+    public DateOnly LicenseExpiryDate { get; private set; }
     public string? PhotoUrl { get; private set; }
     public Guid? ZoneId { get; private set; }
     public Guid? DepotId { get; private set; }
@@ -35,7 +35,7 @@ public class Driver : BaseAuditableEntity
         string phone,
         string email,
         string licenseNumber,
-        DateTime licenseExpiryDate,
+        DateOnly licenseExpiryDate,
         string? photoUrl = null,
         Guid? zoneId = null,
         Guid? depotId = null)
@@ -72,7 +72,7 @@ public class Driver : BaseAuditableEntity
 
     public void Activate() => IsActive = true;
 
-    public void UpdateLicense(string licenseNumber, DateTime licenseExpiryDate)
+    public void UpdateLicense(string licenseNumber, DateOnly licenseExpiryDate)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(licenseNumber);
         LicenseNumber = licenseNumber;

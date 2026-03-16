@@ -33,6 +33,7 @@ public class DriverConfiguration : IEntityTypeConfiguration<Driver>
             .HasMaxLength(50);
 
         builder.Property(d => d.LicenseExpiryDate)
+            .HasColumnType("date")
             .IsRequired();
 
         builder.Property(d => d.PhotoUrl)

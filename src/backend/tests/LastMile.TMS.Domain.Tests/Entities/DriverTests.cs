@@ -14,7 +14,7 @@ public class DriverTests
             "+1234567890",
             "john@example.com",
             "DL123456",
-            DateTime.UtcNow.AddYears(1));
+            DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)));
 
         driver.FirstName.Should().Be("John");
         driver.LastName.Should().Be("Doe");
@@ -38,7 +38,7 @@ public class DriverTests
             "+1234567890",
             "john@example.com",
             "DL123456",
-            DateTime.UtcNow.AddYears(1),
+            DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)),
             photoUrl,
             zoneId,
             depotId);
@@ -57,7 +57,7 @@ public class DriverTests
             "+1234567890",
             "jane@example.com",
             "DL123456",
-            DateTime.UtcNow.AddYears(1));
+            DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)));
 
         driver.FullName.Should().Be("Jane Smith");
     }
@@ -71,7 +71,7 @@ public class DriverTests
             "+1234567890",
             "john@example.com",
             "DL123456",
-            DateTime.UtcNow.AddYears(1));
+            DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)));
 
         driver.Deactivate();
 
@@ -87,7 +87,7 @@ public class DriverTests
             "+1234567890",
             "john@example.com",
             "DL123456",
-            DateTime.UtcNow.AddYears(1));
+            DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)));
         driver.Deactivate();
 
         driver.Activate();
@@ -104,7 +104,7 @@ public class DriverTests
             "+1234567890",
             "john@example.com",
             "DL123456",
-            DateTime.UtcNow.AddYears(1));
+            DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)));
         var zoneId = Guid.NewGuid();
 
         driver.AssignZone(zoneId);
@@ -121,7 +121,7 @@ public class DriverTests
             "+1234567890",
             "john@example.com",
             "DL123456",
-            DateTime.UtcNow.AddYears(1));
+            DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)));
         var depotId = Guid.NewGuid();
 
         driver.AssignDepot(depotId);
@@ -138,7 +138,7 @@ public class DriverTests
             "+1234567890",
             "john@example.com",
             "DL123456",
-            DateTime.UtcNow.AddYears(1));
+            DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)));
         var userId = Guid.NewGuid();
 
         driver.LinkUser(userId);
@@ -155,8 +155,8 @@ public class DriverTests
             "+1234567890",
             "john@example.com",
             "DL123456",
-            DateTime.UtcNow.AddYears(1));
-        var newExpiry = DateTime.UtcNow.AddYears(2);
+            DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)));
+        var newExpiry = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(2));
 
         driver.UpdateLicense("DL999999", newExpiry);
 
@@ -174,7 +174,7 @@ public class DriverTests
         string firstName, string lastName, string phone, string email, string licenseNumber)
     {
         var act = () => Driver.Create(
-            firstName, lastName, phone, email, licenseNumber, DateTime.UtcNow.AddYears(1));
+            firstName, lastName, phone, email, licenseNumber, DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)));
 
         act.Should().Throw<ArgumentException>();
     }
@@ -188,7 +188,7 @@ public class DriverTests
             "+1234567890",
             "john@example.com",
             "DL123456",
-            DateTime.UtcNow.AddYears(1));
+            DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)));
         var availability = new DriverAvailability
         {
             ShiftStart = new TimeOnly(8, 0),
@@ -213,7 +213,7 @@ public class DriverTests
             "+1234567890",
             "john@example.com",
             "DL123456",
-            DateTime.UtcNow.AddYears(1));
+            DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)));
 
         var act = () => driver.UpdateAvailability(null!);
 
