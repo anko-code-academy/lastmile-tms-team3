@@ -23,6 +23,7 @@ dist/
 .env
 .env.local
 .env.*.local
+.claude/settings.local.json
 
 # ===== IDE =====
 .idea/
@@ -53,3 +54,6 @@ docker-compose.override.yml
 *.tmp
 .worktrees/
 .claude/
+
+# ===== Documentation =====
+/docs/

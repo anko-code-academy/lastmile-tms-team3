@@ -50,26 +50,22 @@ public class DepotTests
     }
 
     [Fact]
-    public void Address_Record_ShouldHaveAllProperties()
+    public void Address_Entity_ShouldHaveAllProperties()
     {
         var address = new Address
         {
-            Street = "123 Main St",
+            Street1 = "123 Main St",
             City = "New York",
             State = "NY",
             PostalCode = "10001",
-            Country = "USA",
-            Latitude = 40.7128,
-            Longitude = -74.0060
+            CountryCode = "US"
         };
 
-        address.Street.Should().Be("123 Main St");
+        address.Street1.Should().Be("123 Main St");
         address.City.Should().Be("New York");
         address.State.Should().Be("NY");
         address.PostalCode.Should().Be("10001");
-        address.Country.Should().Be("USA");
-        address.Latitude.Should().Be(40.7128);
-        address.Longitude.Should().Be(-74.0060);
+        address.CountryCode.Should().Be("US");
     }
 
     [Fact]
