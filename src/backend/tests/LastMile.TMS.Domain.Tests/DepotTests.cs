@@ -69,10 +69,10 @@ public class DepotTests
     }
 
     [Fact]
-    public void OperatingHours_Record_ShouldHaveDefaultEmptyDaysOfWeek()
+    public void OperatingHours_Record_ShouldHaveDefaultEmptySchedule()
     {
         var operatingHours = new OperatingHours();
 
-        operatingHours.DaysOfWeek.Should().BeEmpty();
+        operatingHours.Schedule.Should().BeEmpty();
     }
 }

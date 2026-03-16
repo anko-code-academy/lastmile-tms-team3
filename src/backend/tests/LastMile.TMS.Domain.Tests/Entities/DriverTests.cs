@@ -189,7 +189,7 @@ public class DriverTests
             "john@example.com",
             "DL123456",
             DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)));
-        var availability = new DriverAvailability
+        var availability = new OperatingHours
         {
             Schedule = new List<DailyAvailability>
             {
@@ -198,6 +198,11 @@ public class DriverTests
                 new() { DayOfWeek = "Wednesday", StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) },
                 new() { DayOfWeek = "Thursday", StartTime = new TimeOnly(8, 0), EndTime = new TimeOnly(17, 0) },
                 new() { DayOfWeek = "Friday", StartTime = new TimeOnly(8, 0), EndTime = new TimeOnly(16, 0) }
+            },
+            DaysOff = new List<DayOff>
+            {
+                new() { Date = new DateOnly(2025, 12, 25), IsPaid = true, Reason = "Christmas" },
+                new() { Date = new DateOnly(2026, 1, 1), IsPaid = false, Reason = "Personal" }
             }
         };
 
@@ -206,6 +211,10 @@ public class DriverTests
         driver.Availability.Schedule.Should().HaveCount(5);
         driver.Availability.Schedule.Should().Contain(a => a.DayOfWeek == "Monday" && a.StartTime == new TimeOnly(8, 0));
         driver.Availability.Schedule.Should().Contain(a => a.DayOfWeek == "Friday" && a.EndTime == new TimeOnly(16, 0));
+
+        driver.Availability.DaysOff.Should().HaveCount(2);
+        driver.Availability.DaysOff.Should().Contain(d => d.Date == new DateOnly(2025, 12, 25) && d.IsPaid && d.Reason == "Christmas");
+        driver.Availability.DaysOff.Should().Contain(d => d.Date == new DateOnly(2026, 1, 1) && !d.IsPaid && d.Reason == "Personal");
     }
 
     [Fact]

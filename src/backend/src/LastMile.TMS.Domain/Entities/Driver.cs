@@ -2,10 +2,7 @@ using LastMile.TMS.Domain.Common;
 
 namespace LastMile.TMS.Domain.Entities;
 
-/// <summary>
-/// Domain entity representing a driver.
-/// Drivers are separate from User accounts but linked via FK for mobile app login.
-/// </summary>
+
 public class Driver : BaseAuditableEntity
 {
     public string FirstName { get; private set; } = string.Empty;
@@ -19,7 +16,7 @@ public class Driver : BaseAuditableEntity
     public Guid? DepotId { get; private set; }
     public Guid? UserId { get; private set; }
     public bool IsActive { get; private set; } = true;
-    public DriverAvailability Availability { get; private set; } = new();
+    public OperatingHours Availability { get; private set; } = new();
 
     public string FullName => $"{FirstName} {LastName}".Trim();
 
@@ -79,20 +76,8 @@ public class Driver : BaseAuditableEntity
         LicenseExpiryDate = licenseExpiryDate;
     }
 
-    public void UpdateAvailability(DriverAvailability availability)
+    public void UpdateAvailability(OperatingHours availability)
     {
         Availability = availability ?? throw new ArgumentNullException(nameof(availability));
     }
-}
-
-public record DriverAvailability
-{
-    public List<DailyAvailability> Schedule { get; init; } = [];
-}
-
-public record DailyAvailability
-{
-    public string DayOfWeek { get; init; } = string.Empty;
-    public TimeOnly? StartTime { get; init; }
-    public TimeOnly? EndTime { get; init; }
 }
