@@ -67,6 +67,12 @@ public class DriverConfiguration : IEntityTypeConfiguration<Driver>
                     v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
                     v => DeserializeSchedule(v))
                 .HasColumnName("AvailabilitySchedule");
+
+            a.Property(p => p.DaysOff)
+                .HasConversion(
+                    v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
+                    v => DeserializeDaysOff(v))
+                .HasColumnName("AvailabilityDaysOff");
         });
 
         builder.HasIndex(d => d.IsActive);
@@ -80,5 +86,12 @@ public class DriverConfiguration : IEntityTypeConfiguration<Driver>
         return string.IsNullOrEmpty(json)
             ? new List<DailyAvailability>()
             : System.Text.Json.JsonSerializer.Deserialize<List<DailyAvailability>>(json) ?? new List<DailyAvailability>();
+    }
+
+    private static List<DayOff> DeserializeDaysOff(string json)
+    {
+        return string.IsNullOrEmpty(json)
+            ? new List<DayOff>()
+            : System.Text.Json.JsonSerializer.Deserialize<List<DayOff>>(json) ?? new List<DayOff>();
     }
 }
