@@ -11,6 +11,7 @@ public class Depot : BaseAuditableEntity
     public OperatingHours OperatingHours { get; set; } = new();
 
     public virtual ICollection<Zone> Zones { get; set; } = new List<Zone>();
+    public virtual ICollection<Vehicle> Vehicles { get; set; } = new List<Vehicle>();
 }
 
 public record OperatingHours

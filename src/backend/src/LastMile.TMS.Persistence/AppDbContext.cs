@@ -17,6 +17,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<ParcelContentItem> ParcelContentItems => Set<ParcelContentItem>();
     public DbSet<TrackingEvent> TrackingEvents => Set<TrackingEvent>();
     public DbSet<ParcelWatcher> ParcelWatchers => Set<ParcelWatcher>();
+    public DbSet<Vehicle> Vehicles => Set<Vehicle>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
