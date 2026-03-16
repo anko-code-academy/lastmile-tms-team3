@@ -86,3 +86,66 @@ All features and bug fixes must follow the TDD cycle:
 - TypeScript: 2-space indent
 - Line endings: LF (`.editorconfig` at root)
 - TFM: `net10.0` (preview SDK)
+
+## Commit Message Convention
+
+Follow [Conventional Commits v1.0.0](https://www.conventionalcommits.org/en/v1.0.0/):
+
+```
+<type>(<scope>): <description>
+
+<body>
+
+<footer>
+```
+
+**Types**: `feat`, `fix`, `chore`, `docs`, `style`, `refactor`, `test`, `perf`
+**Scope**: Optional component/area (e.g., `domain`, `api`, `web`, `mobile`)
+**Description**: Imperative mood, lowercase after colon
+
+**Body** (optional):
+- Bullet points describing work done
+- Group related bullet points under headers if needed
+- Summary paragraph describing big picture
+
+**Footer** (optional):
+- `Relates-to: LMTT3-<number>` for Jira tickets
+- Other Conventional Commits footers as needed
+
+Separate sections with empty lines for readability.
+
+**Examples**:
+
+```
+feat(domain): implement vehicle data model
+
+- Add Vehicle entity with registration plate, type, status, capacity properties
+- Add VehicleType and VehicleStatus enums
+- Configure EF Core mapping with unique constraint on registration plate
+- Add unit tests for domain logic
+- Update Depot entity to include Vehicles collection
+
+This implements the Vehicle Management Data Model as per LMTT3-5, enabling fleet registration and assignment to depots. The model includes capacity limits for parcel count and weight, with status tracking for availability and maintenance.
+
+Relates-to: LMTT3-5
+```
+
+```
+feat: add user authentication with multi-group example
+
+**Backend**
+- Implement JWT token generation and validation
+- Add User entity with hashed password storage
+- Create authentication endpoints (login, register, refresh)
+- Configure ASP.NET Core Identity integration
+
+**Frontend**
+- Add login and registration forms with validation
+- Implement token storage in localStorage
+- Create authentication context and protected routes
+- Add logout functionality and token refresh
+
+This introduces user authentication across the full stack, enabling secure access to application features. The implementation follows security best practices with JWT tokens and proper password hashing.
+
+Relates-to: LMTT3-7
+```
