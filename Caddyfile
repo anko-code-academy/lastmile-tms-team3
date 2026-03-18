@@ -8,6 +8,11 @@
 		reverse_proxy api:8080
 	}
 
+	# OpenIddict token endpoint
+	handle /connect/* {
+		reverse_proxy api:8080
+	}
+
 	# SignalR hubs (WebSocket support)
 	handle /hubs/* {
 		reverse_proxy api:8080

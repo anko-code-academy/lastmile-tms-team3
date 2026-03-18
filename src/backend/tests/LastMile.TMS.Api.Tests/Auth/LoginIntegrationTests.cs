@@ -1,12 +1,10 @@
 using System.Net;
-using System.Net.Http.Json;
 using FluentAssertions;
-using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace LastMile.TMS.Api.Tests.Auth;
 
-public class LoginIntegrationTests(WebApplicationFactory<Program> factory)
-    : IClassFixture<WebApplicationFactory<Program>>
+public class LoginIntegrationTests(ApiWebApplicationFactory factory)
+    : IClassFixture<ApiWebApplicationFactory>
 {
     [Fact]
     public async Task Token_Endpoint_Should_Return_Unauthorized_For_Invalid_Credentials()
