@@ -26,7 +26,8 @@ try
         .AddCore(options =>
         {
             options.UseEntityFrameworkCore()
-                   .UseDbContext<AppDbContext>();
+                   .UseDbContext<AppDbContext>()
+                   .ReplaceDefaultEntities<Guid>();
         })
         .AddServer(options =>
         {
@@ -41,8 +42,11 @@ try
                    .AddEphemeralSigningKey()
                    .DisableAccessTokenEncryption();
 
-            options.UseAspNetCore()
+            var aspNetCoreOptions = options.UseAspNetCore()
                    .EnableTokenEndpointPassthrough();
+
+            if (builder.Environment.IsDevelopment())
+                aspNetCoreOptions.DisableTransportSecurityRequirement();
         })
         .AddValidation(options =>
         {
