@@ -12,10 +12,3 @@ public class Depot : BaseAuditableEntity
 
     public virtual ICollection<Zone> Zones { get; set; } = new List<Zone>();
 }
-
-public record OperatingHours
-{
-    public TimeOnly OpenTime { get; init; }
-    public TimeOnly CloseTime { get; init; }
-    public DayOfWeek[] DaysOfWeek { get; init; } = [];
-}

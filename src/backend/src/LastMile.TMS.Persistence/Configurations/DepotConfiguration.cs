@@ -29,20 +29,36 @@ public class DepotConfiguration : IEntityTypeConfiguration<Depot>
 
         builder.OwnsOne(d => d.OperatingHours, oh =>
         {
-            oh.Property(p => p.OpenTime).HasColumnName("OpenTime");
-            oh.Property(p => p.CloseTime).HasColumnName("CloseTime");
-            oh.Property(p => p.DaysOfWeek)
+            oh.Property(p => p.Schedule)
                 .HasConversion(
-                    v => string.Join(',', v.Select(d => (int)d)),
-                    v => v.Split(',', StringSplitOptions.RemoveEmptyEntries)
-                        .Select(s => (DayOfWeek)int.Parse(s))
-                        .ToArray())
-                .HasColumnName("DaysOfWeek");
+                    v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
+                    v => DeserializeSchedule(v))
+                .HasColumnName("OperatingHoursSchedule");
+
+            oh.Property(p => p.DaysOff)
+                .HasConversion(
+                    v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
+                    v => DeserializeDaysOff(v))
+                .HasColumnName("OperatingHoursDaysOff");
         });
 
         builder.HasMany(d => d.Zones)
             .WithOne(z => z.Depot)
             .HasForeignKey(z => z.DepotId)
             .OnDelete(DeleteBehavior.Cascade);
+    }
+
+    private static List<DailyAvailability> DeserializeSchedule(string json)
+    {
+        return string.IsNullOrEmpty(json)
+            ? new List<DailyAvailability>()
+            : System.Text.Json.JsonSerializer.Deserialize<List<DailyAvailability>>(json) ?? new List<DailyAvailability>();
+    }
+
+    private static List<DayOff> DeserializeDaysOff(string json)
+    {
+        return string.IsNullOrEmpty(json)
+            ? new List<DayOff>()
+            : System.Text.Json.JsonSerializer.Deserialize<List<DayOff>>(json) ?? new List<DayOff>();
     }
 }
