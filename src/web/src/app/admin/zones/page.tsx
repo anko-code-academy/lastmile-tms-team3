@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import mapboxgl from "mapbox-gl";
+import { Feature, FeatureCollection, Polygon } from "geojson";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useZones, useCreateZone, useUpdateZone, useDeleteZone } from "@/lib/hooks/useZones";
 import { useDepots } from "@/lib/hooks/useDepots";
@@ -36,6 +37,56 @@ export default function ZonesPage() {
     isActive: true,
   });
 
+  // Update polygon visualization on map
+  const updatePolygonVisualization = useCallback(() => {
+    if (!map.current || drawnFeatures.current.length < 3) return;
+
+    const polygonFeature: Feature<Polygon> = {
+      type: "Feature",
+      geometry: {
+        type: "Polygon",
+        coordinates: [
+          [
+            ...drawnFeatures.current.map((p) => [p.longitude, p.latitude]),
+            [drawnFeatures.current[0].longitude, drawnFeatures.current[0].latitude],
+          ],
+        ],
+      },
+      properties: {},
+    };
+
+    const sourceId = "drawn-polygon";
+
+    if (map.current.getSource(sourceId)) {
+      (map.current.getSource(sourceId) as mapboxgl.GeoJSONSource).setData(polygonFeature);
+    } else {
+      map.current.addSource(sourceId, {
+        type: "geojson",
+        data: polygonFeature,
+      });
+
+      map.current.addLayer({
+        id: "polygon-fill",
+        type: "fill",
+        source: sourceId,
+        paint: {
+          "fill-color": "#3b82f6",
+          "fill-opacity": 0.3,
+        },
+      });
+
+      map.current.addLayer({
+        id: "polygon-outline",
+        type: "line",
+        source: sourceId,
+        paint: {
+          "line-color": "#3b82f6",
+          "line-width": 2,
+        },
+      });
+    }
+  }, []);
+
   // Initialize map
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
@@ -68,57 +119,7 @@ export default function ZonesPage() {
       map.current?.remove();
       map.current = null;
     };
-  }, [showForm]);
-
-  // Update polygon visualization on map
-  const updatePolygonVisualization = () => {
-    if (!map.current || drawnFeatures.current.length < 3) return;
-
-    const feature = {
-      type: "Feature" as const,
-      geometry: {
-        type: "Polygon" as const,
-        coordinates: [
-          [
-            ...drawnFeatures.current.map((p) => [p.longitude, p.latitude]),
-            [drawnFeatures.current[0].longitude, drawnFeatures.current[0].latitude],
-          ],
-        ],
-      },
-      properties: {},
-    };
-
-    const sourceId = "drawn-polygon";
-
-    if (map.current.getSource(sourceId)) {
-      (map.current.getSource(sourceId) as mapboxgl.GeoJSONSource).setData(feature as any);
-    } else {
-      map.current.addSource(sourceId, {
-        type: "geojson",
-        data: feature as any,
-      });
-
-      map.current.addLayer({
-        id: "polygon-fill",
-        type: "fill",
-        source: sourceId,
-        paint: {
-          "fill-color": "#3b82f6",
-          "fill-opacity": 0.3,
-        },
-      });
-
-      map.current.addLayer({
-        id: "polygon-outline",
-        type: "line",
-        source: sourceId,
-        paint: {
-          "line-color": "#3b82f6",
-          "line-width": 2,
-        },
-      });
-    }
-  };
+  }, [showForm, updatePolygonVisualization]);
 
   // Draw existing zone boundary when editing
   useEffect(() => {
@@ -126,7 +127,7 @@ export default function ZonesPage() {
 
     drawnFeatures.current = [...editingZone.boundary.coordinates];
     updatePolygonVisualization();
-  }, [editingZone]);
+  }, [editingZone, updatePolygonVisualization]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -199,20 +200,22 @@ export default function ZonesPage() {
 
     // Clear polygon from map
     if (map.current?.getSource("drawn-polygon")) {
-      (map.current.getSource("drawn-polygon") as mapboxgl.GeoJSONSource).setData({
+      const emptyCollection: FeatureCollection = {
         type: "FeatureCollection",
         features: [],
-      } as any);
+      };
+      (map.current.getSource("drawn-polygon") as mapboxgl.GeoJSONSource).setData(emptyCollection);
     }
   };
 
   const clearDrawing = () => {
     drawnFeatures.current = [];
     if (map.current?.getSource("drawn-polygon")) {
-      (map.current.getSource("drawn-polygon") as mapboxgl.GeoJSONSource).setData({
+      const emptyCollection: FeatureCollection = {
         type: "FeatureCollection",
         features: [],
-      } as any);
+      };
+      (map.current.getSource("drawn-polygon") as mapboxgl.GeoJSONSource).setData(emptyCollection);
     }
   };
 
