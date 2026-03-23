@@ -1,6 +1,7 @@
 using LastMile.TMS.Application.Common.Interfaces;
 using LastMile.TMS.Persistence.Identity;
 using LastMile.TMS.Persistence.Seeding;
+using LastMile.TMS.Persistence.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -37,6 +38,7 @@ public static class DependencyInjection
 
         services.AddScoped<IDbSeeder, ApplicationDbSeeder>();
         services.AddHostedService<DbSeederHostedService>();
+        services.AddScoped<IIdentityService, IdentityService>();
 
         return services;
     }
