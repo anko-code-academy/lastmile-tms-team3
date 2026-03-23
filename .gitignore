@@ -57,3 +57,7 @@ docker-compose.override.yml
 
 # ===== Documentation =====
 /docs/
+
+# Local secrets
+appsettings.Development.json
+appsettings.Local.json
