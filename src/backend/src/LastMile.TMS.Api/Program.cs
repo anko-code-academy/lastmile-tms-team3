@@ -60,6 +60,15 @@ try
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen();
     builder.Services.AddSignalR();
+    builder.Services.AddCors(options =>
+    {
+        options.AddDefaultPolicy(policy =>
+        {
+            policy.AllowAnyOrigin()
+                  .AllowAnyMethod()
+                  .AllowAnyHeader();
+        });
+    });
 
     builder.Services.AddGraphQLServer()
         .AddQueryType<LastMile.TMS.Api.GraphQL.Queries.Query>()
@@ -68,6 +77,7 @@ try
         .AddType<LastMile.TMS.Api.GraphQL.Queries.ZoneQuery>()
         .AddType<LastMile.TMS.Api.GraphQL.Mutations.DepotMutation>()
         .AddType<LastMile.TMS.Api.GraphQL.Mutations.ZoneMutation>()
+        .AddType<LastMile.TMS.Api.GraphQL.Mutations.ParcelMutation>()
         .AddErrorFilter<LastMile.TMS.Api.GraphQL.ErrorFilters.ValidationErrorFilter>();
 
     builder.Services.AddStackExchangeRedisCache(options =>
@@ -82,6 +92,7 @@ try
 
     app.UseSerilogRequestLogging();
     app.UseHttpsRedirection();
+    app.UseCors();
     app.UseAuthentication();
     app.UseAuthorization();
     app.MapControllers();
