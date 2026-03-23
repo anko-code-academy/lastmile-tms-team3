@@ -124,8 +124,8 @@ export default function DepotsPage() {
     // Convert schedule times to ISO 8601 duration format for GraphQL
     const schedule = formData.operatingHours?.schedule.map((d) => ({
       dayOfWeek: d.dayOfWeek,
-      startTime: d.startTime ? toDuration(d.startTime) : null,
-      endTime: d.endTime ? toDuration(d.endTime) : null,
+      startTime: d.startTime ? toDuration(d.startTime) : undefined,
+      endTime: d.endTime ? toDuration(d.endTime) : undefined,
     }));
 
     const payload = {

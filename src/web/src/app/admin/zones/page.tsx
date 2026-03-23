@@ -62,10 +62,10 @@ export default function ZonesPage() {
         let coordinates: number[][][];
 
         if (feature.geometry.type === "Polygon") {
-          coordinates = feature.geometry.coordinates;
+          coordinates = feature.geometry.coordinates as number[][][];
         } else if (feature.geometry.type === "MultiPolygon") {
           // Use the first polygon from MultiPolygon
-          coordinates = feature.geometry.coordinates[0];
+          coordinates = feature.geometry.coordinates[0] as number[][][];
         } else {
           alert(`Invalid geometry type: ${feature.geometry.type}. Expected Polygon or MultiPolygon.`);
           return;
