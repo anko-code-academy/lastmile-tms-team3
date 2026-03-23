@@ -6,16 +6,11 @@ const GRAPHQL_URL = process.env.AUTH_API_URL
 
 export async function POST(request: Request) {
   let token: string | undefined;
-  let sessionError: string | undefined;
 
   try {
     const session = await auth();
     token = session?.accessToken;
-    if (!token) {
-      sessionError = "No access token in session";
-    }
   } catch (e) {
-    sessionError = `Auth error: ${e}`;
     console.error("Auth error:", e);
   }
 

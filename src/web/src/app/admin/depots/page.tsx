@@ -452,7 +452,7 @@ export default function DepotsPage() {
                     </Button>
                   </div>
 
-                  {formData.operatingHours?.daysOff.length! > 0 && (
+                  {(formData.operatingHours?.daysOff.length ?? 0) > 0 && (
                     <div className="mt-2 space-y-1">
                       {formData.operatingHours?.daysOff.map((dayOff) => (
                         <div key={dayOff.date} className="flex items-center gap-2 text-sm bg-gray-50 p-2 rounded">
