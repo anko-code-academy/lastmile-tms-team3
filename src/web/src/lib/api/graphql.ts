@@ -1,4 +1,4 @@
-const GRAPHQL_API_URL = "/api/graphql";
+const GRAPHQL_API_URL = `${process.env.NEXT_PUBLIC_API_URL}/graphql`;
 
 interface GraphQLResponse<T> {
   data?: T;

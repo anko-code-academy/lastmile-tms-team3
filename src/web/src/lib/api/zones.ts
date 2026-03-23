@@ -2,8 +2,8 @@ import { graphql } from "./graphql";
 import { ZoneDto, CreateZoneDto, UpdateZoneDto } from "../types/zone";
 
 const ZONES_QUERY = `
-  query GetZones($depotId: ID, $includeInactive: Boolean) {
-    zones(depotId: $depotId, includeInactive: $includeInactive) {
+  query GetZones($includeInactive: Boolean) {
+    zones(includeInactive: $includeInactive) {
       id
       name
       boundary {
@@ -88,10 +88,11 @@ const DELETE_ZONE_MUTATION = `
 `;
 
 export async function getZones(depotId?: string, includeInactive?: boolean): Promise<ZoneDto[]> {
-  const data = await graphql<{ zones: ZoneDto[] }>(ZONES_QUERY, {
-    depotId,
-    includeInactive,
-  });
+  const variables: Record<string, unknown> = {};
+  if (depotId !== undefined) variables.depotId = depotId;
+  if (includeInactive !== undefined) variables.includeInactive = includeInactive;
+
+  const data = await graphql<{ zones: ZoneDto[] }>(ZONES_QUERY, variables);
   return data.zones;
 }
 
