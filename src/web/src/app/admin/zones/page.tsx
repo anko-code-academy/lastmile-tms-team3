@@ -1,10 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import mapboxgl from "mapbox-gl";
-import { Feature, FeatureCollection, Polygon } from "geojson";
-import "mapbox-gl/dist/mapbox-gl.css";
 import { useZones, useCreateZone, useUpdateZone, useDeleteZone } from "@/lib/hooks/useZones";
 import { useDepots } from "@/lib/hooks/useDepots";
 import { ZoneDto, CreateZoneDto, GeoJsonPointDto } from "@/lib/types/zone";
@@ -13,14 +10,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-// Configure Mapbox - use env variable or public token for demo
-const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "pk.eyJ1IjoiZGVtby11c2VyIiwiYSI6ImNscWt4eTEyMDAwMDEycXBmbzJ0aDl6ZjkifQ.demo";
+interface GeoJsonFeature {
+  type: "Feature";
+  geometry: {
+    type: "Polygon" | "MultiPolygon";
+    coordinates: number[][][] | number[][][][];
+  };
+  properties?: Record<string, unknown>;
+}
+
+interface GeoJsonFile {
+  type: "FeatureCollection";
+  features: GeoJsonFeature[];
+}
 
 export default function ZonesPage() {
   const router = useRouter();
-  const mapContainer = useRef<HTMLDivElement>(null);
-  const map = useRef<mapboxgl.Map | null>(null);
-  const drawnFeatures = useRef<GeoJsonPointDto[]>([]);
 
   const { data: zones, isLoading: zonesLoading } = useZones(undefined, true);
   const { data: depots, isLoading: depotsLoading } = useDepots(true);
@@ -36,123 +41,111 @@ export default function ZonesPage() {
     boundary: null,
     isActive: true,
   });
+  const [manualPoints, setManualPoints] = useState<GeoJsonPointDto[]>([]);
+  const [newPoint, setNewPoint] = useState({ longitude: "", latitude: "" });
 
-  // Update polygon visualization on map
-  const updatePolygonVisualization = useCallback(() => {
-    if (!map.current || drawnFeatures.current.length < 3) return;
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    const polygonFeature: Feature<Polygon> = {
-      type: "Feature",
-      geometry: {
-        type: "Polygon",
-        coordinates: [
-          [
-            ...drawnFeatures.current.map((p) => [p.longitude, p.latitude]),
-            [drawnFeatures.current[0].longitude, drawnFeatures.current[0].latitude],
-          ],
-        ],
-      },
-      properties: {},
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const geojson = JSON.parse(event.target?.result as string) as GeoJsonFile;
+
+        if (geojson.type !== "FeatureCollection" || !geojson.features.length) {
+          alert("Invalid GeoJSON: must be a FeatureCollection with at least one feature");
+          return;
+        }
+
+        const feature = geojson.features[0];
+        let coordinates: number[][][];
+
+        if (feature.geometry.type === "Polygon") {
+          coordinates = feature.geometry.coordinates;
+        } else if (feature.geometry.type === "MultiPolygon") {
+          // Use the first polygon from MultiPolygon
+          coordinates = feature.geometry.coordinates[0];
+        } else {
+          alert(`Invalid geometry type: ${feature.geometry.type}. Expected Polygon or MultiPolygon.`);
+          return;
+        }
+
+        // Extract points from the first ring (outer ring) of the polygon
+        const ring = coordinates[0];
+        const points: GeoJsonPointDto[] = ring.map((coord) => ({
+          longitude: coord[0],
+          latitude: coord[1],
+        }));
+
+        // Remove the closing point if it's the same as the first point
+        if (
+          points.length > 1 &&
+          points[0].longitude === points[points.length - 1].longitude &&
+          points[0].latitude === points[points.length - 1].latitude
+        ) {
+          points.pop();
+        }
+
+        setFormData({ ...formData, boundary: { coordinates: points } });
+        setManualPoints(points);
+        alert(`Loaded ${points.length} polygon points from GeoJSON`);
+      } catch (err) {
+        console.error("Failed to parse GeoJSON:", err);
+        alert("Failed to parse GeoJSON file");
+      }
     };
+    reader.readAsText(file);
+  };
 
-    const sourceId = "drawn-polygon";
+  const handleAddPoint = () => {
+    const lng = parseFloat(newPoint.longitude);
+    const lat = parseFloat(newPoint.latitude);
 
-    if (map.current.getSource(sourceId)) {
-      (map.current.getSource(sourceId) as mapboxgl.GeoJSONSource).setData(polygonFeature);
-    } else {
-      map.current.addSource(sourceId, {
-        type: "geojson",
-        data: polygonFeature,
-      });
-
-      map.current.addLayer({
-        id: "polygon-fill",
-        type: "fill",
-        source: sourceId,
-        paint: {
-          "fill-color": "#3b82f6",
-          "fill-opacity": 0.3,
-        },
-      });
-
-      map.current.addLayer({
-        id: "polygon-outline",
-        type: "line",
-        source: sourceId,
-        paint: {
-          "line-color": "#3b82f6",
-          "line-width": 2,
-        },
-      });
+    if (isNaN(lng) || isNaN(lat)) {
+      alert("Please enter valid longitude and latitude values");
+      return;
     }
-  }, []);
 
-  // Initialize map
-  useEffect(() => {
-    if (!mapContainer.current || map.current) return;
+    if (lng < -180 || lng > 180 || lat < -90 || lat > 90) {
+      alert("Longitude must be between -180 and 180, latitude between -90 and 90");
+      return;
+    }
 
-    mapboxgl.accessToken = MAPBOX_TOKEN;
+    const point: GeoJsonPointDto = { longitude: lng, latitude: lat };
+    const newPoints = [...manualPoints, point];
+    setManualPoints(newPoints);
+    setFormData({ ...formData, boundary: { coordinates: newPoints } });
+    setNewPoint({ longitude: "", latitude: "" });
+  };
 
-    map.current = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: "mapbox://styles/mapbox/streets-v12",
-      center: [-74.006, 40.7128], // Default to NYC
-      zoom: 10,
-    });
+  const handleRemovePoint = (index: number) => {
+    const newPoints = manualPoints.filter((_, i) => i !== index);
+    setManualPoints(newPoints);
+    setFormData({ ...formData, boundary: newPoints.length > 0 ? { coordinates: newPoints } : null });
+  };
 
-    map.current.addControl(new mapboxgl.NavigationControl(), "top-right");
-
-    // Add click handler for drawing polygon
-    map.current.on("click", (e) => {
-      if (!showForm) return;
-
-      const point: GeoJsonPointDto = {
-        longitude: e.lngLat.lng,
-        latitude: e.lngLat.lat,
-      };
-
-      drawnFeatures.current.push(point);
-      updatePolygonVisualization();
-    });
-
-    return () => {
-      map.current?.remove();
-      map.current = null;
-    };
-  }, [showForm, updatePolygonVisualization]);
-
-  // Draw existing zone boundary when editing
-  useEffect(() => {
-    if (!editingZone?.boundary || !map.current) return;
-
-    drawnFeatures.current = [...editingZone.boundary.coordinates];
-    updatePolygonVisualization();
-  }, [editingZone, updatePolygonVisualization]);
+  const handleClearPoints = () => {
+    setManualPoints([]);
+    setFormData({ ...formData, boundary: null });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (drawnFeatures.current.length < 4) {
-      alert("Please draw at least 4 points to create a polygon");
+    if (!formData.boundary || formData.boundary.coordinates.length < 3) {
+      alert("Zone boundary must have at least 3 points");
       return;
     }
-
-    const boundary = {
-      coordinates: drawnFeatures.current,
-    };
 
     try {
       if (editingZone) {
         await updateMutation.mutateAsync({
           id: editingZone.id,
           ...formData,
-          boundary,
         });
       } else {
-        await createMutation.mutateAsync({
-          ...formData,
-          boundary,
-        });
+        await createMutation.mutateAsync(formData);
       }
 
       handleCancel();
@@ -169,12 +162,8 @@ export default function ZonesPage() {
       isActive: zone.isActive,
       boundary: zone.boundary,
     });
+    setManualPoints(zone.boundary?.coordinates || []);
     setShowForm(true);
-
-    // Reset drawn features
-    drawnFeatures.current = zone.boundary
-      ? [...zone.boundary.coordinates]
-      : [];
   };
 
   const handleDelete = async (id: string) => {
@@ -196,27 +185,8 @@ export default function ZonesPage() {
       boundary: null,
       isActive: true,
     });
-    drawnFeatures.current = [];
-
-    // Clear polygon from map
-    if (map.current?.getSource("drawn-polygon")) {
-      const emptyCollection: FeatureCollection = {
-        type: "FeatureCollection",
-        features: [],
-      };
-      (map.current.getSource("drawn-polygon") as mapboxgl.GeoJSONSource).setData(emptyCollection);
-    }
-  };
-
-  const clearDrawing = () => {
-    drawnFeatures.current = [];
-    if (map.current?.getSource("drawn-polygon")) {
-      const emptyCollection: FeatureCollection = {
-        type: "FeatureCollection",
-        features: [],
-      };
-      (map.current.getSource("drawn-polygon") as mapboxgl.GeoJSONSource).setData(emptyCollection);
-    }
+    setManualPoints([]);
+    setNewPoint({ longitude: "", latitude: "" });
   };
 
   if (zonesLoading || depotsLoading) return <div className="p-8">Loading...</div>;
@@ -280,15 +250,106 @@ export default function ZonesPage() {
                 </Label>
               </div>
 
+              {/* Zone Boundary - GeoJSON Upload */}
               <div>
                 <Label>Zone Boundary</Label>
                 <p className="text-sm text-gray-500 mb-2">
-                  Click on the map to draw polygon points (minimum 4 points required)
+                  Upload a GeoJSON file or manually add polygon coordinates
                 </p>
-                <div ref={mapContainer} className="h-80 rounded-md border" />
-                <Button type="button" variant="outline" size="sm" onClick={clearDrawing} className="mt-2">
-                  Clear Drawing
-                </Button>
+
+                {/* File Upload */}
+                <div className="mb-4">
+                  <input
+                    type="file"
+                    accept=".json,.geojson"
+                    onChange={handleFileUpload}
+                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Supported: GeoJSON files with Polygon or MultiPolygon features
+                  </p>
+                </div>
+
+                {/* Manual Entry */}
+                <div className="border-t pt-4 mt-4">
+                  <Label className="text-sm font-medium">Or add points manually</Label>
+                  <div className="flex gap-2 mt-2 items-end">
+                    <div>
+                      <Label htmlFor="longitude" className="text-xs">Longitude</Label>
+                      <Input
+                        id="longitude"
+                        type="number"
+                        step="any"
+                        placeholder="e.g. -74.006"
+                        value={newPoint.longitude}
+                        onChange={(e) => setNewPoint({ ...newPoint, longitude: e.target.value })}
+                        className="w-36"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="latitude" className="text-xs">Latitude</Label>
+                      <Input
+                        id="latitude"
+                        type="number"
+                        step="any"
+                        placeholder="e.g. 40.7128"
+                        value={newPoint.latitude}
+                        onChange={(e) => setNewPoint({ ...newPoint, latitude: e.target.value })}
+                        className="w-36"
+                      />
+                    </div>
+                    <Button type="button" variant="outline" size="sm" onClick={handleAddPoint}>
+                      Add Point
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Points List */}
+                {manualPoints.length > 0 && (
+                  <div className="mt-4">
+                    <div className="flex justify-between items-center mb-2">
+                      <Label className="text-sm">Polygon Points ({manualPoints.length})</Label>
+                      <Button type="button" variant="ghost" size="sm" onClick={handleClearPoints}>
+                        Clear All
+                      </Button>
+                    </div>
+                    <div className="max-h-48 overflow-y-auto border rounded-md">
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-50 sticky top-0">
+                          <tr>
+                            <th className="px-3 py-2 text-left font-medium text-gray-500">#</th>
+                            <th className="px-3 py-2 text-left font-medium text-gray-500">Longitude</th>
+                            <th className="px-3 py-2 text-left font-medium text-gray-500">Latitude</th>
+                            <th className="px-3 py-2 text-right font-medium text-gray-500">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {manualPoints.map((point, index) => (
+                            <tr key={index} className="border-t">
+                              <td className="px-3 py-1 text-gray-500">{index + 1}</td>
+                              <td className="px-3 py-1 font-mono text-xs">{point.longitude.toFixed(6)}</td>
+                              <td className="px-3 py-1 font-mono text-xs">{point.latitude.toFixed(6)}</td>
+                              <td className="px-3 py-1 text-right">
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemovePoint(index)}
+                                  className="text-red-500 hover:text-red-700 text-xs"
+                                >
+                                  Remove
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {manualPoints.length >= 3
+                        ? `Polygon ready with ${manualPoints.length} points`
+                        : `Add ${3 - manualPoints.length} more point(s) to create a polygon`}
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-2">
@@ -320,7 +381,7 @@ export default function ZonesPage() {
                   </p>
                   {zone.boundary && (
                     <p className="text-sm text-gray-500">
-                      Points: {zone.boundary.coordinates.length}
+                      Boundary: {zone.boundary.coordinates.length} points
                     </p>
                   )}
                 </div>
