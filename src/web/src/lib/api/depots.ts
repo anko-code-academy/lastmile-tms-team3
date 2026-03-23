@@ -1,92 +1,197 @@
-import { auth } from "@/auth";
+import { graphql } from "./graphql";
 import { DepotDto, CreateDepotDto, UpdateDepotDto } from "../types/depot";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
+const DEPOTS_QUERY = `
+  query GetDepots($includeInactive: Boolean) {
+    depots(includeInactive: $includeInactive) {
+      id
+      name
+      address {
+        street1
+        street2
+        city
+        state
+        postalCode
+        countryCode
+        isResidential
+        contactName
+        companyName
+        phone
+        email
+        latitude
+        longitude
+      }
+      isActive
+      operatingHours {
+        schedule {
+          dayOfWeek
+          startTime
+          endTime
+        }
+        daysOff {
+          date
+          isPaid
+          reason
+        }
+      }
+      createdAt
+      lastModifiedAt
+    }
+  }
+`;
 
-async function getAuthHeader(): Promise<Headers> {
-  const session = await auth();
-  const token = session?.accessToken;
+const DEPOT_QUERY = `
+  query GetDepot($id: ID!) {
+    depot(id: $id) {
+      id
+      name
+      address {
+        street1
+        street2
+        city
+        state
+        postalCode
+        countryCode
+        isResidential
+        contactName
+        companyName
+        phone
+        email
+        latitude
+        longitude
+      }
+      isActive
+      operatingHours {
+        schedule {
+          dayOfWeek
+          startTime
+          endTime
+        }
+        daysOff {
+          date
+          isPaid
+          reason
+        }
+      }
+      createdAt
+      lastModifiedAt
+    }
+  }
+`;
 
-  return new Headers({
-    "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  });
-}
+const CREATE_DEPOT_MUTATION = `
+  mutation CreateDepot($input: CreateDepotDtoInput!) {
+    createDepot(input: $input) {
+      id
+      name
+      address {
+        street1
+        street2
+        city
+        state
+        postalCode
+        countryCode
+        isResidential
+        contactName
+        companyName
+        phone
+        email
+        latitude
+        longitude
+      }
+      isActive
+      operatingHours {
+        schedule {
+          dayOfWeek
+          startTime
+          endTime
+        }
+        daysOff {
+          date
+          isPaid
+          reason
+        }
+      }
+      createdAt
+      lastModifiedAt
+    }
+  }
+`;
+
+const UPDATE_DEPOT_MUTATION = `
+  mutation UpdateDepot($input: UpdateDepotDtoInput!) {
+    updateDepot(input: $input) {
+      id
+      name
+      address {
+        street1
+        street2
+        city
+        state
+        postalCode
+        countryCode
+        isResidential
+        contactName
+        companyName
+        phone
+        email
+        latitude
+        longitude
+      }
+      isActive
+      operatingHours {
+        schedule {
+          dayOfWeek
+          startTime
+          endTime
+        }
+        daysOff {
+          date
+          isPaid
+          reason
+        }
+      }
+      createdAt
+      lastModifiedAt
+    }
+  }
+`;
+
+const DELETE_DEPOT_MUTATION = `
+  mutation DeleteDepot($id: ID!) {
+    deleteDepot(id: $id)
+  }
+`;
 
 export async function getDepots(includeInactive?: boolean): Promise<DepotDto[]> {
-  const headers = await getAuthHeader();
-  const params = includeInactive ? "?includeInactive=true" : "";
-
-  const res = await fetch(`${API_BASE_URL}/api/depots${params}`, {
-    method: "GET",
-    headers,
+  const data = await graphql<{ depots: DepotDto[] }>(DEPOTS_QUERY, {
+    includeInactive,
   });
-
-  if (!res.ok) {
-    throw new Error(`Failed to fetch depots: ${res.status}`);
-  }
-
-  return res.json();
+  return data.depots;
 }
 
 export async function getDepot(id: string): Promise<DepotDto> {
-  const headers = await getAuthHeader();
-
-  const res = await fetch(`${API_BASE_URL}/api/depots/${id}`, {
-    method: "GET",
-    headers,
-  });
-
-  if (!res.ok) {
-    throw new Error(`Failed to fetch depot: ${res.status}`);
-  }
-
-  return res.json();
+  const data = await graphql<{ depot: DepotDto }>(DEPOT_QUERY, { id });
+  return data.depot;
 }
 
 export async function createDepot(dto: CreateDepotDto): Promise<DepotDto> {
-  const headers = await getAuthHeader();
-
-  const res = await fetch(`${API_BASE_URL}/api/depots`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(dto),
+  const data = await graphql<{ createDepot: DepotDto }>(CREATE_DEPOT_MUTATION, {
+    input: dto,
   });
-
-  if (!res.ok) {
-    throw new Error(`Failed to create depot: ${res.status}`);
-  }
-
-  return res.json();
+  return data.createDepot;
 }
 
 export async function updateDepot(dto: UpdateDepotDto): Promise<DepotDto> {
-  const headers = await getAuthHeader();
-
-  const res = await fetch(`${API_BASE_URL}/api/depots/${dto.id}`, {
-    method: "PUT",
-    headers,
-    body: JSON.stringify(dto),
+  const data = await graphql<{ updateDepot: DepotDto }>(UPDATE_DEPOT_MUTATION, {
+    input: dto,
   });
-
-  if (!res.ok) {
-    throw new Error(`Failed to update depot: ${res.status}`);
-  }
-
-  return res.json();
+  return data.updateDepot;
 }
 
 export async function deleteDepot(id: string): Promise<boolean> {
-  const headers = await getAuthHeader();
-
-  const res = await fetch(`${API_BASE_URL}/api/depots/${id}`, {
-    method: "DELETE",
-    headers,
+  const data = await graphql<{ deleteDepot: boolean }>(DELETE_DEPOT_MUTATION, {
+    id,
   });
-
-  if (!res.ok) {
-    throw new Error(`Failed to delete depot: ${res.status}`);
-  }
-
-  return true;
+  return data.deleteDepot;
 }

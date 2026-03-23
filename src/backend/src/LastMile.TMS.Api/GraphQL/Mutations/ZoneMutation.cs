@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Authorization;
 namespace LastMile.TMS.Api.GraphQL.Mutations;
 
 [ExtendObjectType(OperationTypeNames.Mutation)]
-[Authorize(Roles = "Admin,OperationsManager")]
 public class ZoneMutation
 {
     public async Task<ZoneDto> CreateZone(
