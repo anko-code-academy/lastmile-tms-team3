@@ -19,6 +19,13 @@ public class ValidationErrorFilter : IErrorFilter
                 .SetExtension("code", "VALIDATION_ERROR");
         }
 
+        if (error.Exception is not null)
+        {
+            return error
+                .WithMessage(error.Exception.Message)
+                .SetExtension("code", error.Exception.GetType().Name);
+        }
+
         return error;
     }
 }
