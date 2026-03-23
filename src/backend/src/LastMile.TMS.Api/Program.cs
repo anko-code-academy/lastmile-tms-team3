@@ -68,14 +68,6 @@ try
         .AddType<LastMile.TMS.Api.GraphQL.Queries.ZoneQuery>()
         .AddType<LastMile.TMS.Api.GraphQL.Mutations.DepotMutation>()
         .AddType<LastMile.TMS.Api.GraphQL.Mutations.ZoneMutation>()
-        .AddType<LastMile.TMS.Api.GraphQL.Types.DepotType>()
-        .AddType<LastMile.TMS.Api.GraphQL.Types.ZoneType>()
-        .AddType<LastMile.TMS.Api.GraphQL.Types.AddressType>()
-        .AddType<LastMile.TMS.Api.GraphQL.Types.OperatingHoursType>()
-        .AddType<LastMile.TMS.Api.GraphQL.Types.DailyAvailabilityType>()
-        .AddType<LastMile.TMS.Api.GraphQL.Types.DayOffType>()
-        .AddType<LastMile.TMS.Api.GraphQL.Types.GeoJsonPolygonType>()
-        .AddType<LastMile.TMS.Api.GraphQL.Types.GeoJsonPointType>()
         .AddErrorFilter<LastMile.TMS.Api.GraphQL.ErrorFilters.ValidationErrorFilter>();
 
     builder.Services.AddStackExchangeRedisCache(options =>
