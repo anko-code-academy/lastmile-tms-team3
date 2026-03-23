@@ -34,11 +34,17 @@ public static class CreateZone
             {
                 var coordinates = request.Dto.Boundary.Coordinates
                     .Select(c => new Coordinate(c.Longitude, c.Latitude))
-                    .ToArray();
+                    .ToList();
 
-                if (coordinates.Length >= 4)
+                // Ensure polygon is closed (first point must equal last point)
+                if (coordinates.Count >= 4 && !coordinates.First().Equals2D(coordinates.Last()))
                 {
-                    boundary = _geometryFactory.CreatePolygon(coordinates);
+                    coordinates.Add(coordinates.First());
+                }
+
+                if (coordinates.Count >= 4)
+                {
+                    boundary = _geometryFactory.CreatePolygon(coordinates.ToArray());
                 }
             }
 

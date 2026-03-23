@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Authorization;
 namespace LastMile.TMS.Api.GraphQL.Queries;
 
 [ExtendObjectType(OperationTypeNames.Query)]
-[Authorize(Roles = "Admin,OperationsManager")]
 public class ZoneQuery
 {
     public async Task<IReadOnlyList<ZoneDto>> GetZones(
