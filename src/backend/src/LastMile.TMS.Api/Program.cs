@@ -1,5 +1,7 @@
 using Hangfire;
 using Hangfire.PostgreSql;
+using HotChocolate;
+using LastMile.TMS.Api.GraphQL;
 using LastMile.TMS.Application;
 using LastMile.TMS.Infrastructure;
 using LastMile.TMS.Persistence;
@@ -59,6 +61,23 @@ try
     builder.Services.AddSwaggerGen();
     builder.Services.AddSignalR();
 
+    builder.Services.AddGraphQLServer()
+        .AddQueryType<LastMile.TMS.Api.GraphQL.Queries.Query>()
+        .AddMutationType<LastMile.TMS.Api.GraphQL.Mutations.Mutation>()
+        .AddType<LastMile.TMS.Api.GraphQL.Queries.DepotQuery>()
+        .AddType<LastMile.TMS.Api.GraphQL.Queries.ZoneQuery>()
+        .AddType<LastMile.TMS.Api.GraphQL.Mutations.DepotMutation>()
+        .AddType<LastMile.TMS.Api.GraphQL.Mutations.ZoneMutation>()
+        .AddType<LastMile.TMS.Api.GraphQL.Types.DepotType>()
+        .AddType<LastMile.TMS.Api.GraphQL.Types.ZoneType>()
+        .AddType<LastMile.TMS.Api.GraphQL.Types.AddressType>()
+        .AddType<LastMile.TMS.Api.GraphQL.Types.OperatingHoursType>()
+        .AddType<LastMile.TMS.Api.GraphQL.Types.DailyAvailabilityType>()
+        .AddType<LastMile.TMS.Api.GraphQL.Types.DayOffType>()
+        .AddType<LastMile.TMS.Api.GraphQL.Types.GeoJsonPolygonType>()
+        .AddType<LastMile.TMS.Api.GraphQL.Types.GeoJsonPointType>()
+        .AddErrorFilter<LastMile.TMS.Api.GraphQL.ErrorFilters.ValidationErrorFilter>();
+
     builder.Services.AddStackExchangeRedisCache(options =>
         options.Configuration = builder.Configuration.GetConnectionString("Redis"));
 
@@ -69,18 +88,19 @@ try
 
     var app = builder.Build();
 
-    if (app.Environment.IsDevelopment())
-    {
-        app.UseSwagger();
-        app.UseSwaggerUI();
-    }
-
     app.UseSerilogRequestLogging();
     app.UseHttpsRedirection();
     app.UseAuthentication();
     app.UseAuthorization();
     app.MapControllers();
+    app.MapGraphQL("/graphql");
     app.UseHangfireDashboard("/hangfire");
+
+    if (app.Environment.IsDevelopment())
+    {
+        app.UseSwagger();
+        app.UseSwaggerUI();
+    }
 
     app.Run();
 }
