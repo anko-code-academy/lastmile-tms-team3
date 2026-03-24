@@ -33,4 +33,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         // Could add automatic audit trail here
         return base.SaveChangesAsync(cancellationToken);
     }
+
+    public async Task<List<Zone>> GetZonesAsync(CancellationToken cancellationToken = default)
+    {
+        return await Zones.Where(z => z.IsActive && z.Boundary != null).ToListAsync(cancellationToken);
+    }
 }

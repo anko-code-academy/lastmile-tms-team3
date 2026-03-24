@@ -1,5 +1,6 @@
 using FluentValidation;
 using LastMile.TMS.Application.Common.Behaviors;
+using LastMile.TMS.Application.Services;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -14,6 +15,7 @@ public static class DependencyInjection
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(assembly));
         services.AddValidatorsFromAssembly(assembly);
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+        services.AddScoped<IZoneMatchingService, ZoneMatchingService>();
 
         return services;
     }

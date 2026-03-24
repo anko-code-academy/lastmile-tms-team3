@@ -1,5 +1,7 @@
 using Hangfire;
 using Hangfire.PostgreSql;
+using HotChocolate;
+using LastMile.TMS.Api.GraphQL;
 using LastMile.TMS.Application;
 using LastMile.TMS.Infrastructure;
 using LastMile.TMS.Persistence;
@@ -58,6 +60,25 @@ try
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen();
     builder.Services.AddSignalR();
+    builder.Services.AddCors(options =>
+    {
+        options.AddDefaultPolicy(policy =>
+        {
+            policy.AllowAnyOrigin()
+                  .AllowAnyMethod()
+                  .AllowAnyHeader();
+        });
+    });
+
+    builder.Services.AddGraphQLServer()
+        .AddQueryType<LastMile.TMS.Api.GraphQL.Queries.Query>()
+        .AddMutationType<LastMile.TMS.Api.GraphQL.Mutations.Mutation>()
+        .AddType<LastMile.TMS.Api.GraphQL.Queries.DepotQuery>()
+        .AddType<LastMile.TMS.Api.GraphQL.Queries.ZoneQuery>()
+        .AddType<LastMile.TMS.Api.GraphQL.Mutations.DepotMutation>()
+        .AddType<LastMile.TMS.Api.GraphQL.Mutations.ZoneMutation>()
+        .AddType<LastMile.TMS.Api.GraphQL.Mutations.ParcelMutation>()
+        .AddErrorFilter<LastMile.TMS.Api.GraphQL.ErrorFilters.ValidationErrorFilter>();
 
     builder.Services.AddStackExchangeRedisCache(options =>
         options.Configuration = builder.Configuration.GetConnectionString("Redis"));
@@ -69,18 +90,20 @@ try
 
     var app = builder.Build();
 
+    app.UseSerilogRequestLogging();
+    app.UseHttpsRedirection();
+    app.UseCors();
+    app.UseAuthentication();
+    app.UseAuthorization();
+    app.MapControllers();
+    app.MapGraphQL("/graphql");
+    app.UseHangfireDashboard("/hangfire");
+
     if (app.Environment.IsDevelopment())
     {
         app.UseSwagger();
         app.UseSwaggerUI();
     }
-
-    app.UseSerilogRequestLogging();
-    app.UseHttpsRedirection();
-    app.UseAuthentication();
-    app.UseAuthorization();
-    app.MapControllers();
-    app.UseHangfireDashboard("/hangfire");
 
     app.Run();
 }
