@@ -26,5 +26,5 @@ public class Vehicle : BaseAuditableEntity
     public Guid DepotId { get; set; }
 
     [ForeignKey(nameof(DepotId))]
-    public Depot Depot { get; set; } = null!;
+    public required Depot Depot { get; set; }
 }

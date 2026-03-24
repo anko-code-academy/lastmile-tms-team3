@@ -1,4 +1,5 @@
 using LastMile.TMS.Application.Common.Interfaces;
+using LastMile.TMS.Domain.Common;
 using LastMile.TMS.Domain.Entities;
 using LastMile.TMS.Persistence.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -30,12 +31,34 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        // Could add automatic audit trail here
+        StampAuditableEntities();
         return base.SaveChangesAsync(cancellationToken);
     }
 
     public async Task<List<Zone>> GetZonesAsync(CancellationToken cancellationToken = default)
     {
         return await Zones.Where(z => z.IsActive && z.Boundary != null).ToListAsync(cancellationToken);
+    }
+
+    private void StampAuditableEntities()
+    {
+        var now = DateTimeOffset.UtcNow;
+
+        foreach (var entry in ChangeTracker.Entries<BaseAuditableEntity>())
+        {
+            if (entry.State == EntityState.Added)
+            {
+                if (entry.Entity.CreatedAt <= DateTimeOffset.MinValue)
+                {
+                    entry.Entity.CreatedAt = now;
+                }
+
+                entry.Entity.LastModifiedAt = null;
+            }
+            else if (entry.State == EntityState.Modified)
+            {
+                entry.Entity.LastModifiedAt = now;
+            }
+        }
     }
 }

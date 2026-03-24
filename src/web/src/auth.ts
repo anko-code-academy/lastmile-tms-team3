@@ -66,13 +66,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const u = user as { accessToken: string; refreshToken: string; role?: string };
         token.accessToken = u.accessToken;
         token.refreshToken = u.refreshToken;
-        token.role = u.role;
+        try {
+          // JWT uses base64url encoding; convert to standard base64 before decoding
+          const base64Url = u.accessToken.split(".")[1];
+          const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+          const payload = JSON.parse(
+            Buffer.from(base64, "base64").toString("utf-8"),
+          );
+          token.role = payload.role;
+        } catch {
+          // ignore
+        }
       }
       return token;
     },
     session({ session, token }) {
       session.accessToken = token.accessToken as string;
-      session.role = token.role;
+      const role = token.role;
+      session.user.role = Array.isArray(role) ? role[0] : role;
       return session;
     },
   },

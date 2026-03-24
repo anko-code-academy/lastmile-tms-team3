@@ -1,13 +1,15 @@
 using Hangfire;
-using Microsoft.OpenApi;
 using Hangfire.PostgreSql;
-using LastMile.TMS.Api.GraphQL;
-using LastMile.TMS.Application;
+using LastMile.TMS.Api.GraphQL.ErrorFilters;
 using LastMile.TMS.Api.GraphQL.Mutations;
 using LastMile.TMS.Api.GraphQL.Queries;
+using LastMile.TMS.Application;
 using LastMile.TMS.Infrastructure;
 using LastMile.TMS.Persistence;
 using LastMile.TMS.Persistence.Identity;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.OpenApi;
+using OpenIddict.Server.AspNetCore;
 using OpenIddict.Validation.AspNetCore;
 using Serilog;
 
@@ -78,6 +80,13 @@ try
             policy.RequireAuthenticatedUser();
             policy.RequireRole("Admin");
         });
+
+        options.AddPolicy("OperationsManager", policy =>
+        {
+            policy.AddAuthenticationSchemes(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme);
+            policy.RequireAuthenticatedUser();
+            policy.RequireRole("OperationsManager");
+        });
     });
 
     builder.Services
@@ -87,12 +96,12 @@ try
         .AddMutationType<Mutation>()
         .AddType<DepotQuery>()
         .AddType<ZoneQuery>()
-        .AddType<UserQuery>()
-        .AddType<DepotMutation>()
-        .AddType<ZoneMutation>()
         .AddType<ParcelMutation>()
+        .AddType<VehicleQuery>()
+        .AddType<VehicleMutation>()
+        .AddType<UserQuery>()
         .AddType<UserMutation>()
-        .AddErrorFilter<LastMile.TMS.Api.GraphQL.ErrorFilters.ValidationErrorFilter>();
+        .AddErrorFilter<ValidationErrorFilter>();
 
     builder.Services.AddControllers();
     builder.Services.AddEndpointsApiExplorer();

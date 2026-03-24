@@ -42,6 +42,7 @@ public class VehicleConfiguration : IEntityTypeConfiguration<Vehicle>
         builder.HasOne(v => v.Depot)
             .WithMany(d => d.Vehicles)
             .HasForeignKey(v => v.DepotId)
+            .IsRequired()
             .OnDelete(DeleteBehavior.Restrict);
 
         // Indexes
