@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 import { useZones, useCreateZone, useUpdateZone, useDeleteZone } from "@/lib/hooks/useZones";
 import { useDepots } from "@/lib/hooks/useDepots";
 import { ZoneDto, CreateZoneDto, GeoJsonPointDto } from "@/lib/types/zone";
@@ -50,7 +51,7 @@ function TmBtn({ children, onClick, type = "button", disabled, variant = "primar
     ghost: { background: "transparent", border: "none", color: S.muted },
   };
   return (
-    <button type={type} onClick={onClick} disabled={disabled} style={{ fontFamily: S.mono, fontSize: "11px", letterSpacing: ".1em", textTransform: "uppercase", padding: ".45rem .9rem", borderRadius: 6, cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? .5 : 1, ...variants[variant], ...style }}>
+    <button type={type} onClick={onClick} disabled={disabled} className={`tm-btn-${variant}`} style={{ fontFamily: S.mono, fontSize: "11px", letterSpacing: ".1em", textTransform: "uppercase", padding: ".45rem .9rem", borderRadius: 6, cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? .5 : 1, ...variants[variant], ...style }}>
       {children}
     </button>
   );
@@ -63,6 +64,8 @@ const inputStyle: React.CSSProperties = {
 };
 
 export default function ZonesPage() {
+  const { data: session } = useSession();
+  const isAdmin = session?.role === "Admin";
   const { data: zones, isLoading: zonesLoading } = useZones(undefined, true);
   const { data: depots, isLoading: depotsLoading } = useDepots(true);
   const createMutation = useCreateZone();
@@ -150,9 +153,11 @@ export default function ZonesPage() {
     { label: "Parcels", href: "#" },
     { label: "Routes", href: "#" },
     { label: "Drivers", href: "#" },
-    { label: "Depot", href: "/admin/depots" },
-    { label: "Zones", href: "/admin/zones", active: true },
-    { label: "Users", href: "/admin/users" },
+    ...(isAdmin ? [
+      { label: "Depot", href: "/admin/depots" },
+      { label: "Zones", href: "/admin/zones", active: true },
+      { label: "Users", href: "/admin/users" },
+    ] : []),
   ];
 
   return (

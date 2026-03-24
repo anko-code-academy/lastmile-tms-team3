@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 import { useDepots, useCreateDepot, useUpdateDepot, useDeleteDepot } from "@/lib/hooks/useDepots";
 import { DepotDto, CreateDepotDto, DayOffDto } from "@/lib/types/depot";
 
@@ -35,7 +36,6 @@ const S = {
   bg: "#080c14" as const,
   panel: "rgba(255,255,255,.025)" as const,
   border: "rgba(255,255,255,.07)" as const,
-  borderHover: "rgba(245,158,11,.25)" as const,
   text: "#e2e8f0" as const,
   muted: "#4a5f7a" as const,
   dim: "#3a526e" as const,
@@ -46,27 +46,6 @@ const S = {
   red: "#ef4444" as const,
   mono: "var(--font-geist-mono, monospace)" as const,
 };
-
-function TmInput({
-  id, value, onChange, required, type = "text", placeholder, style,
-}: {
-  id?: string; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  required?: boolean; type?: string; placeholder?: string;
-  style?: React.CSSProperties;
-}) {
-  return (
-    <input
-      id={id} type={type} value={value} onChange={onChange}
-      required={required} placeholder={placeholder}
-      style={{
-        background: S.inputBg, border: `1px solid ${S.inputBorder}`,
-        color: S.text, borderRadius: 6, padding: ".5rem .75rem",
-        fontSize: ".875rem", width: "100%", outline: "none",
-        fontFamily: S.mono, ...style,
-      }}
-    />
-  );
-}
 
 function TmLabel({ children, htmlFor }: { children: React.ReactNode; htmlFor?: string }) {
   return (
@@ -96,6 +75,7 @@ function TmBtn({
   return (
     <button
       type={type} onClick={onClick} disabled={disabled}
+      className={`tm-btn-${variant}`}
       style={{
         fontFamily: S.mono, fontSize: "11px", letterSpacing: ".1em",
         textTransform: "uppercase", padding: ".45rem .9rem", borderRadius: 6,
@@ -109,6 +89,8 @@ function TmBtn({
 }
 
 export default function DepotsPage() {
+  const { data: session } = useSession();
+  const isAdmin = session?.role === "Admin";
   const { data: depots, isLoading, error } = useDepots(true);
   const createMutation = useCreateDepot();
   const updateMutation = useUpdateDepot();
@@ -183,8 +165,10 @@ export default function DepotsPage() {
     { label: "Parcels", href: "#" },
     { label: "Routes", href: "#" },
     { label: "Drivers", href: "#" },
-    { label: "Depot", href: "/admin/depots", active: true },
-    { label: "Users", href: "/admin/users" },
+    ...(isAdmin ? [
+      { label: "Depot", href: "/admin/depots", active: true },
+      { label: "Users", href: "/admin/users" },
+    ] : []),
   ];
 
   return (
