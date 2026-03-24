@@ -8,11 +8,12 @@ namespace LastMile.TMS.Application.Tests.Users;
 public class DeactivateUserCommandHandlerTests
 {
     private readonly IIdentityService _identityService = Substitute.For<IIdentityService>();
+    private readonly ICurrentUserService _currentUserService = Substitute.For<ICurrentUserService>();
     private readonly DeactivateUserCommandHandler _handler;
 
     public DeactivateUserCommandHandlerTests()
     {
-        _handler = new DeactivateUserCommandHandler(_identityService);
+        _handler = new DeactivateUserCommandHandler(_identityService, _currentUserService);
     }
 
     [Fact]
@@ -36,5 +37,17 @@ public class DeactivateUserCommandHandlerTests
         var act = async () => await _handler.Handle(new DeactivateUserCommand(userId), CancellationToken.None);
 
         await act.Should().ThrowAsync<KeyNotFoundException>();
+    }
+
+    [Fact]
+    public async Task Handle_Throws_InvalidOperationException_When_Admin_Deactivates_Themselves()
+    {
+        var userId = Guid.NewGuid();
+        _currentUserService.UserId.Returns(userId.ToString());
+
+        var act = async () => await _handler.Handle(new DeactivateUserCommand(userId), CancellationToken.None);
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+        await _identityService.DidNotReceive().DeactivateUserAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>());
     }
 }

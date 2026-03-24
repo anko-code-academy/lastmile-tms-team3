@@ -39,6 +39,8 @@ public class IdentityService(UserManager<AppUser> userManager) : IIdentityServic
         if (!result.Succeeded)
             return (Guid.Empty, result.Errors.Select(e => e.Description).ToArray());
 
+        await userManager.AddToRoleAsync(user, role.ToString());
+
         return (user.Id, Array.Empty<string>());
     }
 

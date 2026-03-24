@@ -1099,7 +1099,8 @@ export default function UsersClient() {
                         >
                           Reset
                         </button>
-                        {user.isActive && (
+                        {user.isActive &&
+                          user.email !== session?.user?.email && (
                           <button
                             className="action-btn danger"
                             disabled={deactivateMutation.isPending}
