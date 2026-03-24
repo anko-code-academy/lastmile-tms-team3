@@ -380,7 +380,7 @@ export default function UsersClient() {
 
         .user-row {
           display: grid;
-          grid-template-columns: 2fr 2fr 120px 90px 110px auto;
+          grid-template-columns: minmax(0, 2fr) minmax(0, 2fr) 120px 90px 110px 160px;
           gap: 1rem; align-items: center;
           padding: .875rem 1.25rem;
           border-bottom: 1px solid rgba(255,255,255,.04);
@@ -391,7 +391,7 @@ export default function UsersClient() {
 
         .col-header {
           display: grid;
-          grid-template-columns: 2fr 2fr 120px 90px 110px auto;
+          grid-template-columns: minmax(0, 2fr) minmax(0, 2fr) 120px 90px 110px 160px;
           gap: 1rem;
           padding: .5rem 1.25rem .625rem;
           border-bottom: 1px solid rgba(255,255,255,.04);
@@ -1046,6 +1046,7 @@ export default function UsersClient() {
                           textTransform: "uppercase",
                           whiteSpace: "nowrap",
                           display: "inline-block",
+                          justifySelf: "start",
                         }}
                       >
                         {ROLE_LABEL[user.role]}
@@ -1066,6 +1067,7 @@ export default function UsersClient() {
                           borderRadius: "4px",
                           textTransform: "uppercase",
                           display: "inline-block",
+                          justifySelf: "start",
                         }}
                       >
                         {user.isActive ? "Active" : "Inactive"}
@@ -1078,6 +1080,7 @@ export default function UsersClient() {
                           fontSize: ".7rem",
                           color: "#1e2d42",
                           whiteSpace: "nowrap",
+                          justifySelf: "start",
                         }}
                       >
                         {created}
