@@ -1,10 +1,13 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
-import UsersClient from "./UsersClient";
 
-export default async function UsersPage() {
+export default async function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const session = await auth();
   if (!session) redirect("/login");
   if (session.role !== "Admin") redirect("/");
-  return <UsersClient />;
+  return <>{children}</>;
 }

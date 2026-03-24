@@ -33,8 +33,10 @@ export default async function Home() {
     { label: "Parcels", href: "#" },
     { label: "Routes", href: "#" },
     { label: "Drivers", href: "#" },
-    { label: "Depot", href: "#" },
-    ...(isAdmin ? [{ label: "Users", href: "/users" }] : []),
+    ...(isAdmin ? [
+      { label: "Depot", href: "/admin/depots" },
+      { label: "Users", href: "/admin/users" },
+    ] : []),
   ];
 
   return (
@@ -193,7 +195,7 @@ export default async function Home() {
               />
               <span style={{
                 fontFamily: "var(--font-geist-mono, monospace)",
-                fontSize: "9px", color: "#2d6a3f", letterSpacing: ".15em",
+                fontSize: "9px", color: "#3a9e5c", letterSpacing: ".15em",
               }}>
                 LIVE
               </span>
@@ -309,7 +311,7 @@ export default async function Home() {
                   </span>
                   <span style={{
                     fontFamily: "var(--font-geist-mono, monospace)",
-                    fontSize: "9px", color: "#1e2d42", letterSpacing: ".1em",
+                    fontSize: "9px", color: "#3a526e", letterSpacing: ".1em",
                   }}>
                     AUTO-REFRESH 60s
                   </span>
@@ -318,7 +320,7 @@ export default async function Home() {
                   <div key={`${a.time}-${a.id}`} className="activity-row">
                     <span style={{
                       fontFamily: "var(--font-geist-mono, monospace)",
-                      fontSize: "10px", color: "#1e2d42", letterSpacing: ".05em",
+                      fontSize: "10px", color: "#3a526e", letterSpacing: ".05em",
                       flexShrink: 0, width: "38px",
                     }}>
                       {a.time}
@@ -358,7 +360,7 @@ export default async function Home() {
                   <span style={{
                     fontFamily: "var(--font-geist-mono, monospace)",
                     fontSize: "9px",
-                    color: "#2d6a3f",
+                    color: "#3a9e5c",
                     letterSpacing: ".1em",
                     display: "flex", alignItems: "center", gap: ".3rem",
                   }}>
@@ -390,7 +392,7 @@ export default async function Home() {
                           <span style={{
                             fontFamily: "var(--font-geist-mono, monospace)",
                             fontSize: "9px", letterSpacing: ".14em",
-                            color: "#1e2d42",
+                            color: "#3a526e",
                             padding: ".15rem .5rem",
                             border: "1px solid rgba(255,255,255,.06)",
                             borderRadius: "3px",
@@ -427,7 +429,7 @@ export default async function Home() {
                       }}>
                         <span style={{
                           fontFamily: "var(--font-geist-mono, monospace)",
-                          fontSize: "9px", color: "#1e2d42", letterSpacing: ".1em",
+                          fontSize: "9px", color: "#3a526e", letterSpacing: ".1em",
                         }}>
                           {pct}% complete
                         </span>
@@ -456,7 +458,7 @@ export default async function Home() {
           }}>
             <span style={{
               fontFamily: "var(--font-geist-mono, monospace)",
-              fontSize: "9px", color: "#1a2535", letterSpacing: ".15em",
+              fontSize: "9px", color: "#3a526e", letterSpacing: ".15em",
             }}>
               LAST MILE TMS · ANKO SOFTWARE · 2026
             </span>
@@ -473,7 +475,7 @@ export default async function Home() {
                   />
                   <span style={{
                     fontFamily: "var(--font-geist-mono, monospace)",
-                    fontSize: "9px", color: "#1e2d42", letterSpacing: ".14em",
+                    fontSize: "9px", color: "#3a526e", letterSpacing: ".14em",
                   }}>
                     {s}
                   </span>
