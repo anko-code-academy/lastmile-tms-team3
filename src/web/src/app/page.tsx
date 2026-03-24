@@ -26,7 +26,16 @@ export default async function Home() {
     { id: "R-034", driver: "O. Shevchenko",zone: "CENTRE", stops: 28, done: 9  },
   ];
 
-  const navItems = ["Dashboard", "Parcels", "Routes", "Drivers", "Depot"];
+  const isAdmin = session?.role === "Admin";
+
+  const navItems = [
+    { label: "Dashboard", href: "/" },
+    { label: "Parcels", href: "#" },
+    { label: "Routes", href: "#" },
+    { label: "Drivers", href: "#" },
+    { label: "Depot", href: "#" },
+    ...(isAdmin ? [{ label: "Users", href: "/users" }] : []),
+  ];
 
   return (
     <>
@@ -193,8 +202,12 @@ export default async function Home() {
             {/* Nav items */}
             <div style={{ display: "flex", gap: ".25rem", flex: 1 }}>
               {navItems.map((item) => (
-                <a key={item} href="#" className={`nav-link${item === "Dashboard" ? " active" : ""}`}>
-                  {item}
+                <a
+                  key={item.label}
+                  href={item.href}
+                  className={`nav-link${item.label === "Dashboard" ? " active" : ""}`}
+                >
+                  {item.label}
                 </a>
               ))}
             </div>

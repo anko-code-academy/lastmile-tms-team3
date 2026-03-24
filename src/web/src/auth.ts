@@ -44,11 +44,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           if (!res.ok) return null;
 
           const tokens = await res.json();
+          const payload = JSON.parse(
+            Buffer.from((tokens.access_token as string).split(".")[1], "base64url").toString()
+          );
           return {
             id: email,
             email,
             accessToken: tokens.access_token as string,
             refreshToken: tokens.refresh_token as string,
+            role: payload.role as string | undefined,
           };
         } catch {
           return null;
@@ -59,14 +63,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     jwt({ token, user }) {
       if (user) {
-        const u = user as { accessToken: string; refreshToken: string };
+        const u = user as { accessToken: string; refreshToken: string; role?: string };
         token.accessToken = u.accessToken;
         token.refreshToken = u.refreshToken;
+        token.role = u.role;
       }
       return token;
     },
     session({ session, token }) {
       session.accessToken = token.accessToken as string;
+      session.role = token.role;
       return session;
     },
   },

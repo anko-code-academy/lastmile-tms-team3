@@ -11,6 +11,7 @@ public static class DependencyInjection
     {
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
+        services.AddScoped<IEmailSender, LoggingEmailSender>();
 
         // Hangfire, SendGrid, Twilio, QuestPDF, etc. will be registered here
 

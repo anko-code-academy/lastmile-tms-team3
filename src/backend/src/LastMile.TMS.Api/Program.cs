@@ -1,11 +1,14 @@
 using Hangfire;
+using Microsoft.OpenApi;
 using Hangfire.PostgreSql;
-using HotChocolate;
 using LastMile.TMS.Api.GraphQL;
 using LastMile.TMS.Application;
+using LastMile.TMS.Api.GraphQL.Mutations;
+using LastMile.TMS.Api.GraphQL.Queries;
 using LastMile.TMS.Infrastructure;
 using LastMile.TMS.Persistence;
 using LastMile.TMS.Persistence.Identity;
+using OpenIddict.Validation.AspNetCore;
 using Serilog;
 
 Log.Logger = new LoggerConfiguration()
@@ -23,6 +26,11 @@ try
         .AddApplication()
         .AddInfrastructure(builder.Configuration)
         .AddPersistence(builder.Configuration);
+
+    builder.Services.AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
+    });
 
     builder.Services.AddOpenIddict()
         .AddCore(options =>
@@ -56,9 +64,57 @@ try
             options.UseAspNetCore();
         });
 
+    builder.Services.AddAuthorization(options =>
+    {
+        options.AddPolicy("Authenticated", policy =>
+        {
+            policy.AuthenticationSchemes.Add(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme);
+            policy.RequireAuthenticatedUser();
+        });
+
+        options.AddPolicy("Admin", policy =>
+        {
+            policy.AuthenticationSchemes.Add(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme);
+            policy.RequireAuthenticatedUser();
+            policy.RequireRole("Admin");
+        });
+    });
+
+    builder.Services
+        .AddGraphQLServer()
+        .AddAuthorization()
+        .AddQueryType<Query>()
+        .AddMutationType<Mutation>()
+        .AddType<DepotQuery>()
+        .AddType<ZoneQuery>()
+        .AddType<UserQuery>()
+        .AddType<DepotMutation>()
+        .AddType<ZoneMutation>()
+        .AddType<ParcelMutation>()
+        .AddType<UserMutation>()
+        .AddErrorFilter<LastMile.TMS.Api.GraphQL.ErrorFilters.ValidationErrorFilter>();
+
     builder.Services.AddControllers();
     builder.Services.AddEndpointsApiExplorer();
-    builder.Services.AddSwaggerGen();
+    builder.Services.AddSwaggerGen(options =>
+    {
+        options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+        {
+            Name = "Authorization",
+            Type = SecuritySchemeType.Http,
+            Scheme = "bearer",
+            BearerFormat = "JWT",
+            In = ParameterLocation.Header,
+            Description = "Paste the access_token from POST /connect/token"
+        });
+        options.AddSecurityRequirement(_ => new OpenApiSecurityRequirement
+        {
+            {
+                new OpenApiSecuritySchemeReference("Bearer"),
+                new List<string>()
+            }
+        });
+    });
     builder.Services.AddSignalR();
     builder.Services.AddCors(options =>
     {
@@ -69,16 +125,6 @@ try
                   .AllowAnyHeader();
         });
     });
-
-    builder.Services.AddGraphQLServer()
-        .AddQueryType<LastMile.TMS.Api.GraphQL.Queries.Query>()
-        .AddMutationType<LastMile.TMS.Api.GraphQL.Mutations.Mutation>()
-        .AddType<LastMile.TMS.Api.GraphQL.Queries.DepotQuery>()
-        .AddType<LastMile.TMS.Api.GraphQL.Queries.ZoneQuery>()
-        .AddType<LastMile.TMS.Api.GraphQL.Mutations.DepotMutation>()
-        .AddType<LastMile.TMS.Api.GraphQL.Mutations.ZoneMutation>()
-        .AddType<LastMile.TMS.Api.GraphQL.Mutations.ParcelMutation>()
-        .AddErrorFilter<LastMile.TMS.Api.GraphQL.ErrorFilters.ValidationErrorFilter>();
 
     builder.Services.AddStackExchangeRedisCache(options =>
         options.Configuration = builder.Configuration.GetConnectionString("Redis"));
