@@ -3,8 +3,8 @@ using FluentAssertions;
 
 namespace LastMile.TMS.Api.Tests.Auth;
 
+[Collection("ApiWebApplication")]
 public class LoginIntegrationTests(ApiWebApplicationFactory factory)
-    : IClassFixture<ApiWebApplicationFactory>
 {
     [Fact]
     public async Task Token_Endpoint_Should_Return_Unauthorized_For_Invalid_Credentials()

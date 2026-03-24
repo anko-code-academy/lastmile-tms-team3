@@ -4,8 +4,8 @@ using FluentAssertions;
 
 namespace LastMile.TMS.Api.Tests.GraphQL;
 
+[Collection("ApiWebApplication")]
 public class UserGraphQLTests(ApiWebApplicationFactory factory)
-    : IClassFixture<ApiWebApplicationFactory>
 {
     [Fact]
     public async Task GraphQL_Endpoint_Should_Exist()
