@@ -1,3 +1,5 @@
+import { getSession } from "next-auth/react";
+
 const GRAPHQL_API_URL = `${process.env.NEXT_PUBLIC_API_URL}/graphql`;
 
 interface GraphQLResponse<T> {
@@ -9,10 +11,14 @@ export async function graphql<T>(
   query: string,
   variables?: Record<string, unknown>
 ): Promise<T> {
+  const session = await getSession();
+  const token = session?.accessToken;
+
   const res = await fetch(GRAPHQL_API_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify({ query, variables }),
   });

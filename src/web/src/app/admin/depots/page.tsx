@@ -1,47 +1,96 @@
 "use client";
 
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 import { useDepots, useCreateDepot, useUpdateDepot, useDeleteDepot } from "@/lib/hooks/useDepots";
-import { DepotDto, CreateDepotDto, DailyAvailabilityDto, DayOffDto } from "@/lib/types/depot";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useRouter } from "next/navigation";
+import { DepotDto, CreateDepotDto, DayOffDto } from "@/lib/types/depot";
 
 const DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
-// Convert "HH:mm" to ISO 8601 duration format "PT#{hours}H#{minutes}M"
-function toDuration(time: string): string {
+// Convert "HH:mm" → "HH:mm:ss" for HotChocolate LocalTime scalar
+function toTimeOnly(time: string): string {
   if (!time) return "";
-  const [hours, minutes] = time.split(":");
-  return `PT${hours}H${minutes}M`;
+  return `${time}:00`;
 }
 
-// Convert ISO 8601 duration (e.g., "PT9H", "PT9H30M") to "HH:mm" format
-function fromDuration(duration: string): string {
-  if (!duration) return "";
-  // Parse PT9H or PT9H30M format
-  const hoursMatch = duration.match(/PT(\d+)H/);
-  const minutesMatch = duration.match(/(\d+)M/);
-  const hours = hoursMatch ? hoursMatch[1] : "00";
-  const minutes = minutesMatch ? minutesMatch[1] : "00";
-  return `${hours.padStart(2, "0")}:${minutes.padStart(2, "0")}`;
+// Convert "HH:mm:ss" → "HH:mm" for <input type="time">
+function fromTimeOnly(time: string): string {
+  if (!time) return "";
+  return time.substring(0, 5);
 }
 
-const defaultSchedule: DailyAvailabilityDto[] = DAYS_OF_WEEK.map((day) => ({
+const defaultSchedule = DAYS_OF_WEEK.map((day) => ({
   dayOfWeek: day,
   startTime: "09:00",
   endTime: "17:00",
 }));
 
-const emptyOperatingHours = {
-  schedule: defaultSchedule,
-  daysOff: [],
+const emptyOperatingHours = { schedule: defaultSchedule, daysOff: [] as DayOffDto[] };
+
+const emptyAddress = {
+  street1: "", street2: "", city: "", state: "",
+  postalCode: "", countryCode: "US", isResidential: false,
 };
 
+const S = {
+  bg: "#080c14" as const,
+  panel: "rgba(255,255,255,.025)" as const,
+  border: "rgba(255,255,255,.07)" as const,
+  text: "#e2e8f0" as const,
+  muted: "#4a5f7a" as const,
+  dim: "#3a526e" as const,
+  accent: "#f59e0b" as const,
+  inputBg: "rgba(255,255,255,.05)" as const,
+  inputBorder: "rgba(255,255,255,.1)" as const,
+  green: "#22c55e" as const,
+  red: "#ef4444" as const,
+  mono: "var(--font-geist-mono, monospace)" as const,
+};
+
+function TmLabel({ children, htmlFor }: { children: React.ReactNode; htmlFor?: string }) {
+  return (
+    <label htmlFor={htmlFor} style={{
+      display: "block", fontFamily: S.mono, fontSize: "10px",
+      letterSpacing: ".14em", color: S.muted, textTransform: "uppercase",
+      marginBottom: ".4rem",
+    }}>
+      {children}
+    </label>
+  );
+}
+
+function TmBtn({
+  children, onClick, type = "button", disabled, variant = "primary", style,
+}: {
+  children: React.ReactNode; onClick?: () => void; type?: "button" | "submit" | "reset";
+  disabled?: boolean; variant?: "primary" | "secondary" | "danger" | "ghost";
+  style?: React.CSSProperties;
+}) {
+  const variants = {
+    primary: { background: "rgba(245,158,11,.12)", border: "1px solid rgba(245,158,11,.35)", color: S.accent },
+    secondary: { background: "rgba(255,255,255,.04)", border: `1px solid ${S.inputBorder}`, color: S.muted },
+    danger: { background: "rgba(239,68,68,.08)", border: "1px solid rgba(239,68,68,.3)", color: "#f87171" },
+    ghost: { background: "transparent", border: "none", color: S.muted },
+  };
+  return (
+    <button
+      type={type} onClick={onClick} disabled={disabled}
+      className={`tm-btn-${variant}`}
+      style={{
+        fontFamily: S.mono, fontSize: "11px", letterSpacing: ".1em",
+        textTransform: "uppercase", padding: ".45rem .9rem", borderRadius: 6,
+        cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? .5 : 1,
+        ...variants[variant], ...style,
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
 export default function DepotsPage() {
-  const router = useRouter();
+  const { data: session } = useSession();
+  const isAdmin = session?.role === "Admin";
   const { data: depots, isLoading, error } = useDepots(true);
   const createMutation = useCreateDepot();
   const updateMutation = useUpdateDepot();
@@ -50,488 +99,290 @@ export default function DepotsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingDepot, setEditingDepot] = useState<DepotDto | null>(null);
   const [formData, setFormData] = useState<CreateDepotDto>({
-    name: "",
-    address: {
-      street1: "",
-      street2: "",
-      city: "",
-      state: "",
-      postalCode: "",
-      countryCode: "US",
-      isResidential: false,
-    },
-    isActive: true,
+    name: "", address: { ...emptyAddress }, isActive: true,
     operatingHours: emptyOperatingHours,
   });
   const [newDayOff, setNewDayOff] = useState({ date: "", reason: "", isPaid: false });
 
   const handleScheduleChange = (day: string, field: "startTime" | "endTime", value: string) => {
-    setFormData({
-      ...formData,
-      operatingHours: {
-        ...formData.operatingHours!,
-        schedule: formData.operatingHours!.schedule.map((d) =>
-          d.dayOfWeek === day ? { ...d, [field]: value } : d
-        ),
-      },
-    });
+    setFormData({ ...formData, operatingHours: { ...formData.operatingHours!, schedule: formData.operatingHours!.schedule.map((d) => d.dayOfWeek === day ? { ...d, [field]: value } : d) } });
   };
 
   const handleToggleDay = (day: string, isOpen: boolean) => {
-    setFormData({
-      ...formData,
-      operatingHours: {
-        ...formData.operatingHours!,
-        schedule: formData.operatingHours!.schedule.map((d) =>
-          d.dayOfWeek === day
-            ? { ...d, startTime: isOpen ? "09:00" : undefined, endTime: isOpen ? "17:00" : undefined }
-            : d
-        ),
-      },
-    });
+    setFormData({ ...formData, operatingHours: { ...formData.operatingHours!, schedule: formData.operatingHours!.schedule.map((d) => d.dayOfWeek === day ? { ...d, startTime: isOpen ? "09:00" : undefined, endTime: isOpen ? "17:00" : undefined } : d) } });
   };
 
   const handleAddDayOff = () => {
     if (!newDayOff.date) return;
-    const dayOff: DayOffDto = {
-      date: newDayOff.date,
-      reason: newDayOff.reason || undefined,
-      isPaid: newDayOff.isPaid,
-    };
-    setFormData({
-      ...formData,
-      operatingHours: {
-        ...formData.operatingHours!,
-        daysOff: [...formData.operatingHours!.daysOff, dayOff],
-      },
-    });
+    const dayOff: DayOffDto = { date: newDayOff.date, reason: newDayOff.reason || undefined, isPaid: newDayOff.isPaid };
+    setFormData({ ...formData, operatingHours: { ...formData.operatingHours!, daysOff: [...formData.operatingHours!.daysOff, dayOff] } });
     setNewDayOff({ date: "", reason: "", isPaid: false });
   };
 
   const handleRemoveDayOff = (date: string) => {
-    setFormData({
-      ...formData,
-      operatingHours: {
-        ...formData.operatingHours!,
-        daysOff: formData.operatingHours!.daysOff.filter((d) => d.date !== date),
-      },
-    });
+    setFormData({ ...formData, operatingHours: { ...formData.operatingHours!, daysOff: formData.operatingHours!.daysOff.filter((d) => d.date !== date) } });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Convert schedule times to ISO 8601 duration format for GraphQL
     const schedule = formData.operatingHours?.schedule.map((d) => ({
       dayOfWeek: d.dayOfWeek,
-      startTime: d.startTime ? toDuration(d.startTime) : undefined,
-      endTime: d.endTime ? toDuration(d.endTime) : undefined,
+      startTime: d.startTime ? toTimeOnly(d.startTime) : undefined,
+      endTime: d.endTime ? toTimeOnly(d.endTime) : undefined,
     }));
-
-    const payload = {
-      ...formData,
-      operatingHours: schedule?.some((d) => d.startTime)
-        ? { schedule, daysOff: formData.operatingHours?.daysOff || [] }
-        : undefined,
-    };
-
+    const payload = { ...formData, operatingHours: schedule?.some((d) => d.startTime) ? { schedule, daysOff: formData.operatingHours?.daysOff || [] } : undefined };
     try {
       if (editingDepot) {
-        await updateMutation.mutateAsync({
-          id: editingDepot.id,
-          ...payload,
-        });
+        await updateMutation.mutateAsync({ id: editingDepot.id, ...payload });
       } else {
         await createMutation.mutateAsync(payload);
       }
-
-      setShowForm(false);
-      setEditingDepot(null);
-      setFormData({
-        name: "",
-        address: {
-          street1: "",
-          street2: "",
-          city: "",
-          state: "",
-          postalCode: "",
-          countryCode: "US",
-          isResidential: false,
-        },
-        isActive: true,
-        operatingHours: emptyOperatingHours,
-      });
-    } catch (err) {
-      console.error("Failed to save depot:", err);
-    }
+      handleCancel();
+    } catch (err) { console.error(err); }
   };
 
   const handleEdit = (depot: DepotDto) => {
     setEditingDepot(depot);
-
-    // Convert ISO duration format back to "HH:mm" for editing
-    const schedule = depot.operatingHours?.schedule.map((d) => ({
-      dayOfWeek: d.dayOfWeek,
-      startTime: d.startTime ? fromDuration(d.startTime) : undefined,
-      endTime: d.endTime ? fromDuration(d.endTime) : undefined,
-    })) || defaultSchedule;
-
-    setFormData({
-      name: depot.name,
-      address: {
-        street1: depot.address.street1,
-        street2: depot.address.street2 || "",
-        city: depot.address.city,
-        state: depot.address.state,
-        postalCode: depot.address.postalCode,
-        countryCode: depot.address.countryCode,
-        isResidential: depot.address.isResidential,
-      },
-      isActive: depot.isActive,
-      operatingHours: depot.operatingHours
-        ? { schedule, daysOff: depot.operatingHours.daysOff }
-        : emptyOperatingHours,
-    });
+    const schedule = depot.operatingHours?.schedule.map((d) => ({ dayOfWeek: d.dayOfWeek, startTime: d.startTime ? fromTimeOnly(d.startTime) : undefined, endTime: d.endTime ? fromTimeOnly(d.endTime) : undefined })) || defaultSchedule;
+    setFormData({ name: depot.name, address: { street1: depot.address.street1, street2: depot.address.street2 || "", city: depot.address.city, state: depot.address.state, postalCode: depot.address.postalCode, countryCode: depot.address.countryCode, isResidential: depot.address.isResidential }, isActive: depot.isActive, operatingHours: depot.operatingHours ? { schedule, daysOff: depot.operatingHours.daysOff } : emptyOperatingHours });
     setShowForm(true);
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm("Are you sure you want to delete this depot?")) {
-      try {
-        await deleteMutation.mutateAsync(id);
-      } catch (err) {
-        console.error("Failed to delete depot:", err);
-      }
+    if (confirm("Delete this depot?")) {
+      try { await deleteMutation.mutateAsync(id); } catch (err) { console.error(err); }
     }
   };
 
   const handleCancel = () => {
-    setShowForm(false);
-    setEditingDepot(null);
-    setFormData({
-      name: "",
-      address: {
-        street1: "",
-        street2: "",
-        city: "",
-        state: "",
-        postalCode: "",
-        countryCode: "US",
-        isResidential: false,
-      },
-      isActive: true,
-      operatingHours: emptyOperatingHours,
-    });
+    setShowForm(false); setEditingDepot(null);
+    setFormData({ name: "", address: { ...emptyAddress }, isActive: true, operatingHours: emptyOperatingHours });
     setNewDayOff({ date: "", reason: "", isPaid: false });
   };
 
-  if (isLoading) return <div className="p-8">Loading...</div>;
-  if (error) return <div className="p-8">Error: {String(error)}</div>;
+  const navItems = [
+    { label: "Dashboard", href: "/" },
+    { label: "Parcels", href: "#" },
+    { label: "Routes", href: "#" },
+    { label: "Drivers", href: "#" },
+    ...(isAdmin ? [
+      { label: "Depot", href: "/admin/depots", active: true },
+      { label: "Users", href: "/admin/users" },
+    ] : []),
+  ];
 
   return (
-    <div className="container mx-auto p-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Depots</h1>
-        <div className="space-x-2">
-          <Button onClick={() => router.push("/")} variant="outline">
-            Back to Dashboard
-          </Button>
-          <Button onClick={() => setShowForm(true)}>
-            Add Depot
-          </Button>
-        </div>
-      </div>
+    <>
+      <style>{`
+        .tm-input:focus { border-color: rgba(245,158,11,.45) !important; box-shadow: 0 0 0 2px rgba(245,158,11,.08); }
+        .tm-input::placeholder { color: #3a526e; }
+        .tm-row:hover { background: rgba(255,255,255,.02); }
+        .tm-card:hover { border-color: rgba(245,158,11,.18) !important; }
+        .tm-btn-primary:hover { border-color: rgba(245,158,11,.6) !important; background: rgba(245,158,11,.18) !important; }
+        .tm-btn-secondary:hover { border-color: rgba(255,255,255,.2) !important; color: #e2e8f0 !important; }
+        .tm-btn-danger:hover { border-color: rgba(239,68,68,.5) !important; background: rgba(239,68,68,.14) !important; }
+        .tm-nav-link { font-family: var(--font-geist-mono,monospace); font-size:11px; letter-spacing:.14em; text-decoration:none; text-transform:uppercase; padding:.375rem .5rem; border-radius:4px; color:#3d4f6b; transition:color .15s,background .15s; }
+        .tm-nav-link:hover { color:#e2e8f0; background:rgba(255,255,255,.04); }
+        .tm-nav-link.active { color:#f59e0b; }
+        .tm-checkbox { accent-color: #f59e0b; width:14px; height:14px; cursor:pointer; }
+        .tm-select { background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); color:#e2e8f0; border-radius:6px; padding:.5rem .75rem; font-size:.875rem; width:100%; outline:none; font-family:var(--font-geist-mono,monospace); }
+        .tm-select:focus { border-color:rgba(245,158,11,.45); }
+        .tm-select option { background:#0f1929; color:#e2e8f0; }
+      `}</style>
 
-      {showForm && (
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>
-              {editingDepot ? "Edit Depot" : "Create Depot"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+      <div style={{ minHeight: "100vh", background: S.bg, color: S.text, position: "relative", overflow: "hidden" }}>
+        {/* Grid bg */}
+        <div style={{ position: "fixed", inset: 0, zIndex: 0, backgroundImage: "linear-gradient(rgba(30,42,66,.45) 1px,transparent 1px),linear-gradient(90deg,rgba(30,42,66,.45) 1px,transparent 1px)", backgroundSize: "52px 52px", pointerEvents: "none" }} />
+
+        <div style={{ position: "relative", zIndex: 1 }}>
+          {/* Navbar */}
+          <nav style={{ display: "flex", alignItems: "center", padding: "0 2rem", height: "56px", borderBottom: `1px solid ${S.border}`, background: "rgba(8,12,20,.85)", backdropFilter: "blur(12px)", position: "sticky", top: 0, zIndex: 10, gap: "2rem" }}>
+            <span style={{ fontFamily: S.mono, fontSize: ".875rem", fontWeight: 800, letterSpacing: "-.01em", color: S.text, flexShrink: 0 }}>
+              LAST <span style={{ color: S.accent }}>MILE</span> TMS
+            </span>
+            <div style={{ display: "flex", gap: ".25rem", flex: 1 }}>
+              {navItems.map((item) => (
+                <a key={item.label} href={item.href} className={`tm-nav-link${item.active ? " active" : ""}`}>{item.label}</a>
+              ))}
+            </div>
+          </nav>
+
+          {/* Page content */}
+          <div style={{ padding: "2rem", maxWidth: "1200px", margin: "0 auto" }}>
+
+            {/* Header */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "2rem" }}>
               <div>
-                <Label htmlFor="name">Name</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                />
+                <p style={{ fontFamily: S.mono, fontSize: "10px", letterSpacing: ".2em", color: S.accent, textTransform: "uppercase", marginBottom: ".375rem" }}>Management</p>
+                <h1 style={{ fontFamily: S.mono, fontSize: "1.5rem", fontWeight: 800, color: S.text, letterSpacing: "-.02em", lineHeight: 1 }}>Depots</h1>
               </div>
+              {!showForm && (
+                <TmBtn variant="primary" onClick={() => setShowForm(true)} style={{ lineHeight: 1 }} >
+                  + Add Depot
+                </TmBtn>
+              )}
+            </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="street1">Street Address</Label>
-                  <Input
-                    id="street1"
-                    value={formData.address.street1}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        address: { ...formData.address, street1: e.target.value },
-                      })
-                    }
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="street2">Street Address 2</Label>
-                  <Input
-                    id="street2"
-                    value={formData.address.street2}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        address: { ...formData.address, street2: e.target.value },
-                      })
-                    }
-                  />
-                </div>
-              </div>
+            {/* Loading / error */}
+            {isLoading && <p style={{ fontFamily: S.mono, fontSize: ".875rem", color: S.muted }}>Loading...</p>}
+            {error && <p style={{ fontFamily: S.mono, fontSize: ".875rem", color: S.red }}>Error: {String(error)}</p>}
 
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="city">City</Label>
-                  <Input
-                    id="city"
-                    value={formData.address.city}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        address: { ...formData.address, city: e.target.value },
-                      })
-                    }
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="state">State</Label>
-                  <Input
-                    id="state"
-                    value={formData.address.state}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        address: { ...formData.address, state: e.target.value },
-                      })
-                    }
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="postalCode">Postal Code</Label>
-                  <Input
-                    id="postalCode"
-                    value={formData.address.postalCode}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        address: { ...formData.address, postalCode: e.target.value },
-                      })
-                    }
-                    required
-                  />
-                </div>
-              </div>
+            {/* Form */}
+            {showForm && (
+              <div style={{ background: S.panel, border: `1px solid ${S.border}`, borderRadius: 10, marginBottom: "1.5rem", padding: "1.75rem" }}>
+                <p style={{ fontFamily: S.mono, fontSize: "10px", letterSpacing: ".18em", color: S.muted, textTransform: "uppercase", marginBottom: "1.25rem" }}>
+                  {editingDepot ? "Edit Depot" : "New Depot"}
+                </p>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="countryCode">Country Code</Label>
-                  <Input
-                    id="countryCode"
-                    value={formData.address.countryCode}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        address: { ...formData.address, countryCode: e.target.value },
-                      })
-                    }
-                    maxLength={2}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="isResidential">Type</Label>
-                  <div className="flex items-center gap-2 mt-2">
-                    <input
-                      type="checkbox"
-                      id="isResidential"
-                      checked={formData.address.isResidential}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          address: { ...formData.address, isResidential: e.target.checked },
-                        })
-                      }
-                    />
-                    <Label htmlFor="isResidential" className="font-normal">
-                      Residential Address
-                    </Label>
+                <form onSubmit={handleSubmit}>
+                  {/* Name */}
+                  <div style={{ marginBottom: "1rem" }}>
+                    <TmLabel htmlFor="name">Name</TmLabel>
+                    <input id="name" className="tm-input" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required style={{ background: S.inputBg, border: `1px solid ${S.inputBorder}`, color: S.text, borderRadius: 6, padding: ".5rem .75rem", fontSize: ".875rem", width: "100%", outline: "none", fontFamily: S.mono, boxSizing: "border-box" }} />
                   </div>
-                </div>
-              </div>
 
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="isActive"
-                  checked={formData.isActive}
-                  onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                />
-                <Label htmlFor="isActive" className="font-normal">
-                  Active
-                </Label>
-              </div>
-
-              {/* Operating Hours Section */}
-              <div className="border-t pt-4 mt-4">
-                <h3 className="font-semibold mb-4">Operating Hours</h3>
-
-                {/* Schedule */}
-                <div className="space-y-2 mb-4">
-                  <Label>Weekly Schedule</Label>
-                  {formData.operatingHours?.schedule.map((day) => (
-                    <div key={day.dayOfWeek} className="flex items-center gap-4">
-                      <span className="w-28 text-sm">{day.dayOfWeek}</span>
-                      <input
-                        type="checkbox"
-                        checked={!!day.startTime}
-                        onChange={(e) => handleToggleDay(day.dayOfWeek, e.target.checked)}
-                        className="rounded"
-                      />
-                      {day.startTime && (
-                        <>
-                          <Input
-                            type="time"
-                            value={day.startTime}
-                            onChange={(e) => handleScheduleChange(day.dayOfWeek, "startTime", e.target.value)}
-                            className="w-32"
-                          />
-                          <span>to</span>
-                          <Input
-                            type="time"
-                            value={day.endTime}
-                            onChange={(e) => handleScheduleChange(day.dayOfWeek, "endTime", e.target.value)}
-                            className="w-32"
-                          />
-                        </>
-                      )}
-                      {!day.startTime && <span className="text-gray-400 text-sm">Closed</span>}
+                  {/* Address */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
+                    <div>
+                      <TmLabel htmlFor="street1">Street</TmLabel>
+                      <input id="street1" className="tm-input" value={formData.address.street1} onChange={(e) => setFormData({ ...formData, address: { ...formData.address, street1: e.target.value } })} required style={{ background: S.inputBg, border: `1px solid ${S.inputBorder}`, color: S.text, borderRadius: 6, padding: ".5rem .75rem", fontSize: ".875rem", width: "100%", outline: "none", fontFamily: S.mono, boxSizing: "border-box" }} />
                     </div>
-                  ))}
-                </div>
-
-                {/* Days Off */}
-                <div className="space-y-2">
-                  <Label>Days Off</Label>
-                  <div className="flex gap-2 items-start">
-                    <Input
-                      type="date"
-                      value={newDayOff.date}
-                      onChange={(e) => setNewDayOff({ ...newDayOff, date: e.target.value })}
-                      className="w-40"
-                    />
-                    <Input
-                      placeholder="Reason (optional)"
-                      value={newDayOff.reason}
-                      onChange={(e) => setNewDayOff({ ...newDayOff, reason: e.target.value })}
-                      className="w-48"
-                    />
-                    <label className="flex items-center gap-1 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={newDayOff.isPaid}
-                        onChange={(e) => setNewDayOff({ ...newDayOff, isPaid: e.target.checked })}
-                      />
-                      Paid
-                    </label>
-                    <Button type="button" variant="outline" size="sm" onClick={handleAddDayOff}>
-                      Add
-                    </Button>
+                    <div>
+                      <TmLabel htmlFor="street2">Street 2</TmLabel>
+                      <input id="street2" className="tm-input" value={formData.address.street2} onChange={(e) => setFormData({ ...formData, address: { ...formData.address, street2: e.target.value } })} style={{ background: S.inputBg, border: `1px solid ${S.inputBorder}`, color: S.text, borderRadius: 6, padding: ".5rem .75rem", fontSize: ".875rem", width: "100%", outline: "none", fontFamily: S.mono, boxSizing: "border-box" }} />
+                    </div>
                   </div>
 
-                  {(formData.operatingHours?.daysOff.length ?? 0) > 0 && (
-                    <div className="mt-2 space-y-1">
-                      {formData.operatingHours?.daysOff.map((dayOff) => (
-                        <div key={dayOff.date} className="flex items-center gap-2 text-sm bg-gray-50 p-2 rounded">
-                          <span>{dayOff.date}</span>
-                          {dayOff.reason && <span className="text-gray-500">- {dayOff.reason}</span>}
-                          {dayOff.isPaid && <span className="text-green-600 text-xs">(Paid)</span>}
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveDayOff(dayOff.date)}
-                            className="ml-auto text-red-500 hover:text-red-700"
-                          >
-                            Remove
-                          </button>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
+                    {[
+                      { id: "city", label: "City", key: "city" as const, required: true },
+                      { id: "state", label: "State", key: "state" as const, required: true },
+                      { id: "postalCode", label: "Postal Code", key: "postalCode" as const, required: true },
+                    ].map(({ id, label, key, required }) => (
+                      <div key={id}>
+                        <TmLabel htmlFor={id}>{label}</TmLabel>
+                        <input id={id} className="tm-input" value={formData.address[key] as string} onChange={(e) => setFormData({ ...formData, address: { ...formData.address, [key]: e.target.value } })} required={required} style={{ background: S.inputBg, border: `1px solid ${S.inputBorder}`, color: S.text, borderRadius: 6, padding: ".5rem .75rem", fontSize: ".875rem", width: "100%", outline: "none", fontFamily: S.mono, boxSizing: "border-box" }} />
+                      </div>
+                    ))}
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
+                    <div>
+                      <TmLabel htmlFor="countryCode">Country Code</TmLabel>
+                      <input id="countryCode" className="tm-input" maxLength={2} value={formData.address.countryCode} onChange={(e) => setFormData({ ...formData, address: { ...formData.address, countryCode: e.target.value } })} required style={{ background: S.inputBg, border: `1px solid ${S.inputBorder}`, color: S.text, borderRadius: 6, padding: ".5rem .75rem", fontSize: ".875rem", width: "100%", outline: "none", fontFamily: S.mono, boxSizing: "border-box" }} />
+                    </div>
+                    <div style={{ display: "flex", gap: "1.5rem", alignItems: "flex-end", paddingBottom: ".5rem" }}>
+                      <label style={{ display: "flex", alignItems: "center", gap: ".5rem", cursor: "pointer" }}>
+                        <input type="checkbox" className="tm-checkbox" checked={formData.address.isResidential} onChange={(e) => setFormData({ ...formData, address: { ...formData.address, isResidential: e.target.checked } })} />
+                        <span style={{ fontFamily: S.mono, fontSize: "11px", color: S.muted, letterSpacing: ".08em" }}>Residential</span>
+                      </label>
+                      <label style={{ display: "flex", alignItems: "center", gap: ".5rem", cursor: "pointer" }}>
+                        <input type="checkbox" className="tm-checkbox" checked={formData.isActive} onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })} />
+                        <span style={{ fontFamily: S.mono, fontSize: "11px", color: S.muted, letterSpacing: ".08em" }}>Active</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Operating Hours */}
+                  <div style={{ borderTop: `1px solid ${S.border}`, paddingTop: "1.25rem", marginTop: "1.25rem" }}>
+                    <p style={{ fontFamily: S.mono, fontSize: "10px", letterSpacing: ".18em", color: S.muted, textTransform: "uppercase", marginBottom: "1rem" }}>Operating Hours</p>
+
+                    <div style={{ marginBottom: "1.25rem" }}>
+                      {formData.operatingHours?.schedule.map((day) => (
+                        <div key={day.dayOfWeek} className="tm-row" style={{ display: "flex", alignItems: "center", gap: "1rem", padding: ".35rem 0", borderRadius: 4 }}>
+                          <span style={{ fontFamily: S.mono, fontSize: "11px", color: S.muted, width: "96px", letterSpacing: ".06em" }}>{day.dayOfWeek}</span>
+                          <input type="checkbox" className="tm-checkbox" checked={!!day.startTime} onChange={(e) => handleToggleDay(day.dayOfWeek, e.target.checked)} />
+                          {day.startTime ? (
+                            <>
+                              <input type="time" className="tm-input" value={day.startTime} onChange={(e) => handleScheduleChange(day.dayOfWeek, "startTime", e.target.value)} style={{ background: S.inputBg, border: `1px solid ${S.inputBorder}`, color: S.text, borderRadius: 6, padding: ".35rem .6rem", fontSize: ".8rem", width: "110px", outline: "none", fontFamily: S.mono }} />
+                              <span style={{ fontFamily: S.mono, fontSize: "11px", color: S.dim }}>—</span>
+                              <input type="time" className="tm-input" value={day.endTime} onChange={(e) => handleScheduleChange(day.dayOfWeek, "endTime", e.target.value)} style={{ background: S.inputBg, border: `1px solid ${S.inputBorder}`, color: S.text, borderRadius: 6, padding: ".35rem .6rem", fontSize: ".8rem", width: "110px", outline: "none", fontFamily: S.mono }} />
+                            </>
+                          ) : (
+                            <span style={{ fontFamily: S.mono, fontSize: "10px", color: S.dim, letterSpacing: ".1em" }}>CLOSED</span>
+                          )}
                         </div>
                       ))}
                     </div>
-                  )}
-                </div>
-              </div>
 
-              <div className="flex gap-2">
-                <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
-                  {createMutation.isPending || updateMutation.isPending ? "Saving..." : "Save"}
-                </Button>
-                <Button type="button" variant="outline" onClick={handleCancel}>
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      )}
+                    {/* Days off */}
+                    <p style={{ fontFamily: S.mono, fontSize: "10px", letterSpacing: ".14em", color: S.muted, textTransform: "uppercase", marginBottom: ".75rem" }}>Days Off</p>
+                    <div style={{ display: "flex", gap: ".75rem", alignItems: "flex-end", marginBottom: ".75rem", flexWrap: "wrap" }}>
+                      <div>
+                        <TmLabel>Date</TmLabel>
+                        <input type="date" className="tm-input" value={newDayOff.date} onChange={(e) => setNewDayOff({ ...newDayOff, date: e.target.value })} style={{ background: S.inputBg, border: `1px solid ${S.inputBorder}`, color: S.text, borderRadius: 6, padding: ".5rem .75rem", fontSize: ".875rem", width: "150px", outline: "none", fontFamily: S.mono }} />
+                      </div>
+                      <div>
+                        <TmLabel>Reason</TmLabel>
+                        <input className="tm-input" placeholder="Optional" value={newDayOff.reason} onChange={(e) => setNewDayOff({ ...newDayOff, reason: e.target.value })} style={{ background: S.inputBg, border: `1px solid ${S.inputBorder}`, color: S.text, borderRadius: 6, padding: ".5rem .75rem", fontSize: ".875rem", width: "180px", outline: "none", fontFamily: S.mono }} />
+                      </div>
+                      <label style={{ display: "flex", alignItems: "center", gap: ".5rem", marginBottom: ".5rem", cursor: "pointer" }}>
+                        <input type="checkbox" className="tm-checkbox" checked={newDayOff.isPaid} onChange={(e) => setNewDayOff({ ...newDayOff, isPaid: e.target.checked })} />
+                        <span style={{ fontFamily: S.mono, fontSize: "11px", color: S.muted, letterSpacing: ".08em" }}>Paid</span>
+                      </label>
+                      <TmBtn variant="secondary" onClick={handleAddDayOff} style={{ marginBottom: ".5rem" }}>Add</TmBtn>
+                    </div>
 
-      <div className="grid gap-4">
-        {depots?.map((depot) => (
-          <Card key={depot.id}>
-            <CardContent className="p-4">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="font-semibold">{depot.name}</h3>
-                  <p className="text-sm text-gray-600">
-                    {depot.address.street1}
-                    {depot.address.street2 && `, ${depot.address.street2}`}
-                    , {depot.address.city}, {depot.address.state} {depot.address.postalCode}
-                  </p>
-                  <p className="text-sm">
-                    Status: <span className={depot.isActive ? "text-green-600" : "text-red-600"}>
-                      {depot.isActive ? "Active" : "Inactive"}
-                    </span>
-                  </p>
-                  {depot.operatingHours?.schedule && (
-                    <p className="text-xs text-gray-500 mt-1">
-                      Hours: {depot.operatingHours.schedule.filter(d => d.startTime).length} days configured
-                      {depot.operatingHours.daysOff.length > 0 && `, ${depot.operatingHours.daysOff.length} days off`}
+                    {(formData.operatingHours?.daysOff.length ?? 0) > 0 && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: ".4rem" }}>
+                        {formData.operatingHours?.daysOff.map((d) => (
+                          <div key={d.date} style={{ display: "flex", alignItems: "center", gap: ".75rem", background: "rgba(255,255,255,.03)", border: `1px solid ${S.border}`, borderRadius: 6, padding: ".4rem .75rem" }}>
+                            <span style={{ fontFamily: S.mono, fontSize: "11px", color: S.accent }}>{d.date}</span>
+                            {d.reason && <span style={{ fontSize: ".8rem", color: S.muted }}>{d.reason}</span>}
+                            {d.isPaid && <span style={{ fontFamily: S.mono, fontSize: "9px", color: S.green, letterSpacing: ".1em" }}>PAID</span>}
+                            <button type="button" onClick={() => handleRemoveDayOff(d.date)} style={{ marginLeft: "auto", fontFamily: S.mono, fontSize: "9px", letterSpacing: ".1em", color: "#f87171", background: "none", border: "none", cursor: "pointer", textTransform: "uppercase" }}>Remove</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ display: "flex", gap: ".75rem", marginTop: "1.5rem", paddingTop: "1.25rem", borderTop: `1px solid ${S.border}` }}>
+                    <TmBtn type="submit" variant="primary" disabled={createMutation.isPending || updateMutation.isPending} style={{ minWidth: "80px" }}>
+                      {createMutation.isPending || updateMutation.isPending ? "Saving..." : "Save"}
+                    </TmBtn>
+                    <TmBtn variant="secondary" onClick={handleCancel}>Cancel</TmBtn>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* Depot list */}
+            <div style={{ display: "flex", flexDirection: "column", gap: ".75rem" }}>
+              {depots?.map((depot) => (
+                <div key={depot.id} className="tm-card" style={{ background: S.panel, border: `1px solid ${S.border}`, borderRadius: 10, padding: "1.25rem 1.5rem", display: "flex", justifyContent: "space-between", alignItems: "flex-start", transition: "border-color .2s" }}>
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: ".75rem", marginBottom: ".4rem" }}>
+                      <span style={{ fontFamily: S.mono, fontSize: ".95rem", fontWeight: 700, color: S.text }}>{depot.name}</span>
+                      <span style={{ fontFamily: S.mono, fontSize: "9px", letterSpacing: ".12em", padding: ".2rem .5rem", borderRadius: 4, border: `1px solid ${depot.isActive ? "rgba(34,197,94,.3)" : "rgba(239,68,68,.3)"}`, color: depot.isActive ? S.green : S.red, textTransform: "uppercase" }}>
+                        {depot.isActive ? "Active" : "Inactive"}
+                      </span>
+                    </div>
+                    <p style={{ fontFamily: S.mono, fontSize: ".8rem", color: S.muted, marginBottom: ".25rem" }}>
+                      {depot.address.street1}{depot.address.street2 ? `, ${depot.address.street2}` : ""}, {depot.address.city}, {depot.address.state} {depot.address.postalCode}
                     </p>
-                  )}
+                    {depot.operatingHours?.schedule && (
+                      <p style={{ fontFamily: S.mono, fontSize: "10px", color: S.dim, letterSpacing: ".06em" }}>
+                        {depot.operatingHours.schedule.filter((d) => d.startTime).length} operating days
+                        {depot.operatingHours.daysOff.length > 0 && ` · ${depot.operatingHours.daysOff.length} days off`}
+                      </p>
+                    )}
+                  </div>
+                  <div style={{ display: "flex", gap: ".5rem", flexShrink: 0 }}>
+                    <TmBtn variant="secondary" onClick={() => handleEdit(depot)}>Edit</TmBtn>
+                    <TmBtn variant="danger" onClick={() => handleDelete(depot.id)} disabled={deleteMutation.isPending}>Delete</TmBtn>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => handleEdit(depot)}>
-                    Edit
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => handleDelete(depot.id)}
-                    disabled={deleteMutation.isPending}
-                  >
-                    Delete
-                  </Button>
+              ))}
+              {depots?.length === 0 && (
+                <div style={{ textAlign: "center", padding: "3rem 0" }}>
+                  <p style={{ fontFamily: S.mono, fontSize: ".875rem", color: S.dim }}>No depots yet. Add one to get started.</p>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-
-        {depots?.length === 0 && (
-          <p className="text-center text-gray-500 py-8">No depots found. Create one to get started.</p>
-        )}
+              )}
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

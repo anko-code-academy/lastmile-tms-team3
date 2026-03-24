@@ -157,8 +157,8 @@ const NAV_ITEMS = [
   { label: "Parcels", href: "#" },
   { label: "Routes", href: "#" },
   { label: "Drivers", href: "#" },
-  { label: "Depot", href: "#" },
-  { label: "Users", href: "/users" },
+  { label: "Depot", href: "/admin/depots" },
+  { label: "Users", href: "/admin/users" },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
