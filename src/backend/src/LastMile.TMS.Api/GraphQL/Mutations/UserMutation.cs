@@ -1,10 +1,10 @@
+using HotChocolate.Authorization;
 using HotChocolate.Types;
 using LastMile.TMS.Application.Users.Commands.CreateUser;
 using LastMile.TMS.Application.Users.Commands.DeactivateUser;
 using LastMile.TMS.Application.Users.Commands.SendPasswordResetEmail;
 using LastMile.TMS.Domain.Enums;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 
 namespace LastMile.TMS.Api.GraphQL.Mutations;
 
@@ -19,7 +19,7 @@ public record CreateUserInput(
     string InitialPassword);
 
 [ExtendObjectType(OperationTypeNames.Mutation)]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = new[] { "Admin" })]
 public class UserMutation
 {
     public async Task<Guid> CreateUserAsync(
