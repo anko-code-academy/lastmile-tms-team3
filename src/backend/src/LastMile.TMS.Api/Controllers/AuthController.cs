@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using System.Security.Claims;
 using LastMile.TMS.Persistence.Identity;
 using Microsoft.AspNetCore;
@@ -73,9 +72,7 @@ public class AuthController(
         identity.SetClaim(Claims.Name, user.UserName);
         identity.SetClaim(Claims.GivenName, user.FirstName);
         identity.SetClaim(Claims.FamilyName, user.LastName);
-
-        var roles = await userManager.GetRolesAsync(user);
-        identity.SetClaims(Claims.Role, roles.ToImmutableArray());
+        identity.SetClaim(Claims.Role, user.Role.ToString());
 
         identity.SetDestinations(GetDestinations);
 
@@ -120,9 +117,7 @@ public class AuthController(
         identity.SetClaim(Claims.Name, user.UserName);
         identity.SetClaim(Claims.GivenName, user.FirstName);
         identity.SetClaim(Claims.FamilyName, user.LastName);
-
-        var roles = await userManager.GetRolesAsync(user);
-        identity.SetClaims(Claims.Role, roles.ToImmutableArray());
+        identity.SetClaim(Claims.Role, user.Role.ToString());
 
         identity.SetDestinations(GetDestinations);
 

@@ -19,9 +19,9 @@ public record CreateUserInput(
     string InitialPassword);
 
 [ExtendObjectType(OperationTypeNames.Mutation)]
-[Authorize(Roles = new[] { "Admin" })]
 public class UserMutation
 {
+    [Authorize(Roles = new[] { "Admin" })]
     public async Task<Guid> CreateUserAsync(
         CreateUserInput input,
         [Service] ISender sender,
@@ -36,6 +36,7 @@ public class UserMutation
             input.AssignedDepotId,
             input.InitialPassword), cancellationToken);
 
+    [Authorize(Roles = new[] { "Admin" })]
     public async Task<bool> DeactivateUserAsync(
         Guid id,
         [Service] ISender sender,
@@ -45,6 +46,7 @@ public class UserMutation
         return true;
     }
 
+    [Authorize(Roles = new[] { "Admin" })]
     public async Task<bool> SendPasswordResetAsync(
         Guid id,
         [Service] ISender sender,

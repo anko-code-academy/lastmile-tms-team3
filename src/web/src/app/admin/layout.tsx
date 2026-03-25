@@ -8,6 +8,6 @@ export default async function AdminLayout({
 }) {
   const session = await auth();
   if (!session) redirect("/login");
-  if (session.role !== "Admin") redirect("/");
+  if (session.role !== "Admin" && session.role !== "OperationsManager") redirect("/");
   return <>{children}</>;
 }

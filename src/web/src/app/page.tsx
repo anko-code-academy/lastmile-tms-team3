@@ -27,16 +27,15 @@ export default async function Home() {
   ];
 
   const isAdmin = session?.role === "Admin";
+  const isAdminOrOpsManager = isAdmin || session?.role === "OperationsManager";
 
   const navItems = [
     { label: "Dashboard", href: "/" },
     { label: "Parcels", href: "#" },
     { label: "Routes", href: "#" },
     { label: "Drivers", href: "#" },
-    ...(isAdmin ? [
-      { label: "Depot", href: "/admin/depots" },
-      { label: "Users", href: "/admin/users" },
-    ] : []),
+    ...(isAdminOrOpsManager ? [{ label: "Depot", href: "/admin/depots" }] : []),
+    ...(isAdmin ? [{ label: "Users", href: "/admin/users" }] : []),
   ];
 
   return (

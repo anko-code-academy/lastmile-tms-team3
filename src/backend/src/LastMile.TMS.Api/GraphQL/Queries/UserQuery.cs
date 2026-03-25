@@ -8,9 +8,9 @@ using MediatR;
 namespace LastMile.TMS.Api.GraphQL.Queries;
 
 [ExtendObjectType(OperationTypeNames.Query)]
-[Authorize(Roles = new[] { "Admin" })]
 public class UserQuery
 {
+    [Authorize(Roles = new[] { "Admin" })]
     public Task<List<UserDto>> GetUsersAsync(
         string? search,
         UserRole? role,

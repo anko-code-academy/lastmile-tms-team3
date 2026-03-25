@@ -91,6 +91,7 @@ function TmBtn({
 export default function DepotsPage() {
   const { data: session } = useSession();
   const isAdmin = session?.role === "Admin";
+  const isAdminOrOpsManager = isAdmin || session?.role === "OperationsManager";
   const { data: depots, isLoading, error } = useDepots(true);
   const createMutation = useCreateDepot();
   const updateMutation = useUpdateDepot();
@@ -165,10 +166,8 @@ export default function DepotsPage() {
     { label: "Parcels", href: "#" },
     { label: "Routes", href: "#" },
     { label: "Drivers", href: "#" },
-    ...(isAdmin ? [
-      { label: "Depot", href: "/admin/depots", active: true },
-      { label: "Users", href: "/admin/users" },
-    ] : []),
+    ...(isAdminOrOpsManager ? [{ label: "Depot", href: "/admin/depots", active: true }] : []),
+    ...(isAdmin ? [{ label: "Users", href: "/admin/users" }] : []),
   ];
 
   return (
