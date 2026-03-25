@@ -165,8 +165,8 @@ export default function DepotsPage() {
     { label: "Parcels", href: "#" },
     { label: "Routes", href: "#" },
     { label: "Drivers", href: "#" },
+    { label: "Depots", href: "/admin/depots", active: true },
     ...(isAdmin ? [
-      { label: "Depot", href: "/admin/depots", active: true },
       { label: "Users", href: "/admin/users" },
     ] : []),
   ];
