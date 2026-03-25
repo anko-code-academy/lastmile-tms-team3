@@ -112,6 +112,8 @@ Follow [Conventional Commits v1.0.0](https://www.conventionalcommits.org/en/v1.0
 - `Relates-to: LMTT3-<number>` for Jira tickets
 - Other Conventional Commits footers as needed
 
+**Important**: Do not add a `Co-Authored-By` line at the end of commit messages.
+
 Separate sections with empty lines for readability.
 
 **Examples**:
