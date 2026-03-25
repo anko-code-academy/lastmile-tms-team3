@@ -11,7 +11,7 @@ export default async function VehiclesPage() {
     redirect("/login");
   }
 
-  if (session.user.role !== "OperationsManager") {
+  if (session?.user?.role !== "OperationsManager") {
     redirect("/");
   }
 

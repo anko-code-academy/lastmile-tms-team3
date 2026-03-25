@@ -26,16 +26,22 @@ export default async function Home() {
     { id: "R-034", driver: "O. Shevchenko",zone: "CENTRE", stops: 28, done: 9  },
   ];
 
-  const isAdmin = session?.role === "Admin";
+  const isAdmin = session?.user?.role === "Admin";
+  const isOperationsManager = session?.user?.role === "OperationsManager";
 
   const navItems = [
     { label: "Dashboard", href: "/" },
     { label: "Parcels", href: "#" },
     { label: "Routes", href: "#" },
     { label: "Drivers", href: "#" },
+    ...(isAdmin || isOperationsManager ? [
+      { label: "Depots", href: "/admin/depots" },
+    ] : []),
     ...(isAdmin ? [
-      { label: "Depot", href: "/admin/depots" },
       { label: "Users", href: "/admin/users" },
+    ] : []),
+    ...(isOperationsManager ? [
+      { label: "Vehicles", href: "/admin/vehicles" },
     ] : []),
   ];
 

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { createVehicleAction } from "@/lib/actions/vehicles";
@@ -15,7 +16,7 @@ export default async function NewVehiclePage() {
     redirect("/login");
   }
 
-  if (session.user.role !== "OperationsManager") {
+  if (session?.user?.role !== "OperationsManager") {
     redirect("/");
   }
 
@@ -23,6 +24,14 @@ export default async function NewVehiclePage() {
 
   return (
     <div className="p-6 max-w-xl">
+      <div className="mb-4">
+        <Link
+          href="/admin/vehicles"
+          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          ← All Vehicles
+        </Link>
+      </div>
       <div className="mb-6">
         <p className="text-xs font-mono uppercase tracking-widest text-amber-400 mb-1">
           Fleet Management

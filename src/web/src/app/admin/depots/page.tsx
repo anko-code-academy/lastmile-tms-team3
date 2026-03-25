@@ -90,7 +90,7 @@ function TmBtn({
 
 export default function DepotsPage() {
   const { data: session } = useSession();
-  const isAdmin = session?.role === "Admin";
+  const isAdmin = session?.user?.role === "Admin";
   const { data: depots, isLoading, error } = useDepots(true);
   const createMutation = useCreateDepot();
   const updateMutation = useUpdateDepot();

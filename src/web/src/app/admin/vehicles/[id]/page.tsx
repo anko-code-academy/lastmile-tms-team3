@@ -22,14 +22,14 @@ export default async function VehicleDetailPage({
     redirect("/login");
   }
 
-  if (session.user.role !== "OperationsManager") {
+  if (session?.user?.role !== "OperationsManager") {
     redirect("/");
   }
 
   const vehicle = await getVehicleAction(id);
 
   if (!vehicle) {
-    redirect("/vehicles");
+    redirect("/admin/vehicles");
   }
 
   const [depots] = await Promise.all([getDepotsAction()]);
@@ -38,7 +38,7 @@ export default async function VehicleDetailPage({
     <div className="p-6 max-w-2xl">
       <div className="mb-4">
         <Link
-          href="/vehicles"
+          href="/admin/vehicles"
           className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           ← All Vehicles

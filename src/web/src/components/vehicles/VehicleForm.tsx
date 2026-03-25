@@ -129,7 +129,7 @@ export function VehicleForm({
       if (onSuccess) {
         onSuccess(result.vehicleId);
       } else {
-        router.push(`/vehicles/${result.vehicleId}`);
+        router.push(`/admin/vehicles/${result.vehicleId}`);
       }
     }
   }

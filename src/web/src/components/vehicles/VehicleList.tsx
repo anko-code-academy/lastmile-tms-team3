@@ -91,7 +91,7 @@ export function VehicleList({ initialVehicles }: VehicleListProps) {
         <Button
           variant="default"
           size="sm"
-          onClick={() => router.push("/vehicles/new")}
+          onClick={() => router.push("/admin/vehicles/new")}
         >
           <Plus className="size-4" />
           Add Vehicle
@@ -169,7 +169,7 @@ export function VehicleList({ initialVehicles }: VehicleListProps) {
                 <tr
                   key={vehicle.id}
                   className="border-b border-border/50 hover:bg-muted/30 cursor-pointer transition-colors"
-                  onClick={() => router.push(`/vehicles/${vehicle.id}`)}
+                  onClick={() => router.push(`/admin/vehicles/${vehicle.id}`)}
                 >
                   <td className="px-4 py-3 font-medium">
                     {vehicle.registrationPlate}

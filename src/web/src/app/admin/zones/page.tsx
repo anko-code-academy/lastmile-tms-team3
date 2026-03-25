@@ -65,7 +65,7 @@ const inputStyle: React.CSSProperties = {
 
 export default function ZonesPage() {
   const { data: session } = useSession();
-  const isAdmin = session?.role === "Admin";
+  const isAdmin = session?.user?.role === "Admin";
   const { data: zones, isLoading: zonesLoading } = useZones(undefined, true);
   const { data: depots, isLoading: depotsLoading } = useDepots(true);
   const createMutation = useCreateZone();
