@@ -1,14 +1,14 @@
+using HotChocolate.Authorization;
 using LastMile.TMS.Application.Features.Vehicles.DTOs;
 using LastMile.TMS.Application.Features.Vehicles.Queries;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 
 namespace LastMile.TMS.Api.GraphQL.Queries;
 
 [ExtendObjectType(OperationTypeNames.Query)]
-[Authorize(Policy = "OperationsManager")]
 public class VehicleQuery
 {
+    [Authorize(Policy = "OperationsManager")]
     public async Task<VehicleDto?> GetVehicle(
         [Service] IMediator mediator,
         Guid id,
@@ -17,6 +17,7 @@ public class VehicleQuery
         return await mediator.Send(new GetVehicleById.Query(id), cancellationToken);
     }
 
+    [Authorize(Policy = "OperationsManager")]
     public async Task<IReadOnlyList<VehicleDto>> GetVehicles(
         [Service] IMediator mediator,
         Guid? depotId = null,

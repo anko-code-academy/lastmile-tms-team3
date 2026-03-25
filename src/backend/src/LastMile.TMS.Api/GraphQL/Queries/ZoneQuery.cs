@@ -2,7 +2,6 @@ using HotChocolate.Types.Relay;
 using LastMile.TMS.Application.Features.Zones.DTOs;
 using LastMile.TMS.Application.Features.Zones.Queries;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 
 namespace LastMile.TMS.Api.GraphQL.Queries;
 

@@ -1,10 +1,10 @@
+using HotChocolate.Authorization;
 using HotChocolate.Types;
 using LastMile.TMS.Application.Users.Commands.CreateUser;
 using LastMile.TMS.Application.Users.Commands.DeactivateUser;
 using LastMile.TMS.Application.Users.Commands.SendPasswordResetEmail;
 using LastMile.TMS.Domain.Enums;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 
 namespace LastMile.TMS.Api.GraphQL.Mutations;
 
@@ -19,9 +19,9 @@ public record CreateUserInput(
     string InitialPassword);
 
 [ExtendObjectType(OperationTypeNames.Mutation)]
-[Authorize(Policy = "Admin")]
 public class UserMutation
 {
+    [Authorize(Policy = "Admin")]
     public async Task<Guid> CreateUserAsync(
         CreateUserInput input,
         [Service] ISender sender,
@@ -36,6 +36,7 @@ public class UserMutation
             input.AssignedDepotId,
             input.InitialPassword), cancellationToken);
 
+    [Authorize(Policy = "Admin")]
     public async Task<bool> DeactivateUserAsync(
         Guid id,
         [Service] ISender sender,
@@ -45,6 +46,7 @@ public class UserMutation
         return true;
     }
 
+    [Authorize(Policy = "Admin")]
     public async Task<bool> SendPasswordResetAsync(
         Guid id,
         [Service] ISender sender,

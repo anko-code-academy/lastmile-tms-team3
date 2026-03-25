@@ -1,15 +1,15 @@
+using HotChocolate.Authorization;
 using HotChocolate.Types.Relay;
 using LastMile.TMS.Application.Features.Vehicles.Commands;
 using LastMile.TMS.Application.Features.Vehicles.DTOs;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 
 namespace LastMile.TMS.Api.GraphQL.Mutations;
 
 [ExtendObjectType(OperationTypeNames.Mutation)]
-[Authorize(Policy = "OperationsManager")]
 public class VehicleMutation
 {
+    [Authorize(Policy = "OperationsManager")]
     public async Task<VehicleDto> CreateVehicle(
         [Service] IMediator mediator,
         CreateVehicleDto input,
@@ -18,6 +18,7 @@ public class VehicleMutation
         return await mediator.Send(new CreateVehicle.Command(input), cancellationToken);
     }
 
+    [Authorize(Policy = "OperationsManager")]
     public async Task<VehicleDto> UpdateVehicle(
         [Service] IMediator mediator,
         UpdateVehicleDto input,
@@ -26,6 +27,7 @@ public class VehicleMutation
         return await mediator.Send(new UpdateVehicle.Command(input), cancellationToken);
     }
 
+    [Authorize(Policy = "OperationsManager")]
     public async Task<VehicleDto> UpdateVehicleStatus(
         [Service] IMediator mediator,
         UpdateVehicleStatusDto input,
@@ -34,6 +36,7 @@ public class VehicleMutation
         return await mediator.Send(new UpdateVehicleStatus.Command(input), cancellationToken);
     }
 
+    [Authorize(Policy = "OperationsManager")]
     public async Task<VehicleDto> UpdateVehicleDepot(
         [Service] IMediator mediator,
         UpdateVehicleDepotDto input,
