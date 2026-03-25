@@ -152,7 +152,7 @@ export function VehicleForm({
 
   return (
     <form
-      onSubmit={handleSubmit(handleFormSubmit)}
+      onSubmit={(e) => handleSubmit(handleFormSubmit)(e)}
       noValidate
       className="space-y-6"
     >
