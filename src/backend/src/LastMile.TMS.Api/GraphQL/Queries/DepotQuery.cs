@@ -9,7 +9,7 @@ namespace LastMile.TMS.Api.GraphQL.Queries;
 [ExtendObjectType(OperationTypeNames.Query)]
 public class DepotQuery
 {
-    [Authorize(Roles = new[] { "Admin", "OperationsManager" })]
+    [Authorize(Policy = "AdminOrOperationsManager")]
     public async Task<IReadOnlyList<DepotDto>> GetDepots(
         [Service] IMediator mediator,
         bool? includeInactive = null,
@@ -18,7 +18,7 @@ public class DepotQuery
         return await mediator.Send(new GetAllDepots.Query(includeInactive), cancellationToken);
     }
 
-    [Authorize(Roles = new[] { "Admin", "OperationsManager" })]
+    [Authorize(Policy = "AdminOrOperationsManager")]
     public async Task<DepotDto?> GetDepot(
         [Service] IMediator mediator,
         [ID] Guid id,

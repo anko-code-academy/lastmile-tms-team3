@@ -87,6 +87,13 @@ try
             policy.RequireAuthenticatedUser();
             policy.RequireRole("OperationsManager");
         });
+
+        options.AddPolicy("AdminOrOperationsManager", policy =>
+        {
+            policy.AddAuthenticationSchemes(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme);
+            policy.RequireAuthenticatedUser();
+            policy.RequireRole("Admin", "OperationsManager");
+        });
     });
 
     builder.Services

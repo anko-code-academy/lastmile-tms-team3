@@ -1,6 +1,5 @@
-import { getSession } from "next-auth/react";
-
-const GRAPHQL_API_URL = `${process.env.NEXT_PUBLIC_API_URL}/graphql`;
+// Always use the local API route so NextAuth cookies can be used to attach bearer tokens.
+const GRAPHQL_API_URL = "/api/graphql";
 
 interface GraphQLResponse<T> {
   data?: T;
@@ -9,33 +8,35 @@ interface GraphQLResponse<T> {
 
 export async function graphql<T>(
   query: string,
-  variables?: Record<string, unknown>
+  variables?: Record<string, unknown>,
 ): Promise<T> {
-  const session = await getSession();
-  const token = session?.accessToken;
-
   const res = await fetch(GRAPHQL_API_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify({ query, variables }),
   });
 
+  const json = await res.json();
+
   if (!res.ok) {
-    throw new Error(`GraphQL request failed: ${res.status}`);
+    const proxyError = typeof json?.error === "string" ? json.error : null;
+    const detail = typeof json?.detail === "string" ? json.detail : null;
+    throw new Error(
+      detail ?? proxyError ?? `GraphQL request failed: ${res.status}`,
+    );
   }
 
-  const json: GraphQLResponse<T> = await res.json();
+  const graphQlJson = json as GraphQLResponse<T>;
 
-  if (json.errors?.length) {
-    throw new Error(json.errors.map((e) => e.message).join(", "));
+  if (graphQlJson.errors?.length) {
+    throw new Error(graphQlJson.errors.map((e) => e.message).join(", "));
   }
 
-  if (!json.data) {
+  if (!graphQlJson.data) {
     throw new Error("No data returned from GraphQL");
   }
 
-  return json.data;
+  return graphQlJson.data;
 }
