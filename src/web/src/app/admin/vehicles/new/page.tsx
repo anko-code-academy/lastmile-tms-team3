@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import TmNavbar from "@/components/TmNavbar";
 import { createVehicleAction } from "@/lib/actions/vehicles";
 import { getDepotsAction } from "@/lib/actions/depots";
@@ -102,9 +103,9 @@ export default function NewVehiclePage() {
           <div style={{ padding: "2rem", maxWidth: "600px", margin: "0 auto" }}>
 
             {/* Back */}
-            <a href="/admin/vehicles" style={{ fontFamily: S.mono, fontSize: "11px", letterSpacing: ".1em", color: S.muted, textDecoration: "none", textTransform: "uppercase", display: "inline-flex", alignItems: "center", gap: ".4rem", marginBottom: "1.5rem" }}>
+            <Link href="/admin/vehicles" style={{ fontFamily: S.mono, fontSize: "11px", letterSpacing: ".1em", color: S.muted, textDecoration: "none", textTransform: "uppercase", display: "inline-flex", alignItems: "center", gap: ".4rem", marginBottom: "1.5rem" }}>
               ← All Vehicles
-            </a>
+            </Link>
 
             {/* Header */}
             <div style={{ marginBottom: "2rem" }}>

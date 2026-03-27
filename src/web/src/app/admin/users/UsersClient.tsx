@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { signOut, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import TmNavbar from "@/components/TmNavbar";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
