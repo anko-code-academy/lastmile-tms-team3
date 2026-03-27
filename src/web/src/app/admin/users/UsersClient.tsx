@@ -3,6 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { signOut, useSession } from "next-auth/react";
+import TmNavbar from "@/components/TmNavbar";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -150,16 +151,6 @@ const SEND_RESET = `
   }
 `;
 
-// ─── Nav items ────────────────────────────────────────────────────────────────
-
-const NAV_ITEMS = [
-  { label: "Dashboard", href: "/" },
-  { label: "Parcels", href: "#" },
-  { label: "Routes", href: "#" },
-  { label: "Drivers", href: "#" },
-  { label: "Depot", href: "/admin/depots" },
-  { label: "Users", href: "/admin/users" },
-];
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -546,111 +537,7 @@ export default function UsersClient() {
         />
 
         <div style={{ position: "relative", zIndex: 1 }}>
-          {/* ── Navbar ── */}
-          <nav
-            className="fu-0"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              padding: "0 2rem",
-              height: "56px",
-              borderBottom: "1px solid rgba(255,255,255,.06)",
-              background: "rgba(8,12,20,.85)",
-              backdropFilter: "blur(12px)",
-              position: "sticky",
-              top: 0,
-              zIndex: 10,
-              gap: "2rem",
-            }}
-          >
-            <span
-              style={{
-                fontFamily: "var(--font-geist-mono, monospace)",
-                fontSize: ".875rem",
-                fontWeight: 800,
-                letterSpacing: "-.01em",
-                color: "#e2e8f0",
-                flexShrink: 0,
-              }}
-            >
-              LAST <span style={{ color: "#f59e0b" }}>MILE</span> TMS
-            </span>
-
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: ".375rem",
-                flexShrink: 0,
-              }}
-            >
-              <span
-                className="pulse-dot"
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: "50%",
-                  background: "#22c55e",
-                  boxShadow: "0 0 6px #22c55e",
-                  display: "inline-block",
-                }}
-              />
-              <span
-                style={{
-                  fontFamily: "var(--font-geist-mono, monospace)",
-                  fontSize: "9px",
-                  color: "#2d6a3f",
-                  letterSpacing: ".15em",
-                }}
-              >
-                LIVE
-              </span>
-            </div>
-
-            <div style={{ display: "flex", gap: ".25rem", flex: 1 }}>
-              {NAV_ITEMS.map((item) => (
-                <a
-                  key={item.label}
-                  href={item.href}
-                  className={`nav-link${item.label === "Users" ? " active" : ""}`}
-                >
-                  {item.label}
-                </a>
-              ))}
-            </div>
-
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "1rem",
-                flexShrink: 0,
-              }}
-            >
-              {session?.user?.email && (
-                <span
-                  style={{
-                    fontFamily: "var(--font-geist-mono, monospace)",
-                    fontSize: "10px",
-                    color: "#3d4f6b",
-                    letterSpacing: ".08em",
-                    maxWidth: "200px",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {session.user.email}
-                </span>
-              )}
-              <button
-                onClick={() => signOut({ callbackUrl: "/login" })}
-                className="signout-btn"
-              >
-                Sign out
-              </button>
-            </div>
-          </nav>
+          <TmNavbar />
 
           {/* ── Page body ── */}
           <div

@@ -80,4 +80,18 @@ public class Driver : BaseAuditableEntity
     {
         Availability = availability ?? throw new ArgumentNullException(nameof(availability));
     }
+
+    public void UpdateProfile(string firstName, string lastName, string phone, string email, string? photoUrl)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(firstName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(lastName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(phone);
+        ArgumentException.ThrowIfNullOrWhiteSpace(email);
+
+        FirstName = firstName;
+        LastName = lastName;
+        Phone = phone;
+        Email = email;
+        PhotoUrl = photoUrl;
+    }
 }
