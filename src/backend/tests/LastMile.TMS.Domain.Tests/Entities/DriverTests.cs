@@ -232,4 +232,45 @@ public class DriverTests
 
         act.Should().Throw<ArgumentNullException>();
     }
+
+    [Fact]
+    public void UpdateProfile_Should_Update_ContactInfo()
+    {
+        var driver = Driver.Create(
+            "John",
+            "Doe",
+            "+1234567890",
+            "john@example.com",
+            "DL123456",
+            DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)));
+
+        driver.UpdateProfile("Jane", "Smith", "+9876543210", "jane@example.com", "https://example.com/photo.jpg");
+
+        driver.FirstName.Should().Be("Jane");
+        driver.LastName.Should().Be("Smith");
+        driver.Phone.Should().Be("+9876543210");
+        driver.Email.Should().Be("jane@example.com");
+        driver.PhotoUrl.Should().Be("https://example.com/photo.jpg");
+    }
+
+    [Theory]
+    [InlineData("", "Smith", "+9876543210", "jane@example.com")]
+    [InlineData("Jane", "", "+9876543210", "jane@example.com")]
+    [InlineData("Jane", "Smith", "", "jane@example.com")]
+    [InlineData("Jane", "Smith", "+9876543210", "")]
+    public void UpdateProfile_Should_Throw_When_RequiredFields_Are_Empty(
+        string firstName, string lastName, string phone, string email)
+    {
+        var driver = Driver.Create(
+            "John",
+            "Doe",
+            "+1234567890",
+            "john@example.com",
+            "DL123456",
+            DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)));
+
+        var act = () => driver.UpdateProfile(firstName, lastName, phone, email, null);
+
+        act.Should().Throw<ArgumentException>();
+    }
 }

@@ -33,15 +33,18 @@ export default async function Home() {
     { label: "Dashboard", href: "/" },
     { label: "Parcels", href: "#" },
     { label: "Routes", href: "#" },
-    { label: "Drivers", href: "#" },
     ...(isAdmin || isOperationsManager ? [
       { label: "Depots", href: "/admin/depots" },
     ] : []),
     ...(isAdmin ? [
-      { label: "Users", href: "/admin/users" },
+      { label: "Zones", href: "/admin/zones" },
     ] : []),
-    ...(isOperationsManager ? [
+    ...(isAdmin || isOperationsManager ? [
+      { label: "Drivers", href: "/admin/drivers" },
       { label: "Vehicles", href: "/admin/vehicles" },
+    ] : []),
+    ...(isAdmin ? [
+      { label: "Users", href: "/admin/users" },
     ] : []),
   ];
 

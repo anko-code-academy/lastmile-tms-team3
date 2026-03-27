@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useSession } from "next-auth/react";
+import TmNavbar from "@/components/TmNavbar";
 import { useZones, useCreateZone, useUpdateZone, useDeleteZone } from "@/lib/hooks/useZones";
 import { useDepots } from "@/lib/hooks/useDepots";
 import { ZoneDto, CreateZoneDto, GeoJsonPointDto } from "@/lib/types/zone";
@@ -64,8 +64,6 @@ const inputStyle: React.CSSProperties = {
 };
 
 export default function ZonesPage() {
-  const { data: session } = useSession();
-  const isAdmin = session?.user?.role === "Admin";
   const { data: zones, isLoading: zonesLoading } = useZones(undefined, true);
   const { data: depots, isLoading: depotsLoading } = useDepots(true);
   const createMutation = useCreateZone();
@@ -121,7 +119,7 @@ export default function ZonesPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.boundary || formData.boundary.coordinates.length < 3) { alert("At least 3 boundary points required"); return; }
+    if (!formData.boundary || formData.boundary.coordinates.length < 4) { alert("At least 4 boundary points required"); return; }
     try {
       if (editingZone) await updateMutation.mutateAsync({ id: editingZone.id, ...formData });
       else await createMutation.mutateAsync(formData);
@@ -148,17 +146,6 @@ export default function ZonesPage() {
     setManualPoints([]); setNewPoint({ longitude: "", latitude: "" });
   };
 
-  const navItems = [
-    { label: "Dashboard", href: "/" },
-    { label: "Parcels", href: "#" },
-    { label: "Routes", href: "#" },
-    { label: "Drivers", href: "#" },
-    ...(isAdmin ? [
-      { label: "Depot", href: "/admin/depots" },
-      { label: "Zones", href: "/admin/zones", active: true },
-      { label: "Users", href: "/admin/users" },
-    ] : []),
-  ];
 
   return (
     <>
@@ -181,17 +168,7 @@ export default function ZonesPage() {
         <div style={{ position: "fixed", inset: 0, zIndex: 0, backgroundImage: "linear-gradient(rgba(30,42,66,.45) 1px,transparent 1px),linear-gradient(90deg,rgba(30,42,66,.45) 1px,transparent 1px)", backgroundSize: "52px 52px", pointerEvents: "none" }} />
 
         <div style={{ position: "relative", zIndex: 1 }}>
-          {/* Navbar */}
-          <nav style={{ display: "flex", alignItems: "center", padding: "0 2rem", height: "56px", borderBottom: `1px solid ${S.border}`, background: "rgba(8,12,20,.85)", backdropFilter: "blur(12px)", position: "sticky", top: 0, zIndex: 10, gap: "2rem" }}>
-            <span style={{ fontFamily: S.mono, fontSize: ".875rem", fontWeight: 800, letterSpacing: "-.01em", color: S.text, flexShrink: 0 }}>
-              LAST <span style={{ color: S.accent }}>MILE</span> TMS
-            </span>
-            <div style={{ display: "flex", gap: ".25rem", flex: 1 }}>
-              {navItems.map((item) => (
-                <a key={item.label} href={item.href} className={`tm-nav-link${item.active ? " active" : ""}`}>{item.label}</a>
-              ))}
-            </div>
-          </nav>
+          <TmNavbar />
 
           <div style={{ padding: "2rem", maxWidth: "1200px", margin: "0 auto" }}>
             {/* Header */}
@@ -266,7 +243,7 @@ export default function ZonesPage() {
                       <div style={{ marginTop: "1rem" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: ".75rem" }}>
                           <span style={{ fontFamily: S.mono, fontSize: "10px", color: S.muted, letterSpacing: ".1em", textTransform: "uppercase" }}>
-                            {manualPoints.length} Points {manualPoints.length >= 3 ? <span style={{ color: S.green }}>· Ready</span> : <span style={{ color: S.red }}>· Need {3 - manualPoints.length} more</span>}
+                            {manualPoints.length} Points {manualPoints.length >= 4 ? <span style={{ color: S.green }}>· Ready</span> : <span style={{ color: S.red }}>· Need {4 - manualPoints.length} more</span>}
                           </span>
                           <button type="button" onClick={() => { setManualPoints([]); setFormData({ ...formData, boundary: null }); }} style={{ fontFamily: S.mono, fontSize: "9px", color: S.dim, background: "none", border: "none", cursor: "pointer", letterSpacing: ".1em", textTransform: "uppercase" }}>
                             Clear All

@@ -29,7 +29,14 @@ export async function gqlFetch<T>(
   }
 
   if (json.errors?.length) {
-    throw new Error(json.errors[0].message);
+    const err = json.errors[0];
+    const validationErrors = err.extensions?.validationErrors as
+      | { PropertyName: string; ErrorMessage: string }[]
+      | undefined;
+    if (validationErrors?.length) {
+      throw new Error(validationErrors.map((e) => e.ErrorMessage).join("; "));
+    }
+    throw new Error(err.message);
   }
 
   return json.data as T;
