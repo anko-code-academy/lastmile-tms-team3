@@ -13,7 +13,7 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddPersistence(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddDbContext<AppDbContext>(options =>
+        services.AddPooledDbContextFactory<AppDbContext>(options =>
             options.UseNpgsql(
                 configuration.GetConnectionString("DefaultConnection"),
                 npgsql =>
@@ -22,7 +22,7 @@ public static class DependencyInjection
                     npgsql.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName);
                 }));
 
-        services.AddScoped<IAppDbContext>(provider => provider.GetRequiredService<AppDbContext>());
+        services.AddScoped<IAppDbContextFactory, AppDbContextFactory>();
 
         services.AddIdentity<AppUser, AppRole>(options =>
             {

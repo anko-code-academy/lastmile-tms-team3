@@ -15,22 +15,23 @@ public static class CreateParcel
 
     public class Handler : IRequestHandler<Command, ParcelDto>
     {
-        private readonly IAppDbContext _context;
+        private readonly IAppDbContextFactory _contextFactory;
         private readonly ICurrentUserService _currentUser;
         private readonly IZoneMatchingService _zoneMatchingService;
 
-        public Handler(IAppDbContext context, ICurrentUserService currentUser, IZoneMatchingService zoneMatchingService)
+        public Handler(IAppDbContextFactory contextFactory, ICurrentUserService currentUser, IZoneMatchingService zoneMatchingService)
         {
-            _context = context;
+            _contextFactory = contextFactory;
             _currentUser = currentUser;
             _zoneMatchingService = zoneMatchingService;
         }
 
         public async Task<ParcelDto> Handle(Command request, CancellationToken cancellationToken)
         {
+            using var context = _contextFactory.CreateDbContext();
+
             var now = DateTimeOffset.UtcNow;
 
-            // Create recipient address
             var recipientAddress = new Address
             {
                 Id = Guid.NewGuid(),
@@ -50,7 +51,6 @@ public static class CreateParcel
                 CreatedBy = _currentUser.UserId
             };
 
-            // Create shipper address
             var shipperAddress = new Address
             {
                 Id = Guid.NewGuid(),
@@ -70,7 +70,6 @@ public static class CreateParcel
                 CreatedBy = _currentUser.UserId
             };
 
-            // Auto-assign zone based on recipient address coordinates
             Guid? zoneId = null;
             if (recipientAddress.GeoLocation is not null)
             {
@@ -103,8 +102,8 @@ public static class CreateParcel
                 CreatedBy = _currentUser.UserId
             };
 
-            _context.Parcels.Add(parcel);
-            await _context.SaveChangesAsync(cancellationToken);
+            context.Parcels.Add(parcel);
+            await context.SaveChangesAsync(cancellationToken);
 
             return MapToDto(parcel);
         }

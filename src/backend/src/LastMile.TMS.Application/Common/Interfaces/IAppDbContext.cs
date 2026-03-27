@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LastMile.TMS.Application.Common.Interfaces;
 
-public interface IAppDbContext
+public interface IAppDbContext : IDisposable
 {
     DbSet<Depot> Depots { get; }
     DbSet<Zone> Zones { get; }

@@ -11,16 +11,18 @@ public static class GetZoneById
 
     public class Handler : IRequestHandler<Query, ZoneDto>
     {
-        private readonly IAppDbContext _context;
+        private readonly IAppDbContextFactory _contextFactory;
 
-        public Handler(IAppDbContext context)
+        public Handler(IAppDbContextFactory contextFactory)
         {
-            _context = context;
+            _contextFactory = contextFactory;
         }
 
         public async Task<ZoneDto> Handle(Query request, CancellationToken cancellationToken)
         {
-            var zone = await _context.Zones
+            using var context = _contextFactory.CreateDbContext();
+
+            var zone = await context.Zones
                 .Include(z => z.Depot)
                 .FirstOrDefaultAsync(z => z.Id == request.Id, cancellationToken)
                 ?? throw new KeyNotFoundException($"Zone with ID {request.Id} not found");
