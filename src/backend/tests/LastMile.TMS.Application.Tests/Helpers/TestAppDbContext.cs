@@ -9,7 +9,7 @@ namespace LastMile.TMS.Application.Tests.Helpers;
 /// A minimal DbContext for testing using EF Core InMemory.
 /// Does NOT inherit from IdentityDbContext to avoid OpenIddict dependencies.
 /// </summary>
-public class TestAppDbContext : DbContext, IAppDbContext
+public class TestAppDbContext : DbContext, IAppDbContext, IAppDbContextFactory
 {
     public TestAppDbContext(DbContextOptions<TestAppDbContext> options)
         : base(options)
@@ -32,6 +32,8 @@ public class TestAppDbContext : DbContext, IAppDbContext
     {
         return Zones.Where(z => z.IsActive && z.Boundary != null).ToListAsync(cancellationToken);
     }
+
+    public IAppDbContext CreateDbContext() => this;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

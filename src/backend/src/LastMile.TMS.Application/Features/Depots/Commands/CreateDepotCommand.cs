@@ -11,17 +11,19 @@ public static class CreateDepot
 
     public class Handler : IRequestHandler<Command, DepotDto>
     {
-        private readonly IAppDbContext _context;
+        private readonly IAppDbContextFactory _contextFactory;
         private readonly ICurrentUserService _currentUser;
 
-        public Handler(IAppDbContext context, ICurrentUserService currentUser)
+        public Handler(IAppDbContextFactory contextFactory, ICurrentUserService currentUser)
         {
-            _context = context;
+            _contextFactory = contextFactory;
             _currentUser = currentUser;
         }
 
         public async Task<DepotDto> Handle(Command request, CancellationToken cancellationToken)
         {
+            using var context = _contextFactory.CreateDbContext();
+
             var address = new Domain.Entities.Address
             {
                 Id = Guid.NewGuid(),
@@ -71,8 +73,8 @@ public static class CreateDepot
                 CreatedBy = _currentUser.UserId
             };
 
-            _context.Depots.Add(depot);
-            await _context.SaveChangesAsync(cancellationToken);
+            context.Depots.Add(depot);
+            await context.SaveChangesAsync(cancellationToken);
 
             return MapToDto(depot);
         }

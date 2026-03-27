@@ -12,16 +12,18 @@ public static class UpdateVehicle
 
     public class Handler : IRequestHandler<Command, VehicleDto>
     {
-        private readonly IAppDbContext _context;
+        private readonly IAppDbContextFactory _contextFactory;
 
-        public Handler(IAppDbContext context)
+        public Handler(IAppDbContextFactory contextFactory)
         {
-            _context = context;
+            _contextFactory = contextFactory;
         }
 
         public async Task<VehicleDto> Handle(Command request, CancellationToken cancellationToken)
         {
-            var vehicle = await _context.Vehicles
+            using var context = _contextFactory.CreateDbContext();
+
+            var vehicle = await context.Vehicles
                 .Include(v => v.Depot)
                     .ThenInclude(d => d.Address)
                 .FirstOrDefaultAsync(v => v.Id == request.Dto.Id, cancellationToken);
@@ -44,7 +46,7 @@ public static class UpdateVehicle
             if (request.Dto.DepotId.HasValue)
                 vehicle.DepotId = request.Dto.DepotId.Value;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            await context.SaveChangesAsync(cancellationToken);
 
             return VehicleMapper.ToDto(vehicle);
         }

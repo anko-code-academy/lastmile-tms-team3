@@ -12,16 +12,18 @@ public static class GetVehicleById
 
     public class Handler : IRequestHandler<Query, VehicleDto?>
     {
-        private readonly IAppDbContext _context;
+        private readonly IAppDbContextFactory _contextFactory;
 
-        public Handler(IAppDbContext context)
+        public Handler(IAppDbContextFactory contextFactory)
         {
-            _context = context;
+            _contextFactory = contextFactory;
         }
 
         public async Task<VehicleDto?> Handle(Query request, CancellationToken cancellationToken)
         {
-            var vehicle = await _context.Vehicles
+            using var context = _contextFactory.CreateDbContext();
+
+            var vehicle = await context.Vehicles
                 .Include(v => v.Depot)
                     .ThenInclude(d => d.Address)
                 .FirstOrDefaultAsync(v => v.Id == request.Id, cancellationToken);
