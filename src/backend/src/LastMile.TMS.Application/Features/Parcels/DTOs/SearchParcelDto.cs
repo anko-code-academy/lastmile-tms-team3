@@ -7,7 +7,7 @@ public record SearchParcelDto(
     ParcelStatus[]? Status,
     DateTimeOffset? DateFrom,
     DateTimeOffset? DateTo,
-    Guid? ZoneId,
+    Guid[]? ZoneIds,
     string? ParcelType,
     ParcelSortBy SortBy,
     SortDirection SortDirection,

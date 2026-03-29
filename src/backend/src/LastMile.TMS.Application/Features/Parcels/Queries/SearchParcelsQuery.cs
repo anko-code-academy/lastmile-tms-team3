@@ -35,18 +35,19 @@ public static class SearchParcels
             // Full-text search
             if (!string.IsNullOrWhiteSpace(input.Search))
             {
-                var search = input.Search.ToLower();
+                var search = input.Search.Trim().ToLower();
+                var searchPattern = $"{search}%";
                 query = query.Where(p =>
-                    p.TrackingNumber.ToLower().Contains(search) ||
-                    (p.RecipientAddress.ContactName != null && p.RecipientAddress.ContactName.ToLower().Contains(search)) ||
-                    (p.RecipientAddress.CompanyName != null && p.RecipientAddress.CompanyName.ToLower().Contains(search)) ||
-                    p.RecipientAddress.Street1.ToLower().Contains(search) ||
-                    (p.RecipientAddress.Street2 != null && p.RecipientAddress.Street2.ToLower().Contains(search)) ||
-                    p.RecipientAddress.City.ToLower().Contains(search) ||
-                    (p.ShipperAddress.ContactName != null && p.ShipperAddress.ContactName.ToLower().Contains(search)) ||
-                    (p.ShipperAddress.CompanyName != null && p.ShipperAddress.CompanyName.ToLower().Contains(search)) ||
-                    p.ShipperAddress.Street1.ToLower().Contains(search) ||
-                    p.ShipperAddress.City.ToLower().Contains(search));
+                    EF.Functions.Like(p.TrackingNumber.ToLower(), searchPattern) ||
+                    (p.RecipientAddress.ContactName != null && EF.Functions.Like(p.RecipientAddress.ContactName.ToLower(), searchPattern)) ||
+                    (p.RecipientAddress.CompanyName != null && EF.Functions.Like(p.RecipientAddress.CompanyName.ToLower(), searchPattern)) ||
+                    EF.Functions.Like(p.RecipientAddress.Street1.ToLower(), searchPattern) ||
+                    (p.RecipientAddress.Street2 != null && EF.Functions.Like(p.RecipientAddress.Street2.ToLower(), searchPattern)) ||
+                    EF.Functions.Like(p.RecipientAddress.City.ToLower(), searchPattern) ||
+                    (p.ShipperAddress.ContactName != null && EF.Functions.Like(p.ShipperAddress.ContactName.ToLower(), searchPattern)) ||
+                    (p.ShipperAddress.CompanyName != null && EF.Functions.Like(p.ShipperAddress.CompanyName.ToLower(), searchPattern)) ||
+                    EF.Functions.Like(p.ShipperAddress.Street1.ToLower(), searchPattern) ||
+                    EF.Functions.Like(p.ShipperAddress.City.ToLower(), searchPattern));
             }
 
             // Status filter
@@ -67,15 +68,17 @@ public static class SearchParcels
             }
 
             // Zone filter
-            if (input.ZoneId.HasValue)
+            if (input.ZoneIds != null && input.ZoneIds.Length > 0)
             {
-                query = query.Where(p => p.ZoneId == input.ZoneId.Value);
+                query = query.Where(p => p.ZoneId.HasValue && input.ZoneIds.Contains(p.ZoneId.Value));
             }
 
             // Parcel type filter
             if (!string.IsNullOrWhiteSpace(input.ParcelType))
             {
-                query = query.Where(p => p.ParcelType == input.ParcelType);
+                var parcelType = input.ParcelType.Trim().ToLower();
+                query = query.Where(p => p.ParcelType != null &&
+                    p.ParcelType.ToLower() == parcelType);
             }
 
             // Total count before pagination
@@ -83,11 +86,13 @@ public static class SearchParcels
 
             // Decode cursor and apply filter if valid for this sort
             CursorData? cursor = null;
+            var isBackwardNavigation = false;
             if (!string.IsNullOrWhiteSpace(input.Cursor))
             {
                 cursor = DecodeCursor(input.Cursor);
                 if (cursor != null && cursor.SortBy == input.SortBy)
                 {
+                    isBackwardNavigation = !cursor.NextIsForward;
                     query = ApplyCursorFilter(query, cursor, input.SortBy, input.SortDirection);
                 }
                 else
@@ -96,21 +101,39 @@ public static class SearchParcels
                 }
             }
 
-            // Apply sorting
-            query = ApplySort(query, input.SortBy, input.SortDirection);
+            // For backward navigation, reverse the sort so that Take(pageSize+1) captures
+            // the page immediately before the cursor; items are then flipped back into the
+            // correct display order after fetching.
+            var sortDirectionForQuery = isBackwardNavigation
+                ? (input.SortDirection == SortDirection.Asc ? SortDirection.Desc : SortDirection.Asc)
+                : input.SortDirection;
+            query = ApplySort(query, input.SortBy, sortDirectionForQuery);
 
-            // Fetch one extra to determine HasNextPage
             var pageSize = Math.Min(Math.Max(1, input.PageSize), 100);
-            var items = await query
+            var rawItems = await query
                 .Take(pageSize + 1)
                 .ToListAsync(cancellationToken);
 
-            var hasNextPage = items.Count > pageSize;
-            if (hasNextPage)
+            bool hasNextPage;
+            bool hasPreviousPage;
+
+            if (isBackwardNavigation)
             {
-                items.RemoveAt(items.Count - 1);
+                // The +1 trick detects whether there are MORE items further backward.
+                var hasMoreBackward = rawItems.Count > pageSize;
+                if (hasMoreBackward) rawItems.RemoveAt(rawItems.Count - 1);
+                rawItems.Reverse(); // restore the correct display order
+                hasNextPage = true; // we navigated backward, so forward items exist
+                hasPreviousPage = hasMoreBackward;
+            }
+            else
+            {
+                hasNextPage = rawItems.Count > pageSize;
+                if (hasNextPage) rawItems.RemoveAt(rawItems.Count - 1);
+                hasPreviousPage = !string.IsNullOrEmpty(input.Cursor);
             }
 
+            var items = rawItems;
             var dtos = items.Select(MapToListItemDto).ToList();
 
             string? nextCursor = null;
@@ -121,15 +144,17 @@ public static class SearchParcels
                 var lastItem = items[^1];
                 var firstItem = items[0];
 
-                nextCursor = EncodeCursor(firstItem, input.SortBy, input.SortDirection, isNext: true);
-                previousCursor = EncodeCursor(lastItem, input.SortBy, input.SortDirection, isNext: false);
+                // nextCursor points past the LAST item of the current page (go forward)
+                // previousCursor points before the FIRST item of the current page (go backward)
+                nextCursor = EncodeCursor(lastItem, input.SortBy, input.SortDirection, isNext: true);
+                previousCursor = EncodeCursor(firstItem, input.SortBy, input.SortDirection, isNext: false);
             }
 
             return new PagedResultDto<ParcelListItemDto>(
                 dtos,
                 totalCount,
                 hasNextPage,
-                !string.IsNullOrEmpty(input.Cursor),
+                hasPreviousPage,
                 nextCursor,
                 previousCursor
             );
@@ -165,7 +190,11 @@ public static class SearchParcels
             ParcelSortBy sortBy,
             SortDirection direction)
         {
-            var isNext = direction == SortDirection.Asc ? cursor.IsFromAscending : !cursor.IsFromAscending;
+            // cursor.NextIsForward=true means this is a "next page" cursor;
+            // combined with sort direction it determines whether to seek > or < the cursor value.
+            // Forward + ASC → seek > (isNext=true)   Forward + DESC → seek < (isNext=false)
+            // Backward + ASC → seek < (isNext=false)  Backward + DESC → seek > (isNext=true)
+            var isNext = cursor.NextIsForward == (direction == SortDirection.Asc);
 
             return sortBy switch
             {

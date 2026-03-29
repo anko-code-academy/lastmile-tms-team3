@@ -474,6 +474,22 @@ public class ParcelQueriesIntegrationTests(ApiWebApplicationFactory factory)
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
+        // Delete any leftover data from a previous failed run before inserting fresh data
+        var existing = await db.Parcels
+            .SingleOrDefaultAsync(p => p.TrackingNumber == "UNIQUE-FILTER-TEST");
+        if (existing != null)
+        {
+            var leftoverRecipientAddrId = existing.RecipientAddressId;
+            var leftoverShipperAddrId = existing.ShipperAddressId;
+            db.Parcels.Remove(existing);
+            await db.SaveChangesAsync();
+            var leftoverRecipient = await db.Addresses.FindAsync(leftoverRecipientAddrId);
+            if (leftoverRecipient != null) db.Addresses.Remove(leftoverRecipient);
+            var leftoverShipper = await db.Addresses.FindAsync(leftoverShipperAddrId);
+            if (leftoverShipper != null) db.Addresses.Remove(leftoverShipper);
+            await db.SaveChangesAsync();
+        }
+
         var recipientAddress = new Address
         {
             Id = Guid.NewGuid(),
@@ -562,6 +578,20 @@ public class ParcelQueriesIntegrationTests(ApiWebApplicationFactory factory)
             .Where(p => p.TrackingNumber.StartsWith("PKG-TEST-"))
             .ToList();
         foreach (var p in testParcels) db.Parcels.Remove(p);
+
+        // Clean up the UNIQUE-FILTER-TEST parcel and its ephemeral addresses
+        var filterTestParcel = await db.Parcels
+            .SingleOrDefaultAsync(p => p.TrackingNumber == "UNIQUE-FILTER-TEST");
+        if (filterTestParcel != null)
+        {
+            var filterRecipientAddrId = filterTestParcel.RecipientAddressId;
+            var filterShipperAddrId = filterTestParcel.ShipperAddressId;
+            db.Parcels.Remove(filterTestParcel);
+            var filterRecipientAddr = await db.Addresses.FindAsync(filterRecipientAddrId);
+            if (filterRecipientAddr != null) db.Addresses.Remove(filterRecipientAddr);
+            var filterShipperAddr = await db.Addresses.FindAsync(filterShipperAddrId);
+            if (filterShipperAddr != null) db.Addresses.Remove(filterShipperAddr);
+        }
 
         await db.SaveChangesAsync();
     }
