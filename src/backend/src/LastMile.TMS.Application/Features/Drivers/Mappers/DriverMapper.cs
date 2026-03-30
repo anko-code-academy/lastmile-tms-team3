@@ -5,6 +5,16 @@ namespace LastMile.TMS.Application.Features.Drivers.Mappers;
 
 public static class DriverMapper
 {
+    public static DriverListItemDto ToListItemDto(Driver driver) => new(
+        driver.Id,
+        driver.FullName,
+        driver.Email,
+        driver.LicenseNumber,
+        driver.Depot?.Name,
+        driver.IsActive,
+        driver.CreatedAt
+    );
+
     public static DriverDto ToDto(Driver driver) => new(
         driver.Id,
         driver.FirstName,

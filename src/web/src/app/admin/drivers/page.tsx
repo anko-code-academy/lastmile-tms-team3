@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import TmNavbar from "@/components/TmNavbar";
 import { getDriversAction } from "@/lib/actions/drivers";
-import type { Driver } from "@/lib/types/driver";
+import type { DriverListItem, PagedDriversResult } from "@/lib/types/driver";
 
 const S = {
   bg: "#080c14" as const,
@@ -36,28 +36,35 @@ const COLS: { label: string; field: SortField | null }[] = [
 
 export default function DriversPage() {
   const router = useRouter();
-  const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [result, setResult] = useState<PagedDriversResult>({ items: [], totalCount: 0, page: 1, pageSize: 20, totalPages: 0 });
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [sortField, setSortField] = useState<SortField>("createdAt");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
+
+  const isActive = statusFilter === "ALL" ? undefined : statusFilter === "ACTIVE";
 
   useEffect(() => {
-    getDriversAction().then(setDrivers).finally(() => setLoading(false));
-  }, []);
+    setLoading(true);
+    getDriversAction(undefined, isActive, page, PAGE_SIZE)
+      .then(setResult)
+      .finally(() => setLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, statusFilter]);
+
+  const drivers: DriverListItem[] = result.items;
 
   const filtered = drivers
     .filter((d) => {
       const q = search.toLowerCase();
-      const matchSearch =
+      return (
         d.fullName.toLowerCase().includes(q) ||
         d.email.toLowerCase().includes(q) ||
-        d.licenseNumber.toLowerCase().includes(q);
-      const matchStatus =
-        statusFilter === "ALL" ||
-        (statusFilter === "ACTIVE" ? d.isActive : !d.isActive);
-      return matchSearch && matchStatus;
+        d.licenseNumber.toLowerCase().includes(q)
+      );
     })
     .sort((a, b) => {
       let cmp = 0;
@@ -71,6 +78,11 @@ export default function DriversPage() {
   function toggleSort(field: SortField) {
     if (sortField === field) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     else { setSortField(field); setSortDir("asc"); }
+  }
+
+  function handleStatusFilter(f: StatusFilter) {
+    setStatusFilter(f);
+    setPage(1);
   }
 
   return (
@@ -115,7 +127,7 @@ export default function DriversPage() {
                 {(["ALL", "ACTIVE", "INACTIVE"] as StatusFilter[]).map((f) => (
                   <button
                     key={f}
-                    onClick={() => setStatusFilter(f)}
+                    onClick={() => handleStatusFilter(f)}
                     style={{ fontFamily: S.mono, fontSize: "10px", letterSpacing: ".1em", textTransform: "uppercase", padding: ".3rem .75rem", borderRadius: 4, cursor: "pointer", border: `1px solid ${statusFilter === f ? "rgba(245,158,11,.4)" : S.border}`, background: statusFilter === f ? "rgba(245,158,11,.1)" : "transparent", color: statusFilter === f ? S.accent : S.muted }}
                   >
                     {f}
@@ -173,9 +185,32 @@ export default function DriversPage() {
                     </tbody>
                   </table>
                 </div>
-                <p style={{ fontFamily: S.mono, fontSize: "10px", color: S.dim, marginTop: ".75rem", letterSpacing: ".06em" }}>
-                  Showing {filtered.length} of {drivers.length} drivers
-                </p>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: ".75rem" }}>
+                  <p style={{ fontFamily: S.mono, fontSize: "10px", color: S.dim, letterSpacing: ".06em" }}>
+                    {search ? `Showing ${filtered.length} of ${result.totalCount} drivers` : `${result.totalCount} drivers total`}
+                  </p>
+                  {result.totalPages > 1 && (
+                    <div style={{ display: "flex", gap: ".4rem", alignItems: "center" }}>
+                      <button
+                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                        disabled={page === 1}
+                        style={{ fontFamily: S.mono, fontSize: "10px", padding: ".3rem .6rem", borderRadius: 4, cursor: page === 1 ? "default" : "pointer", opacity: page === 1 ? .4 : 1, background: "transparent", border: `1px solid ${S.border}`, color: S.muted }}
+                      >
+                        ←
+                      </button>
+                      <span style={{ fontFamily: S.mono, fontSize: "10px", color: S.dim, minWidth: "60px", textAlign: "center" }}>
+                        {page} / {result.totalPages}
+                      </span>
+                      <button
+                        onClick={() => setPage((p) => Math.min(result.totalPages, p + 1))}
+                        disabled={page === result.totalPages}
+                        style={{ fontFamily: S.mono, fontSize: "10px", padding: ".3rem .6rem", borderRadius: 4, cursor: page === result.totalPages ? "default" : "pointer", opacity: page === result.totalPages ? .4 : 1, background: "transparent", border: `1px solid ${S.border}`, color: S.muted }}
+                      >
+                        →
+                      </button>
+                    </div>
+                  )}
+                </div>
               </>
             )}
           </div>

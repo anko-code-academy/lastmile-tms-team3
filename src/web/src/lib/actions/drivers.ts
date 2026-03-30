@@ -6,18 +6,29 @@ import {
   CREATE_DRIVER,
   UPDATE_DRIVER,
   UPDATE_DRIVER_STATUS,
+  UPDATE_DRIVER_AVAILABILITY,
 } from "@/lib/graphql/queries/drivers";
 import type {
   CreateDriverInput,
   Driver,
+  DriverAvailability,
+  PagedDriversResult,
+  UpdateDriverAvailabilityInput,
   UpdateDriverInput,
   UpdateDriverStatusInput,
 } from "@/lib/types/driver";
 
-export async function getDriversAction(depotId?: string, isActive?: boolean): Promise<Driver[]> {
-  const data = await gqlFetch<{ drivers: Driver[] }>(GET_DRIVERS, {
+export async function getDriversAction(
+  depotId?: string,
+  isActive?: boolean,
+  page = 1,
+  pageSize = 20,
+): Promise<PagedDriversResult> {
+  const data = await gqlFetch<{ drivers: PagedDriversResult }>(GET_DRIVERS, {
     depotId: depotId ?? null,
     isActive: isActive ?? null,
+    page,
+    pageSize,
   });
   return data.drivers;
 }
@@ -59,5 +70,19 @@ export async function updateDriverStatusAction(
     return {};
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to update driver status" };
+  }
+}
+
+export async function updateDriverAvailabilityAction(
+  input: UpdateDriverAvailabilityInput,
+): Promise<{ error?: string; availability?: DriverAvailability }> {
+  try {
+    const data = await gqlFetch<{ updateDriverAvailability: { availability: DriverAvailability } }>(
+      UPDATE_DRIVER_AVAILABILITY,
+      { input },
+    );
+    return { availability: data.updateDriverAvailability.availability };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to update availability" };
   }
 }

@@ -1,4 +1,5 @@
 using FluentAssertions;
+using LastMile.TMS.Application.Features.Drivers.DTOs;
 using LastMile.TMS.Application.Features.Drivers.Queries;
 using LastMile.TMS.Application.Tests.Helpers;
 using LastMile.TMS.Domain.Entities;
@@ -70,7 +71,29 @@ public class DriverQueryTests : IDisposable
     {
         var result = await _getAllHandler.Handle(new GetAllDrivers.Query(), CancellationToken.None);
 
-        result.Should().HaveCount(2);
+        result.Items.Should().HaveCount(2);
+        result.TotalCount.Should().Be(2);
+        result.Page.Should().Be(1);
+        result.PageSize.Should().Be(20);
+    }
+
+    [Fact]
+    public async Task GetAllDrivers_WithPagination_ReturnsFirstPage()
+    {
+        var result = await _getAllHandler.Handle(new GetAllDrivers.Query(Page: 1, PageSize: 1), CancellationToken.None);
+
+        result.Items.Should().HaveCount(1);
+        result.TotalCount.Should().Be(2);
+        result.TotalPages.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task GetAllDrivers_WithPagination_ReturnsSecondPage()
+    {
+        var result = await _getAllHandler.Handle(new GetAllDrivers.Query(Page: 2, PageSize: 1), CancellationToken.None);
+
+        result.Items.Should().HaveCount(1);
+        result.TotalCount.Should().Be(2);
     }
 
     [Fact]
@@ -78,8 +101,8 @@ public class DriverQueryTests : IDisposable
     {
         var result = await _getAllHandler.Handle(new GetAllDrivers.Query(DepotId: _depotId), CancellationToken.None);
 
-        result.Should().HaveCount(1);
-        result[0].FirstName.Should().Be("Alice");
+        result.Items.Should().HaveCount(1);
+        result.Items[0].FullName.Should().Be("Alice Smith");
     }
 
     [Fact]
@@ -87,8 +110,8 @@ public class DriverQueryTests : IDisposable
     {
         var result = await _getAllHandler.Handle(new GetAllDrivers.Query(IsActive: true), CancellationToken.None);
 
-        result.Should().HaveCount(1);
-        result[0].FirstName.Should().Be("Alice");
+        result.Items.Should().HaveCount(1);
+        result.Items[0].FullName.Should().Be("Alice Smith");
     }
 
     [Fact]
@@ -96,8 +119,8 @@ public class DriverQueryTests : IDisposable
     {
         var result = await _getAllHandler.Handle(new GetAllDrivers.Query(IsActive: false), CancellationToken.None);
 
-        result.Should().HaveCount(1);
-        result[0].FirstName.Should().Be("Bob");
+        result.Items.Should().HaveCount(1);
+        result.Items[0].FullName.Should().Be("Bob Jones");
     }
 
     [Fact]

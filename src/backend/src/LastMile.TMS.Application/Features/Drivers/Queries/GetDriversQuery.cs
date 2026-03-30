@@ -8,9 +8,13 @@ namespace LastMile.TMS.Application.Features.Drivers.Queries;
 
 public static class GetAllDrivers
 {
-    public record Query(Guid? DepotId = null, bool? IsActive = null) : IRequest<List<DriverDto>>;
+    public record Query(
+        Guid? DepotId = null,
+        bool? IsActive = null,
+        int Page = 1,
+        int PageSize = 20) : IRequest<PagedDriversResult>;
 
-    public class Handler : IRequestHandler<Query, List<DriverDto>>
+    public class Handler : IRequestHandler<Query, PagedDriversResult>
     {
         private readonly IAppDbContext _context;
 
@@ -19,11 +23,10 @@ public static class GetAllDrivers
             _context = context;
         }
 
-        public async Task<List<DriverDto>> Handle(Query request, CancellationToken cancellationToken)
+        public async Task<PagedDriversResult> Handle(Query request, CancellationToken cancellationToken)
         {
             var query = _context.Drivers
                 .Include(d => d.Depot)
-                .Include(d => d.Zone)
                 .AsQueryable();
 
             if (request.DepotId.HasValue)
@@ -32,9 +35,23 @@ public static class GetAllDrivers
             if (request.IsActive.HasValue)
                 query = query.Where(d => d.IsActive == request.IsActive.Value);
 
-            var drivers = await query.ToListAsync(cancellationToken);
+            var totalCount = await query.CountAsync(cancellationToken);
 
-            return drivers.Select(DriverMapper.ToDto).ToList();
+            var page = Math.Max(1, request.Page);
+            var pageSize = Math.Clamp(request.PageSize, 1, 100);
+
+            var drivers = await query
+                .OrderBy(d => d.LastName)
+                .ThenBy(d => d.FirstName)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(cancellationToken);
+
+            return new PagedDriversResult(
+                drivers.Select(DriverMapper.ToListItemDto).ToList(),
+                totalCount,
+                page,
+                pageSize);
         }
     }
 }

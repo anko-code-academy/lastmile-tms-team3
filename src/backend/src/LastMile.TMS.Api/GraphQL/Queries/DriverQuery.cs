@@ -18,12 +18,14 @@ public class DriverQuery
     }
 
     [Authorize(Policy = "AdminOrOperationsManager")]
-    public async Task<IReadOnlyList<DriverDto>> GetDrivers(
+    public async Task<PagedDriversResult> GetDrivers(
         [Service] IMediator mediator,
         Guid? depotId = null,
         bool? isActive = null,
+        int page = 1,
+        int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
-        return await mediator.Send(new GetAllDrivers.Query(depotId, isActive), cancellationToken);
+        return await mediator.Send(new GetAllDrivers.Query(depotId, isActive, page, pageSize), cancellationToken);
     }
 }

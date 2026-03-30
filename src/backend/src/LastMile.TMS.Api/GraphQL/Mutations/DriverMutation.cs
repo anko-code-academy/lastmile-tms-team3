@@ -34,4 +34,13 @@ public class DriverMutation
     {
         return await mediator.Send(new UpdateDriverStatus.Command(input), cancellationToken);
     }
+
+    [Authorize(Policy = "AdminOrOperationsManager")]
+    public async Task<DriverDto> UpdateDriverAvailability(
+        [Service] IMediator mediator,
+        UpdateDriverAvailabilityDto input,
+        CancellationToken cancellationToken = default)
+    {
+        return await mediator.Send(new UpdateDriverAvailability.Command(input), cancellationToken);
+    }
 }

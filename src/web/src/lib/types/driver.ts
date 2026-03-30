@@ -1,3 +1,21 @@
+export interface DriverListItem {
+  id: string;
+  fullName: string;
+  email: string;
+  licenseNumber: string;
+  depotName?: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface PagedDriversResult {
+  items: DriverListItem[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
 export interface DriverSchedule {
   dayOfWeek: string;
   startTime?: string;
@@ -64,4 +82,22 @@ export interface UpdateDriverInput {
 export interface UpdateDriverStatusInput {
   id: string;
   isActive: boolean;
+}
+
+export interface DriverScheduleInputItem {
+  dayOfWeek: string;
+  startTime?: string;
+  endTime?: string;
+}
+
+export interface DriverDayOffInputItem {
+  date: string;
+  isPaid: boolean;
+  reason?: string;
+}
+
+export interface UpdateDriverAvailabilityInput {
+  id: string;
+  schedule: DriverScheduleInputItem[];
+  daysOff: DriverDayOffInputItem[];
 }

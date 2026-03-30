@@ -12,6 +12,7 @@ public class DriverCommandTests : IDisposable
     private readonly CreateDriver.Handler _createHandler;
     private readonly UpdateDriver.Handler _updateHandler;
     private readonly UpdateDriverStatus.Handler _updateStatusHandler;
+    private readonly UpdateDriverAvailability.Handler _updateAvailabilityHandler;
 
     private readonly Guid _depotId = Guid.NewGuid();
     private readonly Guid _driverId = Guid.NewGuid();
@@ -22,6 +23,7 @@ public class DriverCommandTests : IDisposable
         _createHandler = new CreateDriver.Handler(_context);
         _updateHandler = new UpdateDriver.Handler(_context);
         _updateStatusHandler = new UpdateDriverStatus.Handler(_context);
+        _updateAvailabilityHandler = new UpdateDriverAvailability.Handler(_context);
 
         SeedTestData();
     }
@@ -166,6 +168,39 @@ public class DriverCommandTests : IDisposable
         var dto = new UpdateDriverStatusDto(Guid.NewGuid(), false);
 
         var act = async () => await _updateStatusHandler.Handle(new UpdateDriverStatus.Command(dto), CancellationToken.None);
+
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*Driver*not found*");
+    }
+
+    [Fact]
+    public async Task UpdateDriverAvailability_SetsScheduleAndDaysOff()
+    {
+        var schedule = new List<DriverScheduleInputDto>
+        {
+            new("Monday", new TimeOnly(8, 0), new TimeOnly(17, 0)),
+            new("Tuesday", new TimeOnly(8, 0), new TimeOnly(17, 0)),
+        };
+        var daysOff = new List<DriverDayOffInputDto>
+        {
+            new(new DateOnly(2026, 4, 7), true, "Vacation")
+        };
+        var dto = new UpdateDriverAvailabilityDto(_driverId, schedule, daysOff);
+
+        var result = await _updateAvailabilityHandler.Handle(new UpdateDriverAvailability.Command(dto), CancellationToken.None);
+
+        result.Availability.Schedule.Should().HaveCount(2);
+        result.Availability.Schedule[0].DayOfWeek.Should().Be("Monday");
+        result.Availability.DaysOff.Should().HaveCount(1);
+        result.Availability.DaysOff[0].Reason.Should().Be("Vacation");
+    }
+
+    [Fact]
+    public async Task UpdateDriverAvailability_WhenNotFound_ThrowsInvalidOperationException()
+    {
+        var dto = new UpdateDriverAvailabilityDto(Guid.NewGuid(), [], []);
+
+        var act = async () => await _updateAvailabilityHandler.Handle(new UpdateDriverAvailability.Command(dto), CancellationToken.None);
 
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*Driver*not found*");

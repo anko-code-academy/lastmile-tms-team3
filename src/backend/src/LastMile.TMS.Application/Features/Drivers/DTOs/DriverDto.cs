@@ -1,5 +1,43 @@
 namespace LastMile.TMS.Application.Features.Drivers.DTOs;
 
+public record PagedDriversResult(
+    List<DriverListItemDto> Items,
+    int TotalCount,
+    int Page,
+    int PageSize
+)
+{
+    public int TotalPages => (int)Math.Ceiling((double)TotalCount / PageSize);
+}
+
+public record UpdateDriverAvailabilityDto(
+    Guid Id,
+    List<DriverScheduleInputDto> Schedule,
+    List<DriverDayOffInputDto> DaysOff
+);
+
+public record DriverScheduleInputDto(
+    string DayOfWeek,
+    TimeOnly? StartTime,
+    TimeOnly? EndTime
+);
+
+public record DriverDayOffInputDto(
+    DateOnly Date,
+    bool IsPaid,
+    string? Reason
+);
+
+public record DriverListItemDto(
+    Guid Id,
+    string FullName,
+    string Email,
+    string LicenseNumber,
+    string? DepotName,
+    bool IsActive,
+    DateTimeOffset CreatedAt
+);
+
 public record DriverDto(
     Guid Id,
     string FirstName,

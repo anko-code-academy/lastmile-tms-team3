@@ -1,3 +1,13 @@
+const DRIVER_LIST_ITEM_FIELDS = `
+  id
+  fullName
+  email
+  licenseNumber
+  depotName
+  isActive
+  createdAt
+`;
+
 const DRIVER_FIELDS = `
   id
   firstName
@@ -23,9 +33,13 @@ const DRIVER_FIELDS = `
 `;
 
 export const GET_DRIVERS = `
-  query GetDrivers($depotId: UUID, $isActive: Boolean) {
-    drivers(depotId: $depotId, isActive: $isActive) {
-      ${DRIVER_FIELDS}
+  query GetDrivers($depotId: UUID, $isActive: Boolean, $page: Int, $pageSize: Int) {
+    drivers(depotId: $depotId, isActive: $isActive, page: $page, pageSize: $pageSize) {
+      items { ${DRIVER_LIST_ITEM_FIELDS} }
+      totalCount
+      page
+      pageSize
+      totalPages
     }
   }
 `;
@@ -59,6 +73,19 @@ export const UPDATE_DRIVER_STATUS = `
     updateDriverStatus(input: $input) {
       id
       isActive
+      lastModifiedAt
+    }
+  }
+`;
+
+export const UPDATE_DRIVER_AVAILABILITY = `
+  mutation UpdateDriverAvailability($input: UpdateDriverAvailabilityDtoInput!) {
+    updateDriverAvailability(input: $input) {
+      id
+      availability {
+        schedule { dayOfWeek startTime endTime }
+        daysOff { date isPaid reason }
+      }
       lastModifiedAt
     }
   }
