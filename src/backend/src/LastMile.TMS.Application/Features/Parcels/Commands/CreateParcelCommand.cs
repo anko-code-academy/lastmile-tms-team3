@@ -1,6 +1,6 @@
 using LastMile.TMS.Application.Common.Interfaces;
-using LastMile.TMS.Application.Features.Depots.DTOs;
 using LastMile.TMS.Application.Features.Parcels.DTOs;
+using LastMile.TMS.Application.Features.Parcels.Mappers;
 using LastMile.TMS.Application.Services;
 using LastMile.TMS.Domain.Entities;
 using LastMile.TMS.Domain.Enums;
@@ -15,22 +15,23 @@ public static class CreateParcel
 
     public class Handler : IRequestHandler<Command, ParcelDto>
     {
-        private readonly IAppDbContext _context;
+        private readonly IAppDbContextFactory _contextFactory;
         private readonly ICurrentUserService _currentUser;
         private readonly IZoneMatchingService _zoneMatchingService;
 
-        public Handler(IAppDbContext context, ICurrentUserService currentUser, IZoneMatchingService zoneMatchingService)
+        public Handler(IAppDbContextFactory contextFactory, ICurrentUserService currentUser, IZoneMatchingService zoneMatchingService)
         {
-            _context = context;
+            _contextFactory = contextFactory;
             _currentUser = currentUser;
             _zoneMatchingService = zoneMatchingService;
         }
 
         public async Task<ParcelDto> Handle(Command request, CancellationToken cancellationToken)
         {
+            using var context = _contextFactory.CreateDbContext();
+
             var now = DateTimeOffset.UtcNow;
 
-            // Create recipient address
             var recipientAddress = new Address
             {
                 Id = Guid.NewGuid(),
@@ -50,7 +51,6 @@ public static class CreateParcel
                 CreatedBy = _currentUser.UserId
             };
 
-            // Create shipper address
             var shipperAddress = new Address
             {
                 Id = Guid.NewGuid(),
@@ -70,7 +70,6 @@ public static class CreateParcel
                 CreatedBy = _currentUser.UserId
             };
 
-            // Auto-assign zone based on recipient address coordinates
             Guid? zoneId = null;
             if (recipientAddress.GeoLocation is not null)
             {
@@ -103,10 +102,10 @@ public static class CreateParcel
                 CreatedBy = _currentUser.UserId
             };
 
-            _context.Parcels.Add(parcel);
-            await _context.SaveChangesAsync(cancellationToken);
+            context.Parcels.Add(parcel);
+            await context.SaveChangesAsync(cancellationToken);
 
-            return MapToDto(parcel);
+            return ParcelMapper.ToDto(parcel);
         }
 
         private static Point? CreatePoint(double? latitude, double? longitude)
@@ -115,59 +114,5 @@ public static class CreateParcel
                 ? new Point(longitude.Value, latitude.Value) { SRID = 4326 }
                 : null;
         }
-
-        private static ParcelDto MapToDto(Parcel parcel) => new(
-            parcel.Id,
-            parcel.TrackingNumber,
-            parcel.Description,
-            parcel.ServiceType,
-            parcel.Status,
-            new AddressDto(
-                parcel.RecipientAddress.Street1,
-                parcel.RecipientAddress.Street2,
-                parcel.RecipientAddress.City,
-                parcel.RecipientAddress.State,
-                parcel.RecipientAddress.PostalCode,
-                parcel.RecipientAddress.CountryCode,
-                parcel.RecipientAddress.IsResidential,
-                parcel.RecipientAddress.ContactName,
-                parcel.RecipientAddress.CompanyName,
-                parcel.RecipientAddress.Phone,
-                parcel.RecipientAddress.Email,
-                parcel.RecipientAddress.GeoLocation?.Y,
-                parcel.RecipientAddress.GeoLocation?.X
-            ),
-            new AddressDto(
-                parcel.ShipperAddress.Street1,
-                parcel.ShipperAddress.Street2,
-                parcel.ShipperAddress.City,
-                parcel.ShipperAddress.State,
-                parcel.ShipperAddress.PostalCode,
-                parcel.ShipperAddress.CountryCode,
-                parcel.ShipperAddress.IsResidential,
-                parcel.ShipperAddress.ContactName,
-                parcel.ShipperAddress.CompanyName,
-                parcel.ShipperAddress.Phone,
-                parcel.ShipperAddress.Email,
-                parcel.ShipperAddress.GeoLocation?.Y,
-                parcel.ShipperAddress.GeoLocation?.X
-            ),
-            parcel.Weight,
-            parcel.WeightUnit,
-            parcel.Length,
-            parcel.Width,
-            parcel.Height,
-            parcel.DimensionUnit,
-            parcel.DeclaredValue,
-            parcel.Currency,
-            parcel.EstimatedDeliveryDate,
-            parcel.ActualDeliveryDate,
-            parcel.DeliveryAttempts,
-            parcel.ParcelType,
-            parcel.ZoneId,
-            parcel.Zone?.Name,
-            parcel.CreatedAt,
-            parcel.LastModifiedAt
-        );
     }
 }

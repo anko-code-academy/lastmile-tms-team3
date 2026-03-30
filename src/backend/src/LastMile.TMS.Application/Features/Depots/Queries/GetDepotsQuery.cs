@@ -11,16 +11,18 @@ public static class GetAllDepots
 
     public class Handler : IRequestHandler<Query, List<DepotDto>>
     {
-        private readonly IAppDbContext _context;
+        private readonly IAppDbContextFactory _contextFactory;
 
-        public Handler(IAppDbContext context)
+        public Handler(IAppDbContextFactory contextFactory)
         {
-            _context = context;
+            _contextFactory = contextFactory;
         }
 
         public async Task<List<DepotDto>> Handle(Query request, CancellationToken cancellationToken)
         {
-            var query = _context.Depots
+            using var context = _contextFactory.CreateDbContext();
+
+            var query = context.Depots
                 .Include(d => d.Address)
                 .AsQueryable();
 

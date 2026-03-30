@@ -11,18 +11,20 @@ public static class UpdateDepot
 
     public class Handler : IRequestHandler<Command, DepotDto>
     {
-        private readonly IAppDbContext _context;
+        private readonly IAppDbContextFactory _contextFactory;
         private readonly ICurrentUserService _currentUser;
 
-        public Handler(IAppDbContext context, ICurrentUserService currentUser)
+        public Handler(IAppDbContextFactory contextFactory, ICurrentUserService currentUser)
         {
-            _context = context;
+            _contextFactory = contextFactory;
             _currentUser = currentUser;
         }
 
         public async Task<DepotDto> Handle(Command request, CancellationToken cancellationToken)
         {
-            var depot = await _context.Depots
+            using var context = _contextFactory.CreateDbContext();
+
+            var depot = await context.Depots
                 .Include(d => d.Address)
                 .FirstOrDefaultAsync(d => d.Id == request.Dto.Id, cancellationToken)
                 ?? throw new KeyNotFoundException($"Depot with ID {request.Dto.Id} not found");
@@ -70,7 +72,7 @@ public static class UpdateDepot
                 };
             }
 
-            await _context.SaveChangesAsync(cancellationToken);
+            await context.SaveChangesAsync(cancellationToken);
 
             return MapToDto(depot);
         }

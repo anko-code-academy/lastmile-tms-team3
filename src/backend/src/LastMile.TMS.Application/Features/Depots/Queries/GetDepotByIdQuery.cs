@@ -11,16 +11,18 @@ public static class GetDepotById
 
     public class Handler : IRequestHandler<Query, DepotDto>
     {
-        private readonly IAppDbContext _context;
+        private readonly IAppDbContextFactory _contextFactory;
 
-        public Handler(IAppDbContext context)
+        public Handler(IAppDbContextFactory contextFactory)
         {
-            _context = context;
+            _contextFactory = contextFactory;
         }
 
         public async Task<DepotDto> Handle(Query request, CancellationToken cancellationToken)
         {
-            var depot = await _context.Depots
+            using var context = _contextFactory.CreateDbContext();
+
+            var depot = await context.Depots
                 .Include(d => d.Address)
                 .FirstOrDefaultAsync(d => d.Id == request.Id, cancellationToken)
                 ?? throw new KeyNotFoundException($"Depot with ID {request.Id} not found");
