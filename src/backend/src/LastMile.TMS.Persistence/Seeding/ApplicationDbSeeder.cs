@@ -138,42 +138,13 @@ public class ApplicationDbSeeder(
         Guid? northId = depotIds.FirstOrDefault(d => d.Name == "North Distribution Center")?.Id;
         Guid? southId = depotIds.FirstOrDefault(d => d.Name == "South Fleet Yard")?.Id;
 
-        var weekdaySchedule = new OperatingHours
-        {
-            Schedule =
-            [
-                new DailyAvailability { DayOfWeek = "Monday",    StartTime = new TimeOnly(7, 0), EndTime = new TimeOnly(16, 0) },
-                new DailyAvailability { DayOfWeek = "Tuesday",   StartTime = new TimeOnly(7, 0), EndTime = new TimeOnly(16, 0) },
-                new DailyAvailability { DayOfWeek = "Wednesday", StartTime = new TimeOnly(7, 0), EndTime = new TimeOnly(16, 0) },
-                new DailyAvailability { DayOfWeek = "Thursday",  StartTime = new TimeOnly(7, 0), EndTime = new TimeOnly(16, 0) },
-                new DailyAvailability { DayOfWeek = "Friday",    StartTime = new TimeOnly(7, 0), EndTime = new TimeOnly(16, 0) }
-            ],
-            DaysOff = []
-        };
-
-        var shiftTwoSchedule = new OperatingHours
-        {
-            Schedule =
-            [
-                new DailyAvailability { DayOfWeek = "Monday",    StartTime = new TimeOnly(12, 0), EndTime = new TimeOnly(21, 0) },
-                new DailyAvailability { DayOfWeek = "Tuesday",   StartTime = new TimeOnly(12, 0), EndTime = new TimeOnly(21, 0) },
-                new DailyAvailability { DayOfWeek = "Wednesday", StartTime = new TimeOnly(12, 0), EndTime = new TimeOnly(21, 0) },
-                new DailyAvailability { DayOfWeek = "Thursday",  StartTime = new TimeOnly(12, 0), EndTime = new TimeOnly(21, 0) },
-                new DailyAvailability { DayOfWeek = "Saturday",  StartTime = new TimeOnly(8, 0),  EndTime = new TimeOnly(17, 0) }
-            ],
-            DaysOff =
-            [
-                new DayOff { Date = new DateOnly(2026, 4, 7), IsPaid = true, Reason = "Vacation" }
-            ]
-        };
-
         var drivers = new List<Driver>
         {
-            CreateDriver("James",  "Carter",  "+16155550101", "j.carter@lastmile.local",  "TN-DL-884521", 2, centralId, weekdaySchedule),
-            CreateDriver("Maria",  "Gonzalez","+16155550102", "m.gonzalez@lastmile.local", "TN-DL-221047", 3, centralId, weekdaySchedule),
-            CreateDriver("Darius", "Webb",    "+15025550103", "d.webb@lastmile.local",     "KY-DL-330192", 1, northId,   shiftTwoSchedule),
+            CreateDriver("James",  "Carter",  "+16155550101", "j.carter@lastmile.local",  "TN-DL-884521", 2, centralId, WeekdaySchedule()),
+            CreateDriver("Maria",  "Gonzalez","+16155550102", "m.gonzalez@lastmile.local", "TN-DL-221047", 3, centralId, WeekdaySchedule()),
+            CreateDriver("Darius", "Webb",    "+15025550103", "d.webb@lastmile.local",     "KY-DL-330192", 1, northId,   ShiftTwoSchedule()),
             CreateDriver("Priya",  "Sharma",  "+12055550104", "p.sharma@lastmile.local",   "AL-DL-119843", 2, southId,   new OperatingHours { Schedule = [], DaysOff = [] }),
-            CreateDriver("Kyle",   "Brooks",  "+16155550105", "k.brooks@lastmile.local",   "TN-DL-557834", 4, centralId, weekdaySchedule, isActive: false),
+            CreateDriver("Kyle",   "Brooks",  "+16155550105", "k.brooks@lastmile.local",   "TN-DL-557834", 4, centralId, WeekdaySchedule(), isActive: false),
         };
 
         await dbContext.Drivers.AddRangeAsync(drivers, cancellationToken);
@@ -181,6 +152,32 @@ public class ApplicationDbSeeder(
 
         logger.LogInformation("Seeded {Count} driver records", drivers.Count);
     }
+
+    private static OperatingHours WeekdaySchedule() => new()
+    {
+        Schedule =
+        [
+            new DailyAvailability { DayOfWeek = "Monday",    StartTime = new TimeOnly(8, 0), EndTime = new TimeOnly(17, 0) },
+            new DailyAvailability { DayOfWeek = "Tuesday",   StartTime = new TimeOnly(8, 0), EndTime = new TimeOnly(17, 0) },
+            new DailyAvailability { DayOfWeek = "Wednesday", StartTime = new TimeOnly(8, 0), EndTime = new TimeOnly(17, 0) },
+            new DailyAvailability { DayOfWeek = "Thursday",  StartTime = new TimeOnly(8, 0), EndTime = new TimeOnly(17, 0) },
+            new DailyAvailability { DayOfWeek = "Friday",    StartTime = new TimeOnly(8, 0), EndTime = new TimeOnly(17, 0) },
+        ],
+        DaysOff = []
+    };
+
+    private static OperatingHours ShiftTwoSchedule() => new()
+    {
+        Schedule =
+        [
+            new DailyAvailability { DayOfWeek = "Monday",    StartTime = new TimeOnly(14, 0), EndTime = new TimeOnly(22, 0) },
+            new DailyAvailability { DayOfWeek = "Tuesday",   StartTime = new TimeOnly(14, 0), EndTime = new TimeOnly(22, 0) },
+            new DailyAvailability { DayOfWeek = "Wednesday", StartTime = new TimeOnly(14, 0), EndTime = new TimeOnly(22, 0) },
+            new DailyAvailability { DayOfWeek = "Thursday",  StartTime = new TimeOnly(14, 0), EndTime = new TimeOnly(22, 0) },
+            new DailyAvailability { DayOfWeek = "Friday",    StartTime = new TimeOnly(14, 0), EndTime = new TimeOnly(22, 0) },
+        ],
+        DaysOff = []
+    };
 
     private static Driver CreateDriver(
         string firstName,
