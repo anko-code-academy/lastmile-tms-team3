@@ -124,6 +124,42 @@ public class DriverQueryTests : IDisposable
     }
 
     [Fact]
+    public async Task GetAllDrivers_WithSearch_ByName_ReturnsMatchingDrivers()
+    {
+        var result = await _getAllHandler.Handle(new GetAllDrivers.Query(Search: "alice"), CancellationToken.None);
+
+        result.Items.Should().HaveCount(1);
+        result.Items[0].FullName.Should().Be("Alice Smith");
+    }
+
+    [Fact]
+    public async Task GetAllDrivers_WithSearch_ByEmail_ReturnsMatchingDrivers()
+    {
+        var result = await _getAllHandler.Handle(new GetAllDrivers.Query(Search: "bob@example"), CancellationToken.None);
+
+        result.Items.Should().HaveCount(1);
+        result.Items[0].FullName.Should().Be("Bob Jones");
+    }
+
+    [Fact]
+    public async Task GetAllDrivers_WithSearch_ByLicense_ReturnsMatchingDrivers()
+    {
+        var result = await _getAllHandler.Handle(new GetAllDrivers.Query(Search: "DL000001"), CancellationToken.None);
+
+        result.Items.Should().HaveCount(1);
+        result.Items[0].FullName.Should().Be("Alice Smith");
+    }
+
+    [Fact]
+    public async Task GetAllDrivers_WithSearch_NoMatch_ReturnsEmpty()
+    {
+        var result = await _getAllHandler.Handle(new GetAllDrivers.Query(Search: "zzznomatch"), CancellationToken.None);
+
+        result.Items.Should().BeEmpty();
+        result.TotalCount.Should().Be(0);
+    }
+
+    [Fact]
     public async Task GetDriverById_ExistingId_ReturnsDriver()
     {
         var result = await _getByIdHandler.Handle(new GetDriverById.Query(_driver1Id), CancellationToken.None);

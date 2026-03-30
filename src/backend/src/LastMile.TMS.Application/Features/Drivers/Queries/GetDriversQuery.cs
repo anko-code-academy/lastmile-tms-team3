@@ -11,6 +11,7 @@ public static class GetAllDrivers
     public record Query(
         Guid? DepotId = null,
         bool? IsActive = null,
+        string? Search = null,
         int Page = 1,
         int PageSize = 20) : IRequest<PagedDriversResult>;
 
@@ -34,6 +35,15 @@ public static class GetAllDrivers
 
             if (request.IsActive.HasValue)
                 query = query.Where(d => d.IsActive == request.IsActive.Value);
+
+            if (!string.IsNullOrWhiteSpace(request.Search))
+            {
+                var term = request.Search.Trim().ToLower();
+                query = query.Where(d =>
+                    (d.FirstName + " " + d.LastName).ToLower().Contains(term) ||
+                    d.Email.ToLower().Contains(term) ||
+                    d.LicenseNumber.ToLower().Contains(term));
+            }
 
             var totalCount = await query.CountAsync(cancellationToken);
 

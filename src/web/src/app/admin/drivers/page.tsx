@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import TmNavbar from "@/components/TmNavbar";
 import { getDriversAction } from "@/lib/actions/drivers";
@@ -38,7 +38,8 @@ export default function DriversPage() {
   const router = useRouter();
   const [result, setResult] = useState<PagedDriversResult>({ items: [], totalCount: 0, page: 1, pageSize: 20, totalPages: 0 });
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [sortField, setSortField] = useState<SortField>("createdAt");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -47,33 +48,35 @@ export default function DriversPage() {
 
   const isActive = statusFilter === "ALL" ? undefined : statusFilter === "ACTIVE";
 
-  useEffect(() => {
+  const fetchDrivers = useCallback(() => {
     setLoading(true);
-    getDriversAction(undefined, isActive, page, PAGE_SIZE)
+    getDriversAction(undefined, isActive, appliedSearch || undefined, page, PAGE_SIZE)
       .then(setResult)
       .finally(() => setLoading(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, statusFilter]);
+  }, [isActive, appliedSearch, page]);
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { fetchDrivers(); }, [fetchDrivers]);
+
+  function handleSearch() {
+    setAppliedSearch(searchInput);
+    setPage(1);
+  }
+
+  function handleSearchKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter") handleSearch();
+  }
 
   const drivers: DriverListItem[] = result.items;
 
-  const filtered = drivers
-    .filter((d) => {
-      const q = search.toLowerCase();
-      return (
-        d.fullName.toLowerCase().includes(q) ||
-        d.email.toLowerCase().includes(q) ||
-        d.licenseNumber.toLowerCase().includes(q)
-      );
-    })
-    .sort((a, b) => {
-      let cmp = 0;
-      if (sortField === "fullName") cmp = a.fullName.localeCompare(b.fullName);
-      else if (sortField === "email") cmp = a.email.localeCompare(b.email);
-      else if (sortField === "depotName") cmp = (a.depotName ?? "").localeCompare(b.depotName ?? "");
-      else cmp = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-      return sortDir === "asc" ? cmp : -cmp;
-    });
+  const sorted = [...drivers].sort((a, b) => {
+    let cmp = 0;
+    if (sortField === "fullName") cmp = a.fullName.localeCompare(b.fullName);
+    else if (sortField === "email") cmp = a.email.localeCompare(b.email);
+    else if (sortField === "depotName") cmp = (a.depotName ?? "").localeCompare(b.depotName ?? "");
+    else cmp = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    return sortDir === "asc" ? cmp : -cmp;
+  });
 
   function toggleSort(field: SortField) {
     if (sortField === field) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -116,13 +119,23 @@ export default function DriversPage() {
 
             {/* Toolbar */}
             <div style={{ display: "flex", gap: "1rem", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap" }}>
-              <input
-                className="tm-input"
-                placeholder="Search by name, email or license..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                style={{ background: S.inputBg, border: `1px solid ${S.inputBorder}`, color: S.text, borderRadius: 6, padding: ".5rem .75rem", fontSize: ".875rem", width: "300px", outline: "none", fontFamily: S.mono }}
-              />
+              <div style={{ display: "flex", gap: ".5rem", alignItems: "center" }}>
+                <input
+                  className="tm-input"
+                  placeholder="Search by name, email or license..."
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  onKeyDown={handleSearchKeyDown}
+                  style={{ background: S.inputBg, border: `1px solid ${S.inputBorder}`, color: S.text, borderRadius: 6, padding: ".5rem .75rem", fontSize: ".875rem", width: "300px", outline: "none", fontFamily: S.mono }}
+                />
+                <button
+                  className="tm-btn-primary"
+                  onClick={handleSearch}
+                  style={{ fontFamily: S.mono, fontSize: "11px", letterSpacing: ".1em", textTransform: "uppercase", padding: ".45rem .9rem", borderRadius: 6, cursor: "pointer", background: "rgba(245,158,11,.12)", border: "1px solid rgba(245,158,11,.35)", color: S.accent }}
+                >
+                  Search
+                </button>
+              </div>
               <div style={{ display: "flex", gap: ".4rem" }}>
                 {(["ALL", "ACTIVE", "INACTIVE"] as StatusFilter[]).map((f) => (
                   <button
@@ -157,13 +170,13 @@ export default function DriversPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filtered.length === 0 ? (
+                      {sorted.length === 0 ? (
                         <tr>
                           <td colSpan={6} style={{ padding: "3rem", textAlign: "center", fontFamily: S.mono, fontSize: ".875rem", color: S.dim }}>
-                            {search || statusFilter !== "ALL" ? "No drivers match your filters." : "No drivers yet. Add one to get started."}
+                            {appliedSearch || statusFilter !== "ALL" ? "No drivers match your filters." : "No drivers yet. Add one to get started."}
                           </td>
                         </tr>
-                      ) : filtered.map((d) => (
+                      ) : sorted.map((d) => (
                         <tr
                           key={d.id}
                           className="dr-row"
@@ -187,7 +200,7 @@ export default function DriversPage() {
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: ".75rem" }}>
                   <p style={{ fontFamily: S.mono, fontSize: "10px", color: S.dim, letterSpacing: ".06em" }}>
-                    {search ? `Showing ${filtered.length} of ${result.totalCount} drivers` : `${result.totalCount} drivers total`}
+                    {result.totalCount} drivers total
                   </p>
                   {result.totalPages > 1 && (
                     <div style={{ display: "flex", gap: ".4rem", alignItems: "center" }}>

@@ -21,12 +21,14 @@ import type {
 export async function getDriversAction(
   depotId?: string,
   isActive?: boolean,
+  search?: string,
   page = 1,
   pageSize = 20,
 ): Promise<PagedDriversResult> {
   const data = await gqlFetch<{ drivers: PagedDriversResult }>(GET_DRIVERS, {
     depotId: depotId ?? null,
     isActive: isActive ?? null,
+    search: search || null,
     page,
     pageSize,
   });

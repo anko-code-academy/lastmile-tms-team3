@@ -33,8 +33,8 @@ const DRIVER_FIELDS = `
 `;
 
 export const GET_DRIVERS = `
-  query GetDrivers($depotId: UUID, $isActive: Boolean, $page: Int, $pageSize: Int) {
-    drivers(depotId: $depotId, isActive: $isActive, page: $page, pageSize: $pageSize) {
+  query GetDrivers($depotId: UUID, $isActive: Boolean, $search: String, $page: Int, $pageSize: Int) {
+    drivers(depotId: $depotId, isActive: $isActive, search: $search, page: $page, pageSize: $pageSize) {
       items { ${DRIVER_LIST_ITEM_FIELDS} }
       totalCount
       page

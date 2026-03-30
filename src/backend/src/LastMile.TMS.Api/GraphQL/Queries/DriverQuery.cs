@@ -22,10 +22,11 @@ public class DriverQuery
         [Service] IMediator mediator,
         Guid? depotId = null,
         bool? isActive = null,
+        string? search = null,
         int page = 1,
         int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
-        return await mediator.Send(new GetAllDrivers.Query(depotId, isActive, page, pageSize), cancellationToken);
+        return await mediator.Send(new GetAllDrivers.Query(depotId, isActive, search, page, pageSize), cancellationToken);
     }
 }
