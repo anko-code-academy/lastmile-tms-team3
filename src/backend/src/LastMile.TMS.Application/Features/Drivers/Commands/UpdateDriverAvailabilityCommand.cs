@@ -13,16 +13,18 @@ public static class UpdateDriverAvailability
 
     public class Handler : IRequestHandler<Command, DriverDto>
     {
-        private readonly IAppDbContext _context;
+        private readonly IAppDbContextFactory _contextFactory;
 
-        public Handler(IAppDbContext context)
+        public Handler(IAppDbContextFactory contextFactory)
         {
-            _context = context;
+            _contextFactory = contextFactory;
         }
 
         public async Task<DriverDto> Handle(Command request, CancellationToken cancellationToken)
         {
-            var driver = await _context.Drivers
+            using var context = _contextFactory.CreateDbContext();
+
+            var driver = await context.Drivers
                 .Include(d => d.Depot)
                 .Include(d => d.Zone)
                 .FirstOrDefaultAsync(d => d.Id == request.Dto.Id, cancellationToken);
@@ -52,7 +54,7 @@ public static class UpdateDriverAvailability
 
             driver.UpdateAvailability(availability);
 
-            await _context.SaveChangesAsync(cancellationToken);
+            await context.SaveChangesAsync(cancellationToken);
 
             return DriverMapper.ToDto(driver);
         }

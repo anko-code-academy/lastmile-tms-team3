@@ -17,16 +17,18 @@ public static class GetAllDrivers
 
     public class Handler : IRequestHandler<Query, PagedDriversResult>
     {
-        private readonly IAppDbContext _context;
+        private readonly IAppDbContextFactory _contextFactory;
 
-        public Handler(IAppDbContext context)
+        public Handler(IAppDbContextFactory contextFactory)
         {
-            _context = context;
+            _contextFactory = contextFactory;
         }
 
         public async Task<PagedDriversResult> Handle(Query request, CancellationToken cancellationToken)
         {
-            var query = _context.Drivers
+            using var context = _contextFactory.CreateDbContext();
+
+            var query = context.Drivers
                 .Include(d => d.Depot)
                 .AsQueryable();
 

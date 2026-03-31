@@ -13,18 +13,20 @@ public static class CreateDriver
 
     public class Handler : IRequestHandler<Command, DriverDto>
     {
-        private readonly IAppDbContext _context;
+        private readonly IAppDbContextFactory _contextFactory;
 
-        public Handler(IAppDbContext context)
+        public Handler(IAppDbContextFactory contextFactory)
         {
-            _context = context;
+            _contextFactory = contextFactory;
         }
 
         public async Task<DriverDto> Handle(Command request, CancellationToken cancellationToken)
         {
+            using var context = _contextFactory.CreateDbContext();
+
             if (request.Dto.DepotId.HasValue)
             {
-                var depot = await _context.Depots
+                var depot = await context.Depots
                     .FirstOrDefaultAsync(d => d.Id == request.Dto.DepotId.Value, cancellationToken);
 
                 if (depot is null)
@@ -42,10 +44,10 @@ public static class CreateDriver
                 request.Dto.ZoneId,
                 request.Dto.DepotId);
 
-            _context.Drivers.Add(driver);
-            await _context.SaveChangesAsync(cancellationToken);
+            context.Drivers.Add(driver);
+            await context.SaveChangesAsync(cancellationToken);
 
-            var loaded = await _context.Drivers
+            var loaded = await context.Drivers
                 .Include(d => d.Depot)
                 .Include(d => d.Zone)
                 .FirstAsync(d => d.Id == driver.Id, cancellationToken);
