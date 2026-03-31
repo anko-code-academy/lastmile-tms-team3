@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useSession } from "next-auth/react";
+import TmNavbar from "@/components/TmNavbar";
 import { useDepots, useCreateDepot, useUpdateDepot, useDeleteDepot } from "@/lib/hooks/useDepots";
 import { DepotDto, CreateDepotDto, DayOffDto } from "@/lib/types/depot";
 
@@ -89,8 +89,6 @@ function TmBtn({
 }
 
 export default function DepotsPage() {
-  const { data: session } = useSession();
-  const isAdmin = session?.user?.role === "Admin";
   const { data: depots, isLoading, error } = useDepots(true);
   const createMutation = useCreateDepot();
   const updateMutation = useUpdateDepot();
@@ -160,16 +158,6 @@ export default function DepotsPage() {
     setNewDayOff({ date: "", reason: "", isPaid: false });
   };
 
-  const navItems = [
-    { label: "Dashboard", href: "/" },
-    { label: "Parcels", href: "#" },
-    { label: "Routes", href: "#" },
-    { label: "Drivers", href: "#" },
-    { label: "Depots", href: "/admin/depots", active: true },
-    ...(isAdmin ? [
-      { label: "Users", href: "/admin/users" },
-    ] : []),
-  ];
 
   return (
     <>
@@ -195,17 +183,7 @@ export default function DepotsPage() {
         <div style={{ position: "fixed", inset: 0, zIndex: 0, backgroundImage: "linear-gradient(rgba(30,42,66,.45) 1px,transparent 1px),linear-gradient(90deg,rgba(30,42,66,.45) 1px,transparent 1px)", backgroundSize: "52px 52px", pointerEvents: "none" }} />
 
         <div style={{ position: "relative", zIndex: 1 }}>
-          {/* Navbar */}
-          <nav style={{ display: "flex", alignItems: "center", padding: "0 2rem", height: "56px", borderBottom: `1px solid ${S.border}`, background: "rgba(8,12,20,.85)", backdropFilter: "blur(12px)", position: "sticky", top: 0, zIndex: 10, gap: "2rem" }}>
-            <span style={{ fontFamily: S.mono, fontSize: ".875rem", fontWeight: 800, letterSpacing: "-.01em", color: S.text, flexShrink: 0 }}>
-              LAST <span style={{ color: S.accent }}>MILE</span> TMS
-            </span>
-            <div style={{ display: "flex", gap: ".25rem", flex: 1 }}>
-              {navItems.map((item) => (
-                <a key={item.label} href={item.href} className={`tm-nav-link${item.active ? " active" : ""}`}>{item.label}</a>
-              ))}
-            </div>
-          </nav>
+          <TmNavbar />
 
           {/* Page content */}
           <div style={{ padding: "2rem", maxWidth: "1200px", margin: "0 auto" }}>

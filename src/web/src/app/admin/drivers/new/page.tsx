@@ -4,11 +4,10 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import TmNavbar from "@/components/TmNavbar";
-import { createVehicleAction } from "@/lib/actions/vehicles";
+import { createDriverAction } from "@/lib/actions/drivers";
 import { getDepotsAction } from "@/lib/actions/depots";
 import type { DepotOption } from "@/lib/actions/depots";
-import { VehicleType, WeightUnit } from "@/lib/types/vehicle";
-import type { CreateVehicleInput } from "@/lib/types/vehicle";
+import type { CreateDriverInput } from "@/lib/types/driver";
 
 const S = {
   bg: "#080c14" as const,
@@ -38,18 +37,14 @@ function TmLabel({ children, htmlFor }: { children: React.ReactNode; htmlFor?: s
   );
 }
 
-export default function NewVehiclePage() {
+export default function NewDriverPage() {
   const router = useRouter();
   const [depots, setDepots] = useState<DepotOption[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({
-    registrationPlate: "",
-    type: VehicleType.Van,
-    depotId: "",
-    parcelCapacity: "1",
-    weightCapacity: "1",
-    weightUnit: WeightUnit.Kg,
+    firstName: "", lastName: "", phone: "", email: "",
+    licenseNumber: "", licenseExpiryDate: "", photoUrl: "", depotId: "",
   });
 
   useEffect(() => {
@@ -59,7 +54,7 @@ export default function NewVehiclePage() {
     });
   }, []);
 
-  function setStr(key: "registrationPlate" | "depotId") {
+  function set(key: keyof typeof form) {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
       setForm((f) => ({ ...f, [key]: e.target.value }));
   }
@@ -68,20 +63,22 @@ export default function NewVehiclePage() {
     e.preventDefault();
     setSubmitting(true);
     setError(null);
-    const input: CreateVehicleInput = {
-      registrationPlate: form.registrationPlate,
-      type: form.type,
-      depotId: form.depotId,
-      parcelCapacity: parseInt(form.parcelCapacity, 10),
-      weightCapacity: parseFloat(form.weightCapacity),
-      weightUnit: form.weightUnit,
+    const input: CreateDriverInput = {
+      firstName: form.firstName,
+      lastName: form.lastName,
+      phone: form.phone,
+      email: form.email,
+      licenseNumber: form.licenseNumber,
+      licenseExpiryDate: form.licenseExpiryDate,
+      photoUrl: form.photoUrl || undefined,
+      depotId: form.depotId || undefined,
     };
-    const result = await createVehicleAction(input);
+    const result = await createDriverAction(input);
     setSubmitting(false);
     if (result?.error) {
       setError(result.error);
-    } else if (result?.vehicleId) {
-      router.push(`/admin/vehicles/${result.vehicleId}`);
+    } else if (result?.driverId) {
+      router.push(`/admin/drivers/${result.driverId}`);
     }
   }
 
@@ -103,57 +100,62 @@ export default function NewVehiclePage() {
           <div style={{ padding: "2rem", maxWidth: "600px", margin: "0 auto" }}>
 
             {/* Back */}
-            <Link href="/admin/vehicles" style={{ fontFamily: S.mono, fontSize: "11px", letterSpacing: ".1em", color: S.muted, textDecoration: "none", textTransform: "uppercase", display: "inline-flex", alignItems: "center", gap: ".4rem", marginBottom: "1.5rem" }}>
-              ← All Vehicles
+            <Link href="/admin/drivers" style={{ fontFamily: S.mono, fontSize: "11px", letterSpacing: ".1em", color: S.muted, textDecoration: "none", textTransform: "uppercase", display: "inline-flex", alignItems: "center", gap: ".4rem", marginBottom: "1.5rem" }}>
+              ← All Drivers
             </Link>
 
             {/* Header */}
             <div style={{ marginBottom: "2rem" }}>
-              <p style={{ fontFamily: S.mono, fontSize: "10px", letterSpacing: ".2em", color: S.accent, textTransform: "uppercase", marginBottom: ".375rem" }}>Fleet Management</p>
-              <h1 style={{ fontFamily: S.mono, fontSize: "1.5rem", fontWeight: 800, color: S.text, letterSpacing: "-.02em", lineHeight: 1 }}>Add Vehicle</h1>
+              <p style={{ fontFamily: S.mono, fontSize: "10px", letterSpacing: ".2em", color: S.accent, textTransform: "uppercase", marginBottom: ".375rem" }}>Driver Management</p>
+              <h1 style={{ fontFamily: S.mono, fontSize: "1.5rem", fontWeight: 800, color: S.text, letterSpacing: "-.02em", lineHeight: 1 }}>Add Driver</h1>
             </div>
 
             {/* Form */}
             <div style={{ background: S.panel, border: `1px solid ${S.border}`, borderRadius: 10, padding: "1.75rem" }}>
               <form onSubmit={handleSubmit}>
-
-                <div style={{ marginBottom: "1rem" }}>
-                  <TmLabel htmlFor="registrationPlate">Registration Plate *</TmLabel>
-                  <input id="registrationPlate" className="tm-input" required value={form.registrationPlate} onChange={setStr("registrationPlate")} placeholder="ABC-1234" style={inputStyle} />
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
+                  <div>
+                    <TmLabel htmlFor="firstName">First Name *</TmLabel>
+                    <input id="firstName" className="tm-input" required value={form.firstName} onChange={set("firstName")} style={inputStyle} />
+                  </div>
+                  <div>
+                    <TmLabel htmlFor="lastName">Last Name *</TmLabel>
+                    <input id="lastName" className="tm-input" required value={form.lastName} onChange={set("lastName")} style={inputStyle} />
+                  </div>
                 </div>
 
                 <div style={{ marginBottom: "1rem" }}>
-                  <TmLabel htmlFor="depotId">Depot *</TmLabel>
-                  <select id="depotId" className="tm-select" required value={form.depotId} onChange={setStr("depotId")}>
-                    <option value="">Select depot...</option>
+                  <TmLabel htmlFor="email">Email *</TmLabel>
+                  <input id="email" type="email" className="tm-input" required value={form.email} onChange={set("email")} style={inputStyle} />
+                </div>
+
+                <div style={{ marginBottom: "1rem" }}>
+                  <TmLabel htmlFor="phone">Phone *</TmLabel>
+                  <input id="phone" className="tm-input" required value={form.phone} onChange={set("phone")} placeholder="+1 555 000 0000" style={inputStyle} />
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
+                  <div>
+                    <TmLabel htmlFor="licenseNumber">License Number *</TmLabel>
+                    <input id="licenseNumber" className="tm-input" required value={form.licenseNumber} onChange={set("licenseNumber")} placeholder="DL123456" style={inputStyle} />
+                  </div>
+                  <div>
+                    <TmLabel htmlFor="licenseExpiryDate">License Expiry *</TmLabel>
+                    <input id="licenseExpiryDate" type="date" className="tm-input" required value={form.licenseExpiryDate} onChange={set("licenseExpiryDate")} style={inputStyle} />
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: "1rem" }}>
+                  <TmLabel htmlFor="depotId">Depot</TmLabel>
+                  <select id="depotId" className="tm-select" value={form.depotId} onChange={set("depotId")}>
+                    <option value="">No depot</option>
                     {depots.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
                   </select>
                 </div>
 
-                <div style={{ marginBottom: "1rem" }}>
-                  <TmLabel htmlFor="type">Vehicle Type *</TmLabel>
-                  <select id="type" className="tm-select" value={form.type} onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as VehicleType }))}>
-                    <option value={VehicleType.Van}>Van</option>
-                    <option value={VehicleType.Car}>Car</option>
-                    <option value={VehicleType.Bike}>Bike</option>
-                  </select>
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1.5rem" }}>
-                  <div>
-                    <TmLabel htmlFor="parcelCapacity">Parcel Capacity *</TmLabel>
-                    <input id="parcelCapacity" type="number" min={1} className="tm-input" required value={form.parcelCapacity} onChange={(e) => setForm((f) => ({ ...f, parcelCapacity: e.target.value }))} style={inputStyle} />
-                  </div>
-                  <div>
-                    <TmLabel>Weight Capacity *</TmLabel>
-                    <div style={{ display: "flex", gap: ".5rem" }}>
-                      <input type="number" min={1} step="0.1" className="tm-input" required value={form.weightCapacity} onChange={(e) => setForm((f) => ({ ...f, weightCapacity: e.target.value }))} style={{ ...inputStyle, flex: 1, width: "auto" }} />
-                      <select className="tm-select" value={form.weightUnit} onChange={(e) => setForm((f) => ({ ...f, weightUnit: e.target.value as WeightUnit }))} style={{ width: "70px" }}>
-                        <option value={WeightUnit.Kg}>kg</option>
-                        <option value={WeightUnit.Lb}>lb</option>
-                      </select>
-                    </div>
-                  </div>
+                <div style={{ marginBottom: "1.5rem" }}>
+                  <TmLabel htmlFor="photoUrl">Photo URL</TmLabel>
+                  <input id="photoUrl" className="tm-input" value={form.photoUrl} onChange={set("photoUrl")} placeholder="https://example.com/photo.jpg" style={inputStyle} />
                 </div>
 
                 {error && (
@@ -167,7 +169,7 @@ export default function NewVehiclePage() {
                     className="tm-btn-primary"
                     style={{ fontFamily: S.mono, fontSize: "11px", letterSpacing: ".1em", textTransform: "uppercase", padding: ".45rem .9rem", borderRadius: 6, cursor: submitting ? "not-allowed" : "pointer", opacity: submitting ? .5 : 1, background: "rgba(245,158,11,.12)", border: "1px solid rgba(245,158,11,.35)", color: S.accent }}
                   >
-                    {submitting ? "Creating..." : "Create Vehicle"}
+                    {submitting ? "Creating..." : "Create Driver"}
                   </button>
                   <button
                     type="button"
