@@ -12,16 +12,18 @@ public static class GetAllVehicles
 
     public class Handler : IRequestHandler<Query, List<VehicleDto>>
     {
-        private readonly IAppDbContext _context;
+        private readonly IAppDbContextFactory _contextFactory;
 
-        public Handler(IAppDbContext context)
+        public Handler(IAppDbContextFactory contextFactory)
         {
-            _context = context;
+            _contextFactory = contextFactory;
         }
 
         public async Task<List<VehicleDto>> Handle(Query request, CancellationToken cancellationToken)
         {
-            var query = _context.Vehicles
+            using var context = _contextFactory.CreateDbContext();
+
+            var query = context.Vehicles
                 .Include(v => v.Depot)
                     .ThenInclude(d => d.Address)
                 .AsQueryable();

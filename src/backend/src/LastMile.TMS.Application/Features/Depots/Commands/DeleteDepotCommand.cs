@@ -10,22 +10,24 @@ public static class DeleteDepot
 
     public class Handler : IRequestHandler<Command, bool>
     {
-        private readonly IAppDbContext _context;
+        private readonly IAppDbContextFactory _contextFactory;
 
-        public Handler(IAppDbContext context)
+        public Handler(IAppDbContextFactory contextFactory)
         {
-            _context = context;
+            _contextFactory = contextFactory;
         }
 
         public async Task<bool> Handle(Command request, CancellationToken cancellationToken)
         {
-            var depot = await _context.Depots
+            using var context = _contextFactory.CreateDbContext();
+
+            var depot = await context.Depots
                 .Include(d => d.Address)
                 .FirstOrDefaultAsync(d => d.Id == request.Id, cancellationToken)
                 ?? throw new KeyNotFoundException($"Depot with ID {request.Id} not found");
 
-            _context.Depots.Remove(depot);
-            await _context.SaveChangesAsync(cancellationToken);
+            context.Depots.Remove(depot);
+            await context.SaveChangesAsync(cancellationToken);
 
             return true;
         }

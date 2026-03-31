@@ -14,16 +14,18 @@ public static class CreateVehicle
 
     public class Handler : IRequestHandler<Command, VehicleDto>
     {
-        private readonly IAppDbContext _context;
+        private readonly IAppDbContextFactory _contextFactory;
 
-        public Handler(IAppDbContext context)
+        public Handler(IAppDbContextFactory contextFactory)
         {
-            _context = context;
+            _contextFactory = contextFactory;
         }
 
         public async Task<VehicleDto> Handle(Command request, CancellationToken cancellationToken)
         {
-            var depot = await _context.Depots
+            using var context = _contextFactory.CreateDbContext();
+
+            var depot = await context.Depots
                 .FirstOrDefaultAsync(d => d.Id == request.Dto.DepotId, cancellationToken);
 
             if (depot is null)
@@ -43,10 +45,10 @@ public static class CreateVehicle
                 CreatedAt = DateTimeOffset.UtcNow
             };
 
-            _context.Vehicles.Add(vehicle);
-            await _context.SaveChangesAsync(cancellationToken);
+            context.Vehicles.Add(vehicle);
+            await context.SaveChangesAsync(cancellationToken);
 
-            var loadedVehicle = await _context.Vehicles
+            var loadedVehicle = await context.Vehicles
                 .Include(v => v.Depot)
                     .ThenInclude(d => d.Address)
                 .FirstAsync(v => v.Id == vehicle.Id, cancellationToken);

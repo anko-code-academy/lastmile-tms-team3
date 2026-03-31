@@ -10,21 +10,23 @@ public static class DeleteZone
 
     public class Handler : IRequestHandler<Command, bool>
     {
-        private readonly IAppDbContext _context;
+        private readonly IAppDbContextFactory _contextFactory;
 
-        public Handler(IAppDbContext context)
+        public Handler(IAppDbContextFactory contextFactory)
         {
-            _context = context;
+            _contextFactory = contextFactory;
         }
 
         public async Task<bool> Handle(Command request, CancellationToken cancellationToken)
         {
-            var zone = await _context.Zones
+            using var context = _contextFactory.CreateDbContext();
+
+            var zone = await context.Zones
                 .FirstOrDefaultAsync(z => z.Id == request.Id, cancellationToken)
                 ?? throw new KeyNotFoundException($"Zone with ID {request.Id} not found");
 
-            _context.Zones.Remove(zone);
-            await _context.SaveChangesAsync(cancellationToken);
+            context.Zones.Remove(zone);
+            await context.SaveChangesAsync(cancellationToken);
 
             return true;
         }

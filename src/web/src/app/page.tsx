@@ -31,7 +31,7 @@ export default async function Home() {
 
   const navItems = [
     { label: "Dashboard", href: "/" },
-    { label: "Parcels", href: "#" },
+    { label: "Parcels", href: "/parcels" },
     { label: "Routes", href: "#" },
     ...(isAdmin || isOperationsManager ? [
       { label: "Depots", href: "/admin/depots" },

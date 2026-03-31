@@ -104,6 +104,7 @@ try
         .AddType<DepotQuery>()
         .AddType<ZoneQuery>()
         .AddType<ZoneMutation>()
+        .AddType<ParcelQuery>()
         .AddType<ParcelMutation>()
         .AddType<VehicleQuery>()
         .AddType<VehicleMutation>()

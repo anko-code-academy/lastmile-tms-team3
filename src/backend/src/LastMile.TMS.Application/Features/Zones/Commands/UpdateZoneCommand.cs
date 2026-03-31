@@ -12,25 +12,27 @@ public static class UpdateZone
 
     public class Handler : IRequestHandler<Command, ZoneDto>
     {
-        private readonly IAppDbContext _context;
+        private readonly IAppDbContextFactory _contextFactory;
         private readonly ICurrentUserService _currentUser;
         private readonly GeometryFactory _geometryFactory;
 
-        public Handler(IAppDbContext context, ICurrentUserService currentUser)
+        public Handler(IAppDbContextFactory contextFactory, ICurrentUserService currentUser)
         {
-            _context = context;
+            _contextFactory = contextFactory;
             _currentUser = currentUser;
             _geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
         }
 
         public async Task<ZoneDto> Handle(Command request, CancellationToken cancellationToken)
         {
-            var zone = await _context.Zones
+            using var context = _contextFactory.CreateDbContext();
+
+            var zone = await context.Zones
                 .Include(z => z.Depot)
                 .FirstOrDefaultAsync(z => z.Id == request.Dto.Id, cancellationToken)
                 ?? throw new KeyNotFoundException($"Zone with ID {request.Dto.Id} not found");
 
-            var depot = await _context.Depots
+            var depot = await context.Depots
                 .FirstOrDefaultAsync(d => d.Id == request.Dto.DepotId, cancellationToken)
                 ?? throw new KeyNotFoundException($"Depot with ID {request.Dto.DepotId} not found");
 
@@ -56,7 +58,7 @@ public static class UpdateZone
                 zone.Boundary = null;
             }
 
-            await _context.SaveChangesAsync(cancellationToken);
+            await context.SaveChangesAsync(cancellationToken);
 
             return MapToDto(zone, depot.Name);
         }
