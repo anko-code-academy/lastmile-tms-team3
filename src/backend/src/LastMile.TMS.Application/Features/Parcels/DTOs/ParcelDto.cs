@@ -26,5 +26,9 @@ public record ParcelDto(
     Guid? ZoneId,
     string? ZoneName,
     DateTimeOffset CreatedAt,
-    DateTimeOffset? LastModifiedAt
+    DateTimeOffset? LastModifiedAt,
+    IReadOnlyList<TrackingEventDto> TrackingEvents,
+    IReadOnlyList<ParcelContentItemDto> ContentItems,
+    IReadOnlyList<ParcelWatcherDto> Watchers,
+    DeliveryConfirmationDto? DeliveryConfirmation
 );

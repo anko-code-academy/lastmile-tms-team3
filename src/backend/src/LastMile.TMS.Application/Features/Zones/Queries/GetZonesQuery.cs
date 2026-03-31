@@ -11,16 +11,18 @@ public static class GetAllZones
 
     public class Handler : IRequestHandler<Query, List<ZoneDto>>
     {
-        private readonly IAppDbContext _context;
+        private readonly IAppDbContextFactory _contextFactory;
 
-        public Handler(IAppDbContext context)
+        public Handler(IAppDbContextFactory contextFactory)
         {
-            _context = context;
+            _contextFactory = contextFactory;
         }
 
         public async Task<List<ZoneDto>> Handle(Query request, CancellationToken cancellationToken)
         {
-            var query = _context.Zones
+            using var context = _contextFactory.CreateDbContext();
+
+            var query = context.Zones
                 .Include(z => z.Depot)
                 .AsQueryable();
 

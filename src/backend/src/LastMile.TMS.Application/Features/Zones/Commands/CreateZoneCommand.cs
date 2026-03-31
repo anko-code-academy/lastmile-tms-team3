@@ -12,20 +12,22 @@ public static class CreateZone
 
     public class Handler : IRequestHandler<Command, ZoneDto>
     {
-        private readonly IAppDbContext _context;
+        private readonly IAppDbContextFactory _contextFactory;
         private readonly ICurrentUserService _currentUser;
         private readonly GeometryFactory _geometryFactory;
 
-        public Handler(IAppDbContext context, ICurrentUserService currentUser)
+        public Handler(IAppDbContextFactory contextFactory, ICurrentUserService currentUser)
         {
-            _context = context;
+            _contextFactory = contextFactory;
             _currentUser = currentUser;
             _geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
         }
 
         public async Task<ZoneDto> Handle(Command request, CancellationToken cancellationToken)
         {
-            var depot = await _context.Depots
+            using var context = _contextFactory.CreateDbContext();
+
+            var depot = await context.Depots
                 .FirstOrDefaultAsync(d => d.Id == request.Dto.DepotId, cancellationToken)
                 ?? throw new KeyNotFoundException($"Depot with ID {request.Dto.DepotId} not found");
 
@@ -36,7 +38,6 @@ public static class CreateZone
                     .Select(c => new Coordinate(c.Longitude, c.Latitude))
                     .ToList();
 
-                // Ensure polygon is closed (first point must equal last point)
                 if (coordinates.Count >= 4 && !coordinates.First().Equals2D(coordinates.Last()))
                 {
                     coordinates.Add(coordinates.First());
@@ -59,8 +60,8 @@ public static class CreateZone
                 CreatedBy = _currentUser.UserId
             };
 
-            _context.Zones.Add(zone);
-            await _context.SaveChangesAsync(cancellationToken);
+            context.Zones.Add(zone);
+            await context.SaveChangesAsync(cancellationToken);
 
             return MapToDto(zone, depot.Name);
         }

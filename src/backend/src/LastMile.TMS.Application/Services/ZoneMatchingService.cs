@@ -5,12 +5,12 @@ namespace LastMile.TMS.Application.Services;
 
 public class ZoneMatchingService : IZoneMatchingService
 {
-    private readonly IAppDbContext _context;
+    private readonly IAppDbContextFactory _contextFactory;
     private readonly GeometryFactory _geometryFactory;
 
-    public ZoneMatchingService(IAppDbContext context)
+    public ZoneMatchingService(IAppDbContextFactory contextFactory)
     {
-        _context = context;
+        _contextFactory = contextFactory;
         _geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
     }
 
@@ -22,9 +22,9 @@ public class ZoneMatchingService : IZoneMatchingService
 
     public async Task<Guid?> FindMatchingZoneIdAsync(Point point, CancellationToken cancellationToken = default)
     {
-        // Load all active zones with boundaries and check in memory
-        // For production, consider using ST_Contains via raw SQL for better performance
-        var zones = await _context.GetZonesAsync(cancellationToken);
+        using var context = _contextFactory.CreateDbContext();
+
+        var zones = await context.GetZonesAsync(cancellationToken);
 
         foreach (var zone in zones)
         {
