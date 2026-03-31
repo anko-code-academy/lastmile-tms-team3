@@ -7,11 +7,13 @@ import {
   UPDATE_DRIVER,
   UPDATE_DRIVER_STATUS,
   UPDATE_DRIVER_AVAILABILITY,
+  LINK_DRIVER_USER,
 } from "@/lib/graphql/queries/drivers";
 import type {
   CreateDriverInput,
   Driver,
   DriverAvailability,
+  LinkDriverUserInput,
   PagedDriversResult,
   UpdateDriverAvailabilityInput,
   UpdateDriverInput,
@@ -72,6 +74,17 @@ export async function updateDriverStatusAction(
     return {};
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to update driver status" };
+  }
+}
+
+export async function linkDriverUserAction(
+  input: LinkDriverUserInput,
+): Promise<{ error?: string; userId?: string | null }> {
+  try {
+    const data = await gqlFetch<{ linkDriverUser: { userId: string | null } }>(LINK_DRIVER_USER, { input });
+    return { userId: data.linkDriverUser.userId };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to link user account" };
   }
 }
 

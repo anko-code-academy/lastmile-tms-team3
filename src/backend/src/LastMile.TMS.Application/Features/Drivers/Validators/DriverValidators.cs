@@ -76,3 +76,12 @@ public class UpdateDriverStatusValidator : AbstractValidator<UpdateDriverStatus.
             .NotEmpty().WithMessage("Driver ID is required");
     }
 }
+
+public class LinkDriverUserValidator : AbstractValidator<LinkDriverUser.Command>
+{
+    public LinkDriverUserValidator()
+    {
+        RuleFor(x => x.Dto.DriverId)
+            .NotEmpty().WithMessage("Driver ID is required");
+    }
+}

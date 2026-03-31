@@ -13,6 +13,7 @@ public class DriverCommandTests : IDisposable
     private readonly UpdateDriver.Handler _updateHandler;
     private readonly UpdateDriverStatus.Handler _updateStatusHandler;
     private readonly UpdateDriverAvailability.Handler _updateAvailabilityHandler;
+    private readonly LinkDriverUser.Handler _linkUserHandler;
 
     private readonly Guid _depotId = Guid.NewGuid();
     private readonly Guid _driverId = Guid.NewGuid();
@@ -24,6 +25,7 @@ public class DriverCommandTests : IDisposable
         _updateHandler = new UpdateDriver.Handler(_context);
         _updateStatusHandler = new UpdateDriverStatus.Handler(_context);
         _updateAvailabilityHandler = new UpdateDriverAvailability.Handler(_context);
+        _linkUserHandler = new LinkDriverUser.Handler(_context);
 
         SeedTestData();
     }
@@ -201,6 +203,42 @@ public class DriverCommandTests : IDisposable
         var dto = new UpdateDriverAvailabilityDto(Guid.NewGuid(), [], []);
 
         var act = async () => await _updateAvailabilityHandler.Handle(new UpdateDriverAvailability.Command(dto), CancellationToken.None);
+
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*Driver*not found*");
+    }
+
+    [Fact]
+    public async Task LinkDriverUser_LinksUserToDriver()
+    {
+        var userId = Guid.NewGuid();
+        var dto = new LinkDriverUserDto(_driverId, userId);
+
+        var result = await _linkUserHandler.Handle(new LinkDriverUser.Command(dto), CancellationToken.None);
+
+        result.UserId.Should().Be(userId);
+    }
+
+    [Fact]
+    public async Task LinkDriverUser_WithNullUserId_UnlinksUser()
+    {
+        var userId = Guid.NewGuid();
+        var driver = await _context.Drivers.FindAsync(_driverId);
+        driver!.LinkUser(userId);
+        await _context.SaveChangesAsync(CancellationToken.None);
+
+        var dto = new LinkDriverUserDto(_driverId, null);
+        var result = await _linkUserHandler.Handle(new LinkDriverUser.Command(dto), CancellationToken.None);
+
+        result.UserId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task LinkDriverUser_WhenNotFound_ThrowsInvalidOperationException()
+    {
+        var dto = new LinkDriverUserDto(Guid.NewGuid(), Guid.NewGuid());
+
+        var act = async () => await _linkUserHandler.Handle(new LinkDriverUser.Command(dto), CancellationToken.None);
 
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*Driver*not found*");

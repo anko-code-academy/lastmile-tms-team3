@@ -101,3 +101,8 @@ export interface UpdateDriverAvailabilityInput {
   schedule: DriverScheduleInputItem[];
   daysOff: DriverDayOffInputItem[];
 }
+
+export interface LinkDriverUserInput {
+  driverId: string;
+  userId: string | null;
+}

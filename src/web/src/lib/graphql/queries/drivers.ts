@@ -90,3 +90,13 @@ export const UPDATE_DRIVER_AVAILABILITY = `
     }
   }
 `;
+
+export const LINK_DRIVER_USER = `
+  mutation LinkDriverUser($input: LinkDriverUserDtoInput!) {
+    linkDriverUser(input: $input) {
+      id
+      userId
+      lastModifiedAt
+    }
+  }
+`;

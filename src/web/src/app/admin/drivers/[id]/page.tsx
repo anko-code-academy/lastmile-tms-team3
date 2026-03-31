@@ -9,9 +9,12 @@ import {
   updateDriverAction,
   updateDriverAvailabilityAction,
   updateDriverStatusAction,
+  linkDriverUserAction,
 } from "@/lib/actions/drivers";
 import { getDepotsAction } from "@/lib/actions/depots";
 import type { DepotOption } from "@/lib/actions/depots";
+import { getUsersAction } from "@/lib/actions/users";
+import type { UserOption } from "@/lib/actions/users";
 import type {
   Driver,
   DriverAvailability,
@@ -73,6 +76,7 @@ export default function DriverDetailPage() {
   const router = useRouter();
   const [driver, setDriver] = useState<Driver | null>(null);
   const [depots, setDepots] = useState<DepotOption[]>([]);
+  const [users, setUsers] = useState<UserOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -82,6 +86,10 @@ export default function DriverDetailPage() {
     firstName: "", lastName: "", phone: "", email: "",
     licenseNumber: "", licenseExpiryDate: "", photoUrl: "", depotId: "",
   });
+
+  const [userLinking, setUserLinking] = useState(false);
+  const [userLinkError, setUserLinkError] = useState<string | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState<string>("");
 
   const [avail, setAvail] = useState<DriverAvailability>({ schedule: [], daysOff: [] });
   const [availEditing, setAvailEditing] = useState(false);
@@ -93,10 +101,12 @@ export default function DriverDetailPage() {
   const [daysOffForm, setDaysOffForm] = useState<DriverDayOffInputItem[]>([]);
 
   useEffect(() => {
-    Promise.all([getDriverAction(id), getDepotsAction()]).then(([d, deps]) => {
+    Promise.all([getDriverAction(id), getDepotsAction(), getUsersAction(undefined, "DRIVER")]).then(([d, deps, usr]) => {
       if (!d) { router.replace("/admin/drivers"); return; }
       setDriver(d);
       setDepots(deps);
+      setUsers(usr);
+      setSelectedUserId(d.userId ?? "");
       setForm({
         firstName: d.firstName, lastName: d.lastName,
         phone: d.phone, email: d.email,
@@ -189,6 +199,22 @@ export default function DriverDetailPage() {
     }
   }
 
+  async function handleLinkUser() {
+    if (!driver) return;
+    setUserLinking(true);
+    setUserLinkError(null);
+    const result = await linkDriverUserAction({
+      driverId: driver.id,
+      userId: selectedUserId || null,
+    });
+    setUserLinking(false);
+    if (result.error) {
+      setUserLinkError(result.error);
+    } else {
+      setDriver((d) => d ? { ...d, userId: result.userId ?? undefined } : d);
+    }
+  }
+
   async function handleToggleStatus(newStatus: boolean) {
     if (!driver) return;
     setStatusLoading(true);
@@ -260,6 +286,43 @@ export default function DriverDetailPage() {
                   </button>
                 ))}
               </div>
+            </div>
+
+            {/* User Account */}
+            <div style={{ background: S.panel, border: `1px solid ${S.border}`, borderRadius: 10, padding: "1.25rem 1.5rem", marginBottom: "1rem", marginTop: "1rem" }}>
+              <p style={{ fontFamily: S.mono, fontSize: "10px", letterSpacing: ".18em", color: S.muted, textTransform: "uppercase", marginBottom: ".875rem" }}>User Account</p>
+              <div style={{ display: "flex", gap: ".5rem", alignItems: "center" }}>
+                <select
+                  className="tm-select"
+                  value={selectedUserId}
+                  onChange={(e) => setSelectedUserId(e.target.value)}
+                  style={{ flex: 1 }}
+                >
+                  <option value="">— No linked account —</option>
+                  {users.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.firstName} {u.lastName} ({u.email})
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  disabled={userLinking}
+                  onClick={handleLinkUser}
+                  className="tm-btn-primary"
+                  style={{ fontFamily: S.mono, fontSize: "11px", letterSpacing: ".1em", textTransform: "uppercase", padding: ".45rem .9rem", borderRadius: 6, cursor: userLinking ? "not-allowed" : "pointer", opacity: userLinking ? .5 : 1, background: "rgba(245,158,11,.12)", border: "1px solid rgba(245,158,11,.35)", color: S.accent, whiteSpace: "nowrap" }}
+                >
+                  {userLinking ? "Saving..." : "Save"}
+                </button>
+              </div>
+              {driver.userId && (
+                <p style={{ fontFamily: S.mono, fontSize: ".75rem", color: S.muted, marginTop: ".5rem" }}>
+                  Linked ID: <span style={{ color: S.dim }}>{driver.userId}</span>
+                </p>
+              )}
+              {userLinkError && (
+                <p style={{ fontFamily: S.mono, fontSize: ".8rem", color: S.red, marginTop: ".5rem" }}>{userLinkError}</p>
+              )}
             </div>
 
             {/* Details form */}
