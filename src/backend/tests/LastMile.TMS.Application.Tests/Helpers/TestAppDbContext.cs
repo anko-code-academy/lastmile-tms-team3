@@ -129,30 +129,30 @@ public class TestAppDbContext : DbContext, IAppDbContext, IAppDbContextFactory
             entity.HasOne(p => p.ShipperAddress).WithMany().HasForeignKey(p => p.ShipperAddressId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(p => p.RecipientAddress).WithMany().HasForeignKey(p => p.RecipientAddressId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(p => p.Zone).WithMany().HasForeignKey(p => p.ZoneId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasMany(p => p.Watchers).WithMany(w => w.Parcels);
         });
 
         modelBuilder.Entity<TrackingEvent>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.HasOne(e => e.Parcel).WithMany().HasForeignKey(e => e.ParcelId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Parcel).WithMany(p => p.TrackingEvents).HasForeignKey(e => e.ParcelId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<ParcelContentItem>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.HasOne(e => e.Parcel).WithMany().HasForeignKey(e => e.ParcelId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Parcel).WithMany(p => p.ContentItems).HasForeignKey(e => e.ParcelId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<ParcelWatcher>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.Ignore(w => w.Parcels);
         });
 
         modelBuilder.Entity<DeliveryConfirmation>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.HasOne(e => e.Parcel).WithMany().HasForeignKey(e => e.ParcelId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Parcel).WithOne(p => p.DeliveryConfirmation).HasForeignKey<DeliveryConfirmation>(e => e.ParcelId).OnDelete(DeleteBehavior.Cascade);
             entity.Ignore(e => e.DeliveryGeoLocation);
         });
     }
