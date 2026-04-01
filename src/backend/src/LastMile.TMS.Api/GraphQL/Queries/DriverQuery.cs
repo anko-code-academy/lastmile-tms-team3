@@ -1,32 +1,46 @@
 using HotChocolate.Authorization;
-using LastMile.TMS.Application.Features.Drivers.DTOs;
-using LastMile.TMS.Application.Features.Drivers.Queries;
-using MediatR;
+using HotChocolate.Data;
+using HotChocolate.Types;
+using LastMile.TMS.Domain.Entities;
+using LastMile.TMS.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 namespace LastMile.TMS.Api.GraphQL.Queries;
 
 [ExtendObjectType(OperationTypeNames.Query)]
 public class DriverQuery
 {
-    [Authorize(Policy = "AdminOrOperationsManager")]
-    public async Task<DriverDto?> GetDriver(
-        [Service] IMediator mediator,
-        Guid id,
-        CancellationToken cancellationToken = default)
-    {
-        return await mediator.Send(new GetDriverById.Query(id), cancellationToken);
-    }
+    // [Authorize(Policy = "AdminOrOperationsManager")]
+    [UseProjection]
+    public IQueryable<Driver> GetDriver(
+        AppDbContext context,
+        Guid id)
+        => context.Drivers
+            .AsNoTracking()
+            .Where(d => d.Id == id);
 
-    [Authorize(Policy = "AdminOrOperationsManager")]
-    public async Task<PagedDriversResult> GetDrivers(
-        [Service] IMediator mediator,
+    // [Authorize(Policy = "AdminOrOperationsManager")]
+    [UseProjection]
+    public IQueryable<Driver> GetDrivers(
+        AppDbContext context,
         Guid? depotId = null,
         bool? isActive = null,
-        string? search = null,
-        int page = 1,
-        int pageSize = 20,
-        CancellationToken cancellationToken = default)
+        string? search = null)
     {
-        return await mediator.Send(new GetAllDrivers.Query(depotId, isActive, search, page, pageSize), cancellationToken);
+        var query = context.Drivers.AsNoTracking();
+
+        if (depotId.HasValue)
+            query = query.Where(d => d.DepotId == depotId.Value);
+
+        if (isActive.HasValue)
+            query = query.Where(d => d.IsActive == isActive.Value);
+
+        if (!string.IsNullOrWhiteSpace(search))
+            query = query.Where(d =>
+                d.FirstName.Contains(search) ||
+                d.LastName.Contains(search) ||
+                d.Email.Contains(search));
+
+        return query;
     }
 }

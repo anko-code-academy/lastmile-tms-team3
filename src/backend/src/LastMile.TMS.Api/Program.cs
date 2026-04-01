@@ -3,6 +3,7 @@ using Hangfire.PostgreSql;
 using LastMile.TMS.Api.GraphQL.ErrorFilters;
 using LastMile.TMS.Api.GraphQL.Mutations;
 using LastMile.TMS.Api.GraphQL.Queries;
+using LastMile.TMS.Api.GraphQL.Types;
 using LastMile.TMS.Application;
 using LastMile.TMS.Infrastructure;
 using LastMile.TMS.Persistence;
@@ -99,6 +100,8 @@ try
     builder.Services
         .AddGraphQLServer()
         .AddAuthorization()
+        .AddProjections()
+        .RegisterDbContextFactory<AppDbContext>()
         .AddQueryType<Query>()
         .AddMutationType<Mutation>()
         .AddType<DepotQuery>()
@@ -109,6 +112,13 @@ try
         .AddType<ParcelMutation>()
         .AddType<VehicleQuery>()
         .AddType<VehicleMutation>()
+        .AddType<AddressType>()
+        .AddType<DepotType>()
+        .AddType<VehicleType>()
+        .AddType<ZoneType>()
+        .AddType<DriverType>()
+        .AddType<UserType>()
+        .AddType<OperatingHoursType>()
         .AddType<DriverQuery>()
         .AddType<DriverMutation>()
         .AddType<UserQuery>()

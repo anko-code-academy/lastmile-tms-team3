@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace LastMile.TMS.Persistence;
 
@@ -20,7 +21,9 @@ public static class DependencyInjection
                 {
                     npgsql.UseNetTopologySuite();
                     npgsql.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName);
-                }));
+                })
+                .LogTo(Console.WriteLine, LogLevel.Information)
+                .EnableSensitiveDataLogging());
 
         services.AddScoped<IAppDbContextFactory, AppDbContextFactory>();
 

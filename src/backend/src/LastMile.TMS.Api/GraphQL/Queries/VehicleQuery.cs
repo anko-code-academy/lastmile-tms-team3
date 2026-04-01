@@ -1,28 +1,34 @@
 using HotChocolate.Authorization;
-using LastMile.TMS.Application.Features.Vehicles.DTOs;
-using LastMile.TMS.Application.Features.Vehicles.Queries;
-using MediatR;
+using HotChocolate.Data;
+using HotChocolate.Types;
+using LastMile.TMS.Domain.Entities;
+using LastMile.TMS.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 namespace LastMile.TMS.Api.GraphQL.Queries;
 
 [ExtendObjectType(OperationTypeNames.Query)]
 public class VehicleQuery
 {
-    [Authorize(Policy = "AdminOrOperationsManager")]
-    public async Task<VehicleDto?> GetVehicle(
-        [Service] IMediator mediator,
-        Guid id,
-        CancellationToken cancellationToken = default)
-    {
-        return await mediator.Send(new GetVehicleById.Query(id), cancellationToken);
-    }
+    // [Authorize(Policy = "AdminOrOperationsManager")]
+    [UseSingleOrDefault]
+    [UseProjection]
+    public IQueryable<Vehicle> GetVehicle(
+        AppDbContext context,
+        Guid id)
+        => context.Vehicles
+            .AsNoTracking()
+            .Where(v => v.Id == id);
 
-    [Authorize(Policy = "AdminOrOperationsManager")]
-    public async Task<IReadOnlyList<VehicleDto>> GetVehicles(
-        [Service] IMediator mediator,
-        Guid? depotId = null,
-        CancellationToken cancellationToken = default)
-    {
-        return await mediator.Send(new GetAllVehicles.Query(depotId), cancellationToken);
-    }
+    // [Authorize(Policy = "AdminOrOperationsManager")]
+    [UseProjection]
+    public IQueryable<Vehicle> GetVehicles(
+        AppDbContext context,
+        Guid? depotId = null)
+        => depotId.HasValue
+            ? context.Vehicles
+                .AsNoTracking()
+                .Where(v => v.DepotId == depotId.Value)
+            : context.Vehicles
+                .AsNoTracking();
 }

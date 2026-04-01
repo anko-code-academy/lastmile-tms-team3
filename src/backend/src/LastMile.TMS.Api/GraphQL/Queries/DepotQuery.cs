@@ -1,8 +1,9 @@
 using HotChocolate.Authorization;
-using HotChocolate.Types.Relay;
-using LastMile.TMS.Application.Features.Depots.DTOs;
-using LastMile.TMS.Application.Features.Depots.Queries;
-using MediatR;
+using HotChocolate.Data;
+using HotChocolate.Types;
+using LastMile.TMS.Domain.Entities;
+using LastMile.TMS.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 namespace LastMile.TMS.Api.GraphQL.Queries;
 
@@ -10,20 +11,20 @@ namespace LastMile.TMS.Api.GraphQL.Queries;
 public class DepotQuery
 {
     [Authorize(Policy = "AdminOrOperationsManager")]
-    public async Task<IReadOnlyList<DepotDto>> GetDepots(
-        [Service] IMediator mediator,
-        bool? includeInactive = null,
-        CancellationToken cancellationToken = default)
-    {
-        return await mediator.Send(new GetAllDepots.Query(includeInactive), cancellationToken);
-    }
+    [UseProjection]
+    public IQueryable<Depot> GetDepots(
+        AppDbContext context,
+        bool? includeInactive = null)
+        => includeInactive == true
+            ? context.Depots.AsNoTracking()
+            : context.Depots.AsNoTracking().Where(d => d.IsActive);
 
     [Authorize(Policy = "AdminOrOperationsManager")]
-    public async Task<DepotDto?> GetDepot(
-        [Service] IMediator mediator,
-        [ID] Guid id,
-        CancellationToken cancellationToken = default)
-    {
-        return await mediator.Send(new GetDepotById.Query(id), cancellationToken);
-    }
+    [UseProjection]
+    public IQueryable<Depot> GetDepot(
+        AppDbContext context,
+        Guid id)
+        => context.Depots
+            .AsNoTracking()
+            .Where(d => d.Id == id);
 }

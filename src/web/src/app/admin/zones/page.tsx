@@ -551,7 +551,7 @@ export default function ZonesPage() {
                         {zone.isActive ? "Active" : "Inactive"}
                       </span>
                     </div>
-                    <p style={{ fontFamily: S.mono, fontSize: ".8rem", color: S.muted, marginBottom: ".2rem" }}>Depot: {zone.depotName}</p>
+                    <p style={{ fontFamily: S.mono, fontSize: ".8rem", color: S.muted, marginBottom: ".2rem" }}>Depot: {zone.depot?.name ?? "Unknown"}</p>
                     {zone.boundary && (
                       <p style={{ fontFamily: S.mono, fontSize: "10px", color: S.dim, letterSpacing: ".06em" }}>
                         {zone.boundary.coordinates.length - 1} boundary points

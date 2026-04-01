@@ -238,7 +238,6 @@ export default function VehicleDetailPage() {
                 <div style={{ marginBottom: "1rem" }}>
                   <TmLabel htmlFor="depotId">Depot</TmLabel>
                   <select id="depotId" className="tm-select" disabled={!editing} value={form.depotId} onChange={set("depotId")}>
-                    <option value="">No depot</option>
                     {depots.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
                   </select>
                 </div>
