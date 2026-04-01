@@ -38,12 +38,13 @@ public static class CreateZone
                     .Select(c => new Coordinate(c.Longitude, c.Latitude))
                     .ToList();
 
-                if (coordinates.Count >= 4 && !coordinates.First().Equals2D(coordinates.Last()))
+                // Auto-close: ensure last point equals first for 3+ points
+                if (coordinates.Count >= 3 && !coordinates.First().Equals2D(coordinates.Last()))
                 {
                     coordinates.Add(coordinates.First());
                 }
 
-                if (coordinates.Count >= 4)
+                if (coordinates.Count >= 3)
                 {
                     boundary = _geometryFactory.CreatePolygon(coordinates.ToArray());
                 }

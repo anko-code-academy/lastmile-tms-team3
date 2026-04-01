@@ -58,8 +58,8 @@ public static class CreateDepot
                         Schedule = request.Dto.OperatingHours.Schedule.Select(s => new Domain.Entities.DailyAvailability
                         {
                             DayOfWeek = s.DayOfWeek,
-                            StartTime = s.StartTime,
-                            EndTime = s.EndTime
+                            StartTime = s.StartTime is not null ? TimeOnly.Parse(s.StartTime) : null,
+                            EndTime = s.EndTime is not null ? TimeOnly.Parse(s.EndTime) : null
                         }).ToList(),
                         DaysOff = request.Dto.OperatingHours.DaysOff.Select(d => new Domain.Entities.DayOff
                         {
@@ -99,7 +99,7 @@ public static class CreateDepot
             ),
             depot.IsActive,
             new OperatingHoursDto(
-                depot.OperatingHours.Schedule.Select(s => new DailyAvailabilityDto(s.DayOfWeek, s.StartTime, s.EndTime)).ToList(),
+                depot.OperatingHours.Schedule.Select(s => new DailyAvailabilityDto(s.DayOfWeek, s.StartTime?.ToString("HH:mm:ss"), s.EndTime?.ToString("HH:mm:ss"))).ToList(),
                 depot.OperatingHours.DaysOff.Select(d => new DayOffDto(d.Date, d.IsPaid, d.Reason)).ToList()
             ),
             depot.CreatedAt,

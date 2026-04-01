@@ -102,6 +102,7 @@ try
         .AddQueryType<Query>()
         .AddMutationType<Mutation>()
         .AddType<DepotQuery>()
+        .AddType<DepotMutation>()
         .AddType<ZoneQuery>()
         .AddType<ZoneMutation>()
         .AddType<ParcelQuery>()

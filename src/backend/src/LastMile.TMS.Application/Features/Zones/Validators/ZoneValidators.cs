@@ -14,8 +14,8 @@ public class CreateZoneValidator : AbstractValidator<CreateZone.Command>
             .NotEmpty().WithMessage("Depot is required");
 
         RuleFor(x => x.Dto.Boundary)
-            .Must(b => b == null || (b.Coordinates.Count >= 4))
-            .WithMessage("Boundary must have at least 4 coordinates to form a polygon");
+            .Must(b => b == null || (b.Coordinates.Count >= 3))
+            .WithMessage("Boundary must have at least 3 points to form a polygon");
     }
 }
 
@@ -34,7 +34,7 @@ public class UpdateZoneValidator : AbstractValidator<UpdateZone.Command>
             .NotEmpty().WithMessage("Depot is required");
 
         RuleFor(x => x.Dto.Boundary)
-            .Must(b => b == null || (b.Coordinates.Count >= 4))
-            .WithMessage("Boundary must have at least 4 coordinates to form a polygon");
+            .Must(b => b == null || (b.Coordinates.Count >= 3))
+            .WithMessage("Boundary must have at least 3 points to form a polygon");
     }
 }

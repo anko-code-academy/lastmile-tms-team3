@@ -94,8 +94,8 @@ public class DepotCommandTests : IDisposable
         var operatingHours = new OperatingHoursDto(
             new List<DailyAvailabilityDto>
             {
-                new("Monday", new TimeOnly(9, 0), new TimeOnly(17, 0)),
-                new("Tuesday", new TimeOnly(9, 0), new TimeOnly(17, 0))
+                new("Monday", "09:00:00", "17:00:00"),
+                new("Tuesday", "09:00:00", "17:00:00")
             },
             new List<DayOffDto>()
         );
