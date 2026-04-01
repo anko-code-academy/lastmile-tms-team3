@@ -46,17 +46,20 @@ public static class UpdateZone
             {
                 var coordinates = request.Dto.Boundary.Coordinates
                     .Select(c => new Coordinate(c.Longitude, c.Latitude))
-                    .ToArray();
+                    .ToList();
 
-                if (coordinates.Length >= 4)
+                // Auto-close: ensure last point equals first for 3+ points
+                if (coordinates.Count >= 3 && !coordinates.First().Equals2D(coordinates.Last()))
                 {
-                    zone.Boundary = _geometryFactory.CreatePolygon(coordinates);
+                    coordinates.Add(coordinates.First());
+                }
+
+                if (coordinates.Count >= 3)
+                {
+                    zone.Boundary = _geometryFactory.CreatePolygon(coordinates.ToArray());
                 }
             }
-            else
-            {
-                zone.Boundary = null;
-            }
+            // else: leave zone.Boundary unchanged (user didn't modify boundary)
 
             await context.SaveChangesAsync(cancellationToken);
 

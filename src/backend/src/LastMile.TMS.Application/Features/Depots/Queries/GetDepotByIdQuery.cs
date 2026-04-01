@@ -50,7 +50,7 @@ public static class GetDepotById
             ),
             depot.IsActive,
             new OperatingHoursDto(
-                depot.OperatingHours.Schedule.Select(s => new DailyAvailabilityDto(s.DayOfWeek, s.StartTime, s.EndTime)).ToList(),
+                depot.OperatingHours.Schedule.Select(s => new DailyAvailabilityDto(s.DayOfWeek, s.StartTime?.ToString("HH:mm:ss"), s.EndTime?.ToString("HH:mm:ss"))).ToList(),
                 depot.OperatingHours.DaysOff.Select(d => new DayOffDto(d.Date, d.IsPaid, d.Reason)).ToList()
             ),
             depot.CreatedAt,
