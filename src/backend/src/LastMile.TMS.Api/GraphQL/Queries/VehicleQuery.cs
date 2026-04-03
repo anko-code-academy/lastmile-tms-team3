@@ -1,7 +1,11 @@
 using HotChocolate.Authorization;
-using LastMile.TMS.Application.Features.Vehicles.DTOs;
-using LastMile.TMS.Application.Features.Vehicles.Queries;
-using MediatR;
+using HotChocolate.Data;
+using HotChocolate.Types;
+using LastMile.TMS.Api.GraphQL.Types.Filters;
+using LastMile.TMS.Api.GraphQL.Types.Sorting;
+using LastMile.TMS.Domain.Entities;
+using LastMile.TMS.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 namespace LastMile.TMS.Api.GraphQL.Queries;
 
@@ -9,20 +13,24 @@ namespace LastMile.TMS.Api.GraphQL.Queries;
 public class VehicleQuery
 {
     [Authorize(Policy = "AdminOrOperationsManager")]
-    public async Task<VehicleDto?> GetVehicle(
-        [Service] IMediator mediator,
-        Guid id,
-        CancellationToken cancellationToken = default)
-    {
-        return await mediator.Send(new GetVehicleById.Query(id), cancellationToken);
-    }
+    [UseFirstOrDefault]
+    [UseProjection]
+    public IQueryable<Vehicle> GetVehicle(
+        AppDbContext context,
+        Guid id)
+        => context.Vehicles
+            .AsNoTracking()
+            .Where(v => v.Id == id);
 
     [Authorize(Policy = "AdminOrOperationsManager")]
-    public async Task<IReadOnlyList<VehicleDto>> GetVehicles(
-        [Service] IMediator mediator,
-        Guid? depotId = null,
-        CancellationToken cancellationToken = default)
-    {
-        return await mediator.Send(new GetAllVehicles.Query(depotId), cancellationToken);
-    }
+    [UsePaging(IncludeTotalCount = true, MaxPageSize = 100)]
+    [UseProjection]
+    [UseFiltering(typeof(VehicleFilterInput))]
+    [UseSorting(typeof(VehicleSortInput))]
+    public IQueryable<Vehicle> GetVehicles(
+        AppDbContext context,
+        string? search = null)
+        => context.Vehicles
+            .AsNoTracking()
+            .ApplySearch(search);
 }

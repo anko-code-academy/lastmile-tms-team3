@@ -1,8 +1,11 @@
 using HotChocolate.Authorization;
-using LastMile.TMS.Application.Common.DTOs;
-using LastMile.TMS.Application.Features.Parcels.DTOs;
-using LastMile.TMS.Application.Features.Parcels.Queries;
-using MediatR;
+using HotChocolate.Data;
+using HotChocolate.Types;
+using LastMile.TMS.Api.GraphQL.Types.Filters;
+using LastMile.TMS.Api.GraphQL.Types.Sorting;
+using LastMile.TMS.Domain.Entities;
+using LastMile.TMS.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 namespace LastMile.TMS.Api.GraphQL.Queries;
 
@@ -10,20 +13,24 @@ namespace LastMile.TMS.Api.GraphQL.Queries;
 public class ParcelQuery
 {
     [Authorize(Policy = "Authenticated")]
-    public async Task<PagedResultDto<ParcelListItemDto>> SearchParcels(
-        [Service] IMediator mediator,
-        SearchParcelDto input,
-        CancellationToken cancellationToken = default)
-    {
-        return await mediator.Send(new SearchParcels.Query(input), cancellationToken);
-    }
+    [UseFirstOrDefault]
+    [UseProjection]
+    public IQueryable<Parcel> GetParcel(
+        AppDbContext context,
+        Guid id)
+        => context.Parcels
+            .AsNoTracking()
+            .Where(p => p.Id == id);
 
     [Authorize(Policy = "Authenticated")]
-    public async Task<ParcelDto?> GetParcel(
-        [Service] IMediator mediator,
-        Guid id,
-        CancellationToken cancellationToken = default)
-    {
-        return await mediator.Send(new GetParcelById.Query(id), cancellationToken);
-    }
+    [UsePaging(IncludeTotalCount = true, MaxPageSize = 100)]
+    [UseProjection]
+    [UseFiltering(typeof(ParcelFilterInput))]
+    [UseSorting(typeof(ParcelSortInput))]
+    public IQueryable<Parcel> GetParcels(
+        AppDbContext context,
+        string? search = null)
+        => context.Parcels
+            .AsNoTracking()
+            .ApplySearch(search);
 }

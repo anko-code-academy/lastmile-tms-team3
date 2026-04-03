@@ -18,6 +18,10 @@ public class ParcelConfiguration : IEntityTypeConfiguration<Parcel>
         builder.HasIndex(p => p.TrackingNumber)
             .IsUnique();
 
+        builder.HasIndex([nameof(Parcel.TrackingNumber)], "IX_Parcels_TrackingNumber_Trgm")
+            .HasMethod("GIN")
+            .HasOperators("gin_trgm_ops");
+
         builder.Property(p => p.Description)
             .HasMaxLength(500);
 
@@ -43,13 +47,20 @@ public class ParcelConfiguration : IEntityTypeConfiguration<Parcel>
             .IsRequired();
 
         
-        // Zone relationship (optional)
-        builder.HasOne(p => p.Zone)
-            .WithMany()
-            .HasForeignKey(p => p.ZoneId)
-            .OnDelete(DeleteBehavior.Restrict)
-            .IsRequired(false);
-
+        // Zone relationship (optional)
+
+        builder.HasOne(p => p.Zone)
+
+            .WithMany()
+
+            .HasForeignKey(p => p.ZoneId)
+
+            .OnDelete(DeleteBehavior.Restrict)
+
+            .IsRequired(false);
+
+
+
         // Physical properties
         builder.Property(p => p.Weight)
             .HasPrecision(10, 3);
@@ -93,6 +104,7 @@ public class ParcelConfiguration : IEntityTypeConfiguration<Parcel>
         builder.HasIndex(p => p.Status);
         builder.HasIndex(p => p.CreatedAt);
         builder.HasIndex(p => p.EstimatedDeliveryDate);
+        builder.HasIndex(p => p.ParcelType);
         builder.HasIndex(p => p.ZoneId);
     }
 }
