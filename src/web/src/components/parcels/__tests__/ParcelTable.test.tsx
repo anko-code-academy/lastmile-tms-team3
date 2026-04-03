@@ -9,7 +9,9 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush }),
 }));
 
-function createMockParcel(overrides: Partial<ParcelListItem> = {}): ParcelListItem {
+function createMockParcel(
+  overrides: Partial<ParcelListItem> = {},
+): ParcelListItem {
   return {
     id: "parcel-1",
     trackingNumber: "TRK001",
@@ -34,12 +36,14 @@ describe("ParcelTable", () => {
 
   describe("row click navigation", () => {
     it("navigates to parcel detail page when row is clicked", () => {
-      const parcels = [createMockParcel({ id: "parcel-123", trackingNumber: "TRK001" })];
+      const parcels = [
+        createMockParcel({ id: "parcel-123", trackingNumber: "TRK001" }),
+      ];
       render(
         <ParcelTable
           items={parcels}
-          localSortField={null}
-          localSortDir="asc"
+          sortField={null}
+          sortDir="asc"
           onSort={vi.fn()}
         />,
       );
@@ -57,8 +61,8 @@ describe("ParcelTable", () => {
       render(
         <ParcelTable
           items={parcels}
-          localSortField={null}
-          localSortDir="asc"
+          sortField={null}
+          sortDir="asc"
           onSort={vi.fn()}
         />,
       );
@@ -78,8 +82,8 @@ describe("ParcelTable", () => {
       render(
         <ParcelTable
           items={parcels}
-          localSortField={null}
-          localSortDir="asc"
+          sortField={null}
+          sortDir="asc"
           onSort={onSort}
         />,
       );
@@ -89,21 +93,21 @@ describe("ParcelTable", () => {
       expect(onSort).toHaveBeenCalledWith("trackingNumber");
     });
 
-    it("calls onSort with recipientName when that header is clicked", () => {
+    it("does not call onSort when a non-sortable header is clicked", () => {
       const parcels = [createMockParcel()];
       const onSort = vi.fn();
       render(
         <ParcelTable
           items={parcels}
-          localSortField={null}
-          localSortDir="asc"
+          sortField={null}
+          sortDir="asc"
           onSort={onSort}
         />,
       );
 
       fireEvent.click(screen.getByText("Recipient"));
 
-      expect(onSort).toHaveBeenCalledWith("recipientName");
+      expect(onSort).not.toHaveBeenCalled();
     });
 
     it("calls onSort with createdAt when that header is clicked", () => {
@@ -112,8 +116,8 @@ describe("ParcelTable", () => {
       render(
         <ParcelTable
           items={parcels}
-          localSortField={null}
-          localSortDir="asc"
+          sortField={null}
+          sortDir="asc"
           onSort={onSort}
         />,
       );
@@ -123,29 +127,19 @@ describe("ParcelTable", () => {
       expect(onSort).toHaveBeenCalledWith("createdAt");
     });
 
-    it("calls onSort for all sortable column headers", () => {
+    it("calls onSort only for server-sortable headers", () => {
       const parcels = [createMockParcel()];
       const onSort = vi.fn();
       render(
         <ParcelTable
           items={parcels}
-          localSortField={null}
-          localSortDir="asc"
+          sortField={null}
+          sortDir="asc"
           onSort={onSort}
         />,
       );
 
-      const sortableHeaders = [
-        "Tracking number",
-        "Recipient",
-        "Status",
-        "City",
-        "Zone",
-        "Service",
-        "Weight",
-        "Type",
-        "Created",
-      ];
+      const sortableHeaders = ["Tracking number", "Status", "Created"];
 
       for (const header of sortableHeaders) {
         onSort.mockClear();
@@ -160,8 +154,8 @@ describe("ParcelTable", () => {
       render(
         <ParcelTable
           items={[]}
-          localSortField={null}
-          localSortDir="asc"
+          sortField={null}
+          sortDir="asc"
           onSort={vi.fn()}
         />,
       );
@@ -173,8 +167,8 @@ describe("ParcelTable", () => {
       render(
         <ParcelTable
           items={[]}
-          localSortField={null}
-          localSortDir="asc"
+          sortField={null}
+          sortDir="asc"
           onSort={vi.fn()}
         />,
       );
@@ -190,8 +184,8 @@ describe("ParcelTable", () => {
       render(
         <ParcelTable
           items={parcels}
-          localSortField="trackingNumber"
-          localSortDir="asc"
+          sortField="trackingNumber"
+          sortDir="asc"
           onSort={vi.fn()}
         />,
       );
@@ -205,8 +199,8 @@ describe("ParcelTable", () => {
       render(
         <ParcelTable
           items={parcels}
-          localSortField="trackingNumber"
-          localSortDir="desc"
+          sortField="trackingNumber"
+          sortDir="desc"
           onSort={vi.fn()}
         />,
       );
@@ -219,14 +213,16 @@ describe("ParcelTable", () => {
       render(
         <ParcelTable
           items={parcels}
-          localSortField="trackingNumber"
-          localSortDir="asc"
+          sortField="trackingNumber"
+          sortDir="asc"
           onSort={vi.fn()}
         />,
       );
 
       // Should not have a sort indicator on Recipient column
-      const recipientSortIcons = screen.getAllByText((content) => content === "↑");
+      const recipientSortIcons = screen.getAllByText(
+        (content) => content === "↑",
+      );
       expect(recipientSortIcons).toHaveLength(1);
     });
   });

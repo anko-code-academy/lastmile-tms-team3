@@ -1,4 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { graphql } from "@/lib/api/graphql";
+import { GET_DEPOTS } from "@/lib/graphql/queries/depots";
 import {
   getDepots,
   getDepot,
@@ -7,6 +9,19 @@ import {
   deleteDepot,
 } from "../api/depots";
 import { CreateDepotDto, UpdateDepotDto } from "../types/depot";
+
+export function useDepotNames() {
+  return useQuery({
+    queryKey: ["depots", "names"],
+    queryFn: async () => {
+      const data = await graphql<{ depots: { id: string; name: string }[] }>(
+        GET_DEPOTS,
+        { includeInactive: false },
+      );
+      return data.depots;
+    },
+  });
+}
 
 export function useDepots(includeInactive?: boolean) {
   return useQuery({

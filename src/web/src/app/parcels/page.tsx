@@ -23,6 +23,7 @@ export default async function ParcelsPage() {
     sortBy: ParcelSortBy.CreatedAt,
     sortDirection: SortDirection.Desc,
     cursor: null,
+    pagingDirection: "forward",
     pageSize: 20,
   });
 
