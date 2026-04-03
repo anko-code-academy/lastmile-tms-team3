@@ -15,7 +15,7 @@ export interface ZoneDto {
   boundary: GeoJsonPolygonDto | null;
   isActive: boolean;
   depotId: string;
-  depotName: string;
+  depot: { id: string; name: string } | null;
   createdAt: string;
   lastModifiedAt?: string;
 }
