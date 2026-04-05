@@ -35,6 +35,36 @@ public class CreateParcelValidator : AbstractValidator<CreateParcel.Command>
     }
 }
 
+public class TransitionParcelStatusValidator : AbstractValidator<TransitionParcelStatus.Command>
+{
+    public TransitionParcelStatusValidator()
+    {
+        RuleFor(x => x.Dto.ParcelId)
+            .NotEmpty().WithMessage("Parcel ID is required");
+
+        RuleFor(x => x.Dto.NewStatus)
+            .IsInEnum().WithMessage("Invalid parcel status");
+
+        RuleFor(x => x.Dto.LocationCountryCode)
+            .Matches(@"^[A-Z]{2}$")
+            .When(x => !string.IsNullOrEmpty(x.Dto.LocationCountryCode))
+            .WithMessage("Country code must be a two-letter ISO code");
+    }
+}
+
+public class MarkParcelDeliveredValidator : AbstractValidator<MarkParcelDelivered.Command>
+{
+    public MarkParcelDeliveredValidator()
+    {
+        RuleFor(x => x.Dto.ParcelId)
+            .NotEmpty().WithMessage("Parcel ID is required");
+
+        RuleFor(x => x.Dto.ReceivedBy)
+            .NotEmpty().WithMessage("ReceivedBy is required")
+            .MaximumLength(200);
+    }
+}
+
 public class SearchParcelDtoValidator : AbstractValidator<SearchParcelDto>
 {
     public SearchParcelDtoValidator()
