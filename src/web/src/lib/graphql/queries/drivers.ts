@@ -1,9 +1,12 @@
 const DRIVER_LIST_ITEM_FIELDS = `
   id
-  fullName
+  firstName
+  lastName
   email
   licenseNumber
-  depotName
+  depot {
+    name
+  }
   isActive
   createdAt
 `;
@@ -12,16 +15,15 @@ const DRIVER_FIELDS = `
   id
   firstName
   lastName
-  fullName
   phone
   email
   licenseNumber
   licenseExpiryDate
   photoUrl
-  zoneId
-  zoneName
   depotId
-  depotName
+  depot {
+    name
+  }
   userId
   isActive
   availability {
@@ -33,13 +35,27 @@ const DRIVER_FIELDS = `
 `;
 
 export const GET_DRIVERS = `
-  query GetDrivers($depotId: UUID, $isActive: Boolean, $search: String, $page: Int, $pageSize: Int) {
-    drivers(depotId: $depotId, isActive: $isActive, search: $search, page: $page, pageSize: $pageSize) {
-      items { ${DRIVER_LIST_ITEM_FIELDS} }
+  query GetDrivers($search: String, $where: DriverFilterInput, $order: [DriverSortInput!], $first: Int, $after: String, $last: Int, $before: String) {
+    drivers(search: $search, where: $where, order: $order, first: $first, after: $after, last: $last, before: $before) {
+      nodes {
+        id
+        firstName
+        lastName
+        email
+        licenseNumber
+        depot {
+          name
+        }
+        isActive
+        createdAt
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
       totalCount
-      page
-      pageSize
-      totalPages
     }
   }
 `;

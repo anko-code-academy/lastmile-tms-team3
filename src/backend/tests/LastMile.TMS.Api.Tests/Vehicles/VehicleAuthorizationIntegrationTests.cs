@@ -16,8 +16,10 @@ public class VehicleAuthorizationIntegrationTests(ApiWebApplicationFactory facto
         var query = @"
             query {
                 vehicles {
-                    id
-                    registrationPlate
+                    nodes {
+                        id
+                        registrationPlate
+                    }
                 }
             }";
 
@@ -63,27 +65,15 @@ public class VehicleAuthorizationIntegrationTests(ApiWebApplicationFactory facto
         var query = @"
             query {
                 vehicles {
-                    id
+                    nodes {
+                        id
+                    }
                 }
             }";
 
         // Act
         var response = await GraphQLRequestHelper.QueryAsync(_client, query, null, token);
         var body = await GraphQLRequestHelper.ReadGraphQLResponseAsync(response);
-
-        if (body.TryGetProperty("errors", out var firstErrors)
-            && firstErrors.ToString().Contains("Cannot query field", StringComparison.OrdinalIgnoreCase))
-        {
-            var fallbackQuery = @"
-                query {
-                    getVehicles {
-                        id
-                    }
-                }";
-
-            response = await GraphQLRequestHelper.QueryAsync(_client, fallbackQuery, null, token);
-            body = await GraphQLRequestHelper.ReadGraphQLResponseAsync(response);
-        }
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -94,7 +84,8 @@ public class VehicleAuthorizationIntegrationTests(ApiWebApplicationFactory facto
             return;
         }
 
-        body.GetProperty("data").ValueKind.Should().Be(System.Text.Json.JsonValueKind.Object);
+        body.GetProperty("data").GetProperty("vehicles").GetProperty("nodes").ValueKind
+            .Should().Be(System.Text.Json.JsonValueKind.Array);
     }
 
     [Fact]
@@ -104,7 +95,9 @@ public class VehicleAuthorizationIntegrationTests(ApiWebApplicationFactory facto
         var query = @"
             query {
                 vehicles {
-                    id
+                    nodes {
+                        id
+                    }
                 }
             }";
 

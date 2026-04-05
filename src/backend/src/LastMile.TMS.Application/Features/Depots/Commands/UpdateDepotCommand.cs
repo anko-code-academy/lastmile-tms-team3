@@ -93,7 +93,8 @@ public static class UpdateDepot
                 depot.Address.Phone,
                 depot.Address.Email,
                 depot.Address.GeoLocation?.Y,
-                depot.Address.GeoLocation?.X
+                depot.Address.GeoLocation?.X,
+                null
             ),
             depot.IsActive,
             new OperatingHoursDto(

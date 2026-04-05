@@ -13,5 +13,6 @@ public record AddressDto(
     string? Phone,
     string? Email,
     double? Latitude,
-    double? Longitude
+    double? Longitude,
+    string? GeoLocation
 );

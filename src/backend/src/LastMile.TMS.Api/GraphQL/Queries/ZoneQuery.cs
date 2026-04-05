@@ -1,27 +1,40 @@
-using HotChocolate.Types.Relay;
-using LastMile.TMS.Application.Features.Zones.DTOs;
-using LastMile.TMS.Application.Features.Zones.Queries;
-using MediatR;
+using HotChocolate.Authorization;
+using HotChocolate.Data;
+using HotChocolate.Types;
+using LastMile.TMS.Domain.Entities;
+using LastMile.TMS.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 namespace LastMile.TMS.Api.GraphQL.Queries;
 
 [ExtendObjectType(OperationTypeNames.Query)]
 public class ZoneQuery
 {
-    public async Task<IReadOnlyList<ZoneDto>> GetZones(
-        [Service] IMediator mediator,
-        Guid? depotId = null,
-        bool? includeInactive = null,
-        CancellationToken cancellationToken = default)
-    {
-        return await mediator.Send(new GetAllZones.Query(depotId, includeInactive), cancellationToken);
-    }
+    [Authorize(Policy = "AdminOrOperationsManager")]
+    [UseFirstOrDefault]
+    [UseProjection]
+    public IQueryable<Zone> GetZone(
+        AppDbContext context,
+        Guid id)
+        => context.Zones
+            .AsNoTracking()
+            .Where(z => z.Id == id);
 
-    public async Task<ZoneDto?> GetZone(
-        [Service] IMediator mediator,
-        [ID] Guid id,
-        CancellationToken cancellationToken = default)
+    [Authorize(Policy = "AdminOrOperationsManager")]
+    [UseProjection]
+    public IQueryable<Zone> GetZones(
+        AppDbContext context,
+        Guid? depotId = null,
+        bool? includeInactive = null)
     {
-        return await mediator.Send(new GetZoneById.Query(id), cancellationToken);
+        var query = context.Zones.AsNoTracking();
+
+        if (depotId.HasValue)
+            query = query.Where(z => z.DepotId == depotId.Value);
+
+        if (includeInactive != true)
+            query = query.Where(z => z.IsActive);
+
+        return query;
     }
 }
