@@ -1,5 +1,8 @@
 using System.Globalization;
+using System.Text;
+using System.Text.Json;
 using CsvHelper;
+using CsvHelper.Configuration;
 using LastMile.TMS.Api.AuditLogs;
 using LastMile.TMS.Domain.Enums;
 using LastMile.TMS.Persistence;
@@ -18,6 +21,11 @@ namespace LastMile.TMS.Api.Controllers;
 public class AuditLogsController(
     IDbContextFactory<AppDbContext> dbContextFactory) : ControllerBase
 {
+    private static readonly JsonSerializerOptions ExportJsonSerializerOptions = new()
+    {
+        WriteIndented = false
+    };
+
     [HttpGet("export")]
     public async Task<IActionResult> ExportAsync(
         [FromQuery] string? actor = null,
@@ -36,22 +44,28 @@ public class AuditLogsController(
             .ApplyAuditFilters(parameters)
             .OrderByDescending(log => log.OccurredAt)
             .Select(log => new AuditLogCsvRow(
-                log.OccurredAt,
+                log.OccurredAt.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture),
                 log.ActorUserId,
                 log.ActorUserName,
-                log.ActionType,
-                log.ResourceType,
+                FormatEnum(log.ActionType),
+                FormatEnum(log.ResourceType),
                 log.ResourceId,
                 log.Summary,
                 log.CorrelationId,
-                log.BeforeValuesJson,
-                log.AfterValuesJson))
+                NormalizeJson(log.BeforeValuesJson),
+                NormalizeJson(log.AfterValuesJson)))
             .ToListAsync(cancellationToken);
 
         await using var stream = new MemoryStream();
-        await using (var writer = new StreamWriter(stream, leaveOpen: true))
-        await using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
+        var csvConfiguration = new CsvConfiguration(CultureInfo.InvariantCulture)
         {
+            NewLine = "\r\n"
+        };
+
+        await using (var writer = new StreamWriter(stream, new UTF8Encoding(true), leaveOpen: true))
+        await using (var csv = new CsvWriter(writer, csvConfiguration))
+        {
+            csv.Context.RegisterClassMap<AuditLogCsvRowMap>();
             await csv.WriteRecordsAsync(rows, cancellationToken);
             await writer.FlushAsync(cancellationToken);
         }
@@ -61,15 +75,72 @@ public class AuditLogsController(
         return File(stream.ToArray(), "text/csv", fileName);
     }
 
+    private static string FormatEnum<TEnum>(TEnum value)
+        where TEnum : struct, Enum
+        => string.Join(' ', value.ToString().SplitCamelCaseAndUnderscores());
+
+    private static string? NormalizeJson(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+            return json;
+
+        try
+        {
+            using var document = JsonDocument.Parse(json);
+            return JsonSerializer.Serialize(document.RootElement, ExportJsonSerializerOptions);
+        }
+        catch (JsonException)
+        {
+            return json;
+        }
+    }
+
     private sealed record AuditLogCsvRow(
-        DateTimeOffset OccurredAt,
+        string OccurredAtUtc,
         string? ActorUserId,
         string? ActorUserName,
-        AuditActionType ActionType,
-        AuditResourceType ResourceType,
+        string Action,
+        string ResourceType,
         string ResourceId,
         string? Summary,
         string? CorrelationId,
-        string? BeforeValuesJson,
-        string? AfterValuesJson);
+        string? BeforeValues,
+        string? AfterValues);
+
+    private sealed class AuditLogCsvRowMap : ClassMap<AuditLogCsvRow>
+    {
+        public AuditLogCsvRowMap()
+        {
+            Map(x => x.OccurredAtUtc).Name("Occurred At (UTC)");
+            Map(x => x.ActorUserId).Name("Actor User ID");
+            Map(x => x.ActorUserName).Name("Actor User Name");
+            Map(x => x.Action).Name("Action");
+            Map(x => x.ResourceType).Name("Resource Type");
+            Map(x => x.ResourceId).Name("Resource ID");
+            Map(x => x.Summary).Name("Summary");
+            Map(x => x.CorrelationId).Name("Correlation ID");
+            Map(x => x.BeforeValues).Name("Before Values");
+            Map(x => x.AfterValues).Name("After Values");
+        }
+    }
+}
+
+internal static class AuditLogStringExtensions
+{
+    public static IEnumerable<string> SplitCamelCaseAndUnderscores(this string value)
+    {
+        var builder = new StringBuilder();
+
+        foreach (var character in value.Replace("_", " "))
+        {
+            if (builder.Length > 0 && char.IsUpper(character) && builder[^1] != ' ')
+                builder.Append(' ');
+
+            builder.Append(character);
+        }
+
+        return builder.ToString()
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Select(segment => char.ToUpperInvariant(segment[0]) + segment[1..].ToLowerInvariant());
+    }
 }

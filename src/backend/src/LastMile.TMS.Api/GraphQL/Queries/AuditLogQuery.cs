@@ -2,8 +2,9 @@ using HotChocolate.Authorization;
 using HotChocolate.Data;
 using HotChocolate.Types;
 using LastMile.TMS.Api.AuditLogs;
+using LastMile.TMS.Api.GraphQL.Types.Filters;
+using LastMile.TMS.Api.GraphQL.Types.Sorting;
 using LastMile.TMS.Domain.Entities;
-using LastMile.TMS.Domain.Enums;
 using LastMile.TMS.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,19 +14,25 @@ namespace LastMile.TMS.Api.GraphQL.Queries;
 public class AuditLogQuery
 {
     [Authorize(Policy = "Admin")]
-    [UsePaging(IncludeTotalCount = true, MaxPageSize = 100)]
+    [UseFirstOrDefault]
     [UseProjection]
-    [UseSorting]
-    public IQueryable<AuditLog> GetAuditLogs(
+    public IQueryable<AuditLog> GetAuditLog(
         AppDbContext context,
-        string? actor = null,
-        AuditActionType? actionType = null,
-        AuditResourceType? resourceType = null,
-        string? resourceId = null,
-        DateTimeOffset? from = null,
-        DateTimeOffset? to = null)
+        Guid id)
         => context.AuditLogs
             .AsNoTracking()
-            .ApplyAuditFilters(new AuditLogQueryParameters(actor, actionType, resourceType, resourceId, from, to))
+            .Where(log => log.Id == id);
+
+    [Authorize(Policy = "Admin")]
+    [UsePaging(IncludeTotalCount = true, MaxPageSize = 100)]
+    [UseProjection]
+    [UseFiltering(typeof(AuditLogFilterInput))]
+    [UseSorting(typeof(AuditLogSortInput))]
+    public IQueryable<AuditLog> GetAuditLogs(
+        AppDbContext context,
+        string? actor = null)
+        => context.AuditLogs
+            .AsNoTracking()
+            .ApplyActorSearch(actor)
             .OrderByDescending(log => log.OccurredAt);
 }

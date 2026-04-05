@@ -11,12 +11,15 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
+using NetTopologySuite.Geometries;
 
 namespace LastMile.TMS.Persistence.Interceptors;
 
 public sealed class AuditSaveChangesInterceptor(IHttpContextAccessor httpContextAccessor) : SaveChangesInterceptor
 {
     private const string IsActivePropertyName = "IsActive";
+    private const string SystemActorUserId = "system";
+    private const string SystemActorUserName = "System";
 
     private static readonly JsonSerializerOptions JsonSerializerOptions = new()
     {
@@ -68,8 +71,12 @@ public sealed class AuditSaveChangesInterceptor(IHttpContextAccessor httpContext
         RejectAuditLogMutations(context);
 
         var currentUserService = httpContextAccessor.HttpContext?.RequestServices.GetService<ICurrentUserService>();
-        var actorUserId = currentUserService?.UserId ?? httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var actorUserName = currentUserService?.UserName ?? httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.Name);
+        var actorUserId = currentUserService?.UserId
+            ?? httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? SystemActorUserId;
+        var actorUserName = currentUserService?.UserName
+            ?? httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.Name)
+            ?? SystemActorUserName;
         var correlationId = httpContextAccessor.HttpContext?.TraceIdentifier;
 
         StampAuditableEntities(context, actorUserId);
@@ -242,7 +249,8 @@ public sealed class AuditSaveChangesInterceptor(IHttpContextAccessor httpContext
             if (ShouldIgnoreProperty(property.Metadata.Name))
                 continue;
 
-            values[property.Metadata.Name] = useOriginalValues ? property.OriginalValue : property.CurrentValue;
+            values[property.Metadata.Name] = NormalizeAuditValue(
+                useOriginalValues ? property.OriginalValue : property.CurrentValue);
         }
 
         return values;
@@ -266,18 +274,34 @@ public sealed class AuditSaveChangesInterceptor(IHttpContextAccessor httpContext
             if (Equals(property.OriginalValue, property.CurrentValue))
                 continue;
 
-            values[property.Metadata.Name] = useOriginalValues ? property.OriginalValue : property.CurrentValue;
+            values[property.Metadata.Name] = NormalizeAuditValue(
+                useOriginalValues ? property.OriginalValue : property.CurrentValue);
         }
 
         if ((actionType == AuditActionType.Deactivate || actionType == AuditActionType.Activate) &&
             entry.Properties.Any(property => property.Metadata.Name == IsActivePropertyName))
         {
-            values[IsActivePropertyName] = useOriginalValues
+            values[IsActivePropertyName] = NormalizeAuditValue(useOriginalValues
                 ? entry.Property(IsActivePropertyName).OriginalValue
-                : entry.Property(IsActivePropertyName).CurrentValue;
+                : entry.Property(IsActivePropertyName).CurrentValue);
         }
 
         return values;
+    }
+
+    private static object? NormalizeAuditValue(object? value)
+    {
+        return value switch
+        {
+            null => null,
+            Geometry geometry => new AuditGeometrySnapshot(
+                geometry.GeometryType,
+                geometry.SRID,
+                geometry.AsText()),
+            double doubleValue when double.IsInfinity(doubleValue) || double.IsNaN(doubleValue) => doubleValue.ToString(),
+            float floatValue when float.IsInfinity(floatValue) || float.IsNaN(floatValue) => floatValue.ToString(),
+            _ => value
+        };
     }
 
     private static string? SerializeValues(Dictionary<string, object?>? values)
@@ -345,4 +369,6 @@ public sealed class AuditSaveChangesInterceptor(IHttpContextAccessor httpContext
         var currentStatus = statusProperty.CurrentValue?.ToString() ?? "Unknown";
         return $"Vehicle status changed from {previousStatus} to {currentStatus}";
     }
+
+    private sealed record AuditGeometrySnapshot(string Type, int Srid, string Wkt);
 }

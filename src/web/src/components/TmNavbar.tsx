@@ -15,11 +15,14 @@ export default function TmNavbar() {
     { label: "Routes", href: "#" },
     ...(isAdminOrOm ? [{ label: "Depots", href: "/admin/depots" }] : []),
     ...(isAdmin ? [{ label: "Zones", href: "/admin/zones" }] : []),
-    ...(isAdminOrOm ? [
-      { label: "Drivers", href: "/admin/drivers" },
-      { label: "Vehicles", href: "/admin/vehicles" },
-    ] : []),
+    ...(isAdminOrOm
+      ? [
+          { label: "Drivers", href: "/admin/drivers" },
+          { label: "Vehicles", href: "/admin/vehicles" },
+        ]
+      : []),
     ...(isAdmin ? [{ label: "Users", href: "/admin/users" }] : []),
+    ...(isAdmin ? [{ label: "Audit Logs", href: "/admin/audit-logs" }] : []),
   ];
 
   const mono = "var(--font-geist-mono, monospace)";
@@ -38,26 +41,40 @@ export default function TmNavbar() {
         .tm-nav-link:hover { color: #e2e8f0; background: rgba(255,255,255,.04); }
         .tm-nav-link.tm-active { color: #f59e0b; }
       `}</style>
-      <nav style={{
-        display: "flex", alignItems: "center",
-        padding: "0 2rem", height: "56px",
-        borderBottom: "1px solid rgba(255,255,255,.06)",
-        background: "rgba(8,12,20,.85)",
-        backdropFilter: "blur(12px)",
-        position: "sticky", top: 0, zIndex: 10,
-        gap: "2rem",
-      }}>
-        <span style={{
-          fontFamily: mono, fontSize: ".875rem", fontWeight: 800,
-          letterSpacing: "-.01em", color: "#e2e8f0", flexShrink: 0,
-        }}>
+      <nav
+        style={{
+          display: "flex",
+          alignItems: "center",
+          padding: "0 2rem",
+          height: "56px",
+          borderBottom: "1px solid rgba(255,255,255,.06)",
+          background: "rgba(8,12,20,.85)",
+          backdropFilter: "blur(12px)",
+          position: "sticky",
+          top: 0,
+          zIndex: 10,
+          gap: "2rem",
+        }}
+      >
+        <span
+          style={{
+            fontFamily: mono,
+            fontSize: ".875rem",
+            fontWeight: 800,
+            letterSpacing: "-.01em",
+            color: "#e2e8f0",
+            flexShrink: 0,
+          }}
+        >
           LAST <span style={{ color: "#f59e0b" }}>MILE</span> TMS
         </span>
         <div style={{ display: "flex", gap: ".25rem", flex: 1 }}>
           {navItems.map((item) => {
             const isActive =
               item.href !== "#" &&
-              (item.href === "/" ? pathname === "/" : pathname.startsWith(item.href));
+              (item.href === "/"
+                ? pathname === "/"
+                : pathname.startsWith(item.href));
             return (
               <a
                 key={item.label}

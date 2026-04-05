@@ -10,6 +10,7 @@ using LastMile.TMS.Persistence.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using NetTopologySuite.Geometries;
 
 namespace LastMile.TMS.Api.Tests.AuditLogs;
 
@@ -264,6 +265,48 @@ public class AuditLogIntegrationTests(ApiWebApplicationFactory factory)
     }
 
     [Fact]
+    public async Task AuditLog_Can_Be_Queried_By_Id()
+    {
+        var adminToken = await GraphQLRequestHelper.GetAdminTokenAsync(_client);
+        var userId = await CreateUserAsync(adminToken, $"audit.detail.{Guid.NewGuid():N}@example.com");
+
+        var listBody = await QueryAuditLogsAsync(adminToken, resourceType: "USER", resourceId: userId, actionType: "CREATE");
+        var auditLogId = listBody.GetProperty("data").GetProperty("auditLogs").GetProperty("nodes")
+            .EnumerateArray()
+            .Single(entry => entry.GetProperty("resourceId").GetString() == userId)
+            .GetProperty("id")
+            .GetString();
+
+        auditLogId.Should().NotBeNullOrWhiteSpace();
+
+        var detailQuery = @"
+            query GetAuditLog($id: UUID!) {
+                auditLog(id: $id) {
+                    id
+                    actionType
+                    resourceType
+                    resourceId
+                    summary
+                    beforeValuesJson
+                    afterValuesJson
+                }
+            }";
+
+        var detailResponse = await GraphQLRequestHelper.QueryAsync(_client, detailQuery, new { id = auditLogId }, adminToken);
+        var detailBody = await GraphQLRequestHelper.ReadGraphQLResponseAsync(detailResponse);
+
+        detailResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        detailBody.TryGetProperty("errors", out _).Should().BeFalse();
+
+        var auditLog = detailBody.GetProperty("data").GetProperty("auditLog");
+        auditLog.GetProperty("id").GetString().Should().Be(auditLogId);
+        auditLog.GetProperty("actionType").GetString().Should().Be("CREATE");
+        auditLog.GetProperty("resourceType").GetString().Should().Be("USER");
+        auditLog.GetProperty("resourceId").GetString().Should().Be(userId);
+        auditLog.GetProperty("afterValuesJson").GetString().Should().Contain(userId);
+    }
+
+    [Fact]
     public async Task AuditLog_Export_Returns_Csv()
     {
         var adminToken = await GraphQLRequestHelper.GetAdminTokenAsync(_client);
@@ -277,9 +320,91 @@ public class AuditLogIntegrationTests(ApiWebApplicationFactory factory)
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         response.Content.Headers.ContentType?.MediaType.Should().Be("text/csv");
-        body.Should().Contain("OccurredAt,ActorUserId,ActorUserName,ActionType,ResourceType,ResourceId,Summary");
+        body.Should().Contain("Occurred At (UTC),Actor User ID,Actor User Name,Action,Resource Type,Resource ID,Summary,Correlation ID,Before Values,After Values");
+        body.Should().Contain(",Create,User,");
         body.Should().Contain(userId);
         body.Should().Contain(email);
+    }
+
+    [Fact]
+    public async Task CreateZone_WithBoundary_Creates_Audit_Log_Without_Serialization_Errors()
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var depotId = await db.Depots
+            .OrderBy(d => d.Name)
+            .Select(d => d.Id)
+            .FirstAsync();
+
+        var zoneId = Guid.NewGuid();
+        var geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
+
+        db.Zones.Add(new Zone
+        {
+            Id = zoneId,
+            Name = $"Audit Zone {zoneId:N}"[..22],
+            IsActive = true,
+            DepotId = depotId,
+            Boundary = geometryFactory.CreatePolygon(
+            [
+                new Coordinate(-86.80, 36.16),
+                new Coordinate(-86.78, 36.16),
+                new Coordinate(-86.78, 36.18),
+                new Coordinate(-86.80, 36.18),
+                new Coordinate(-86.80, 36.16),
+            ]),
+            CreatedAt = DateTimeOffset.UtcNow,
+        });
+
+        var saveChanges = async () => await db.SaveChangesAsync();
+
+        await saveChanges.Should().NotThrowAsync();
+
+        var auditLog = await db.AuditLogs
+            .AsNoTracking()
+            .Where(log => log.ResourceType == AuditResourceType.Zone &&
+                          log.ResourceId == zoneId.ToString() &&
+                          log.ActionType == AuditActionType.Create)
+            .OrderByDescending(log => log.OccurredAt)
+            .FirstOrDefaultAsync();
+
+        auditLog.Should().NotBeNull();
+        auditLog!.AfterValuesJson.Should().Contain("POLYGON");
+        auditLog.AfterValuesJson.Should().NotContain("Infinity");
+    }
+
+    [Fact]
+    public async Task System_Generated_Audit_Log_Uses_Searchable_System_Actor()
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var depotId = await db.Depots
+            .OrderBy(d => d.Name)
+            .Select(d => d.Id)
+            .FirstAsync();
+
+        var zoneId = Guid.NewGuid();
+        db.Zones.Add(new Zone
+        {
+            Id = zoneId,
+            Name = $"System Audit {zoneId:N}"[..22],
+            IsActive = true,
+            DepotId = depotId,
+            CreatedAt = DateTimeOffset.UtcNow,
+        });
+
+        await db.SaveChangesAsync();
+
+        var auditLog = await db.AuditLogs
+            .AsNoTracking()
+            .Where(log => log.ResourceType == AuditResourceType.Zone &&
+                          log.ResourceId == zoneId.ToString() &&
+                          log.ActionType == AuditActionType.Create)
+            .OrderByDescending(log => log.OccurredAt)
+            .FirstAsync();
+
+        auditLog.ActorUserId.Should().Be("system");
+        auditLog.ActorUserName.Should().Be("System");
     }
 
     [Fact]
@@ -316,21 +441,13 @@ public class AuditLogIntegrationTests(ApiWebApplicationFactory factory)
     {
         var query = @"
             query AuditLogs(
-                $resourceType: AuditResourceType
-                $resourceId: String
-                $actionType: AuditActionType
                 $actor: String
-                $from: DateTime
-                $to: DateTime
+                $where: AuditLogFilterInput
             ) {
                 auditLogs(
                     first: 50
-                    resourceType: $resourceType
-                    resourceId: $resourceId
-                    actionType: $actionType
                     actor: $actor
-                    from: $from
-                    to: $to
+                    where: $where
                 ) {
                     totalCount
                     nodes {
@@ -351,11 +468,48 @@ public class AuditLogIntegrationTests(ApiWebApplicationFactory factory)
         var response = await GraphQLRequestHelper.QueryAsync(
             _client,
             query,
-            new { resourceType, resourceId, actionType, actor, from, to },
+            BuildAuditLogQueryVariables(actor, actionType, resourceType, resourceId, from, to),
             token);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         return await GraphQLRequestHelper.ReadGraphQLResponseAsync(response);
+    }
+
+    private static object BuildAuditLogQueryVariables(
+        string? actor,
+        string? actionType,
+        string? resourceType,
+        string? resourceId,
+        string? from,
+        string? to)
+    {
+        var where = new Dictionary<string, object?>();
+
+        if (!string.IsNullOrWhiteSpace(actionType))
+            where["actionType"] = new Dictionary<string, object?> { ["eq"] = actionType };
+
+        if (!string.IsNullOrWhiteSpace(resourceType))
+            where["resourceType"] = new Dictionary<string, object?> { ["eq"] = resourceType };
+
+        if (!string.IsNullOrWhiteSpace(resourceId))
+            where["resourceId"] = new Dictionary<string, object?> { ["eq"] = resourceId };
+
+        var occurredAt = new Dictionary<string, object?>();
+
+        if (!string.IsNullOrWhiteSpace(from))
+            occurredAt["gte"] = from;
+
+        if (!string.IsNullOrWhiteSpace(to))
+            occurredAt["lte"] = to;
+
+        if (occurredAt.Count > 0)
+            where["occurredAt"] = occurredAt;
+
+        return new
+        {
+            actor,
+            where = where.Count > 0 ? where : null,
+        };
     }
 
     private async Task<string> CreateUserAsync(string adminToken, string email)

@@ -128,6 +128,7 @@ try
         .AddType<ZoneType>()
         .AddType<DriverType>()
         .AddType<UserType>()
+        .AddType<AuditLogType>()
         .AddType<OperatingHoursType>()
         .AddType<DailyAvailabilityType>()
         .AddType<DayOffType>()

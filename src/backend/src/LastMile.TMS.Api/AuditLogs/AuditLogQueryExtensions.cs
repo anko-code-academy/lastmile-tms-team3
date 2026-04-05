@@ -5,20 +5,29 @@ namespace LastMile.TMS.Api.AuditLogs;
 
 public static class AuditLogQueryExtensions
 {
+    public static IQueryable<AuditLog> ApplyActorSearch(
+        this IQueryable<AuditLog> query,
+        string? actor)
+    {
+        if (string.IsNullOrWhiteSpace(actor))
+        {
+            return query;
+        }
+
+        var trimmedActor = actor.Trim();
+        var actorIdPrefixPattern = $"{trimmedActor}%";
+        var actorPattern = $"%{trimmedActor}%";
+
+        return query.Where(log =>
+            (log.ActorUserId != null && EF.Functions.Like(log.ActorUserId, actorIdPrefixPattern)) ||
+            (log.ActorUserName != null && EF.Functions.ILike(log.ActorUserName, actorPattern)));
+    }
+
     public static IQueryable<AuditLog> ApplyAuditFilters(
         this IQueryable<AuditLog> query,
         AuditLogQueryParameters parameters)
     {
-        if (!string.IsNullOrWhiteSpace(parameters.Actor))
-        {
-            var actor = parameters.Actor.Trim();
-            var actorIdPrefixPattern = $"{actor}%";
-            var actorPattern = $"%{actor}%";
-
-            query = query.Where(log =>
-                (log.ActorUserId != null && EF.Functions.Like(log.ActorUserId, actorIdPrefixPattern)) ||
-                (log.ActorUserName != null && EF.Functions.ILike(log.ActorUserName, actorPattern)));
-        }
+        query = query.ApplyActorSearch(parameters.Actor);
 
         if (parameters.ActionType.HasValue)
             query = query.Where(log => log.ActionType == parameters.ActionType.Value);

@@ -10,3 +10,16 @@ export const GET_USERS = `
     }
   }
 `;
+
+export const GET_USER = `
+  query GetUser($id: UUID!) {
+    user(id: $id) {
+      id
+      firstName
+      lastName
+      email
+      role
+      isActive
+    }
+  }
+`;
