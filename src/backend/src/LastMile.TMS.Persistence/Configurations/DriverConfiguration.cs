@@ -79,6 +79,19 @@ public class DriverConfiguration : IEntityTypeConfiguration<Driver>
         builder.HasIndex(d => d.ZoneId);
         builder.HasIndex(d => d.DepotId);
         builder.HasIndex(d => d.UserId);
+        builder.HasIndex(d => d.CreatedAt);
+        builder.HasIndex([nameof(Driver.FirstName)], "IX_Drivers_FirstName_Trgm")
+            .HasMethod("GIN")
+            .HasOperators("gin_trgm_ops");
+        builder.HasIndex([nameof(Driver.LastName)], "IX_Drivers_LastName_Trgm")
+            .HasMethod("GIN")
+            .HasOperators("gin_trgm_ops");
+        builder.HasIndex([nameof(Driver.Email)], "IX_Drivers_Email_Trgm")
+            .HasMethod("GIN")
+            .HasOperators("gin_trgm_ops");
+        builder.HasIndex([nameof(Driver.LicenseNumber)], "IX_Drivers_LicenseNumber_Trgm")
+            .HasMethod("GIN")
+            .HasOperators("gin_trgm_ops");
     }
 
     private static List<DailyAvailability> DeserializeSchedule(string json)

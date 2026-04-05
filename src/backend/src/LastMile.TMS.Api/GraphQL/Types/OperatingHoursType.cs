@@ -9,8 +9,18 @@ public class OperatingHoursType : ObjectType<OperatingHours>
     {
         descriptor.BindFieldsExplicitly();
 
-        descriptor.Field(x => x.Schedule);
-        descriptor.Field(x => x.DaysOff);
+        descriptor.Field("schedule")
+            .Resolve(ctx =>
+            {
+                var availability = ctx.Parent<OperatingHours>();
+                return availability.Schedule;
+            });
+        descriptor.Field("daysOff")
+            .Resolve(ctx =>
+            {
+                var availability = ctx.Parent<OperatingHours>();
+                return availability.DaysOff;
+            });
     }
 }
 

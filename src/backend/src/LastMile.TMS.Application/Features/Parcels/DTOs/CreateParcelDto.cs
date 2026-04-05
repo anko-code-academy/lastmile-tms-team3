@@ -4,7 +4,6 @@ using LastMile.TMS.Domain.Enums;
 namespace LastMile.TMS.Application.Features.Parcels.DTOs;
 
 public record CreateParcelDto(
-    string TrackingNumber,
     string? Description,
     ServiceType ServiceType,
     CreateAddressDto RecipientAddress,
@@ -17,5 +16,6 @@ public record CreateParcelDto(
     DimensionUnit DimensionUnit,
     decimal DeclaredValue,
     string Currency = "USD",
-    string? ParcelType = null
+    string? ParcelType = null,
+    string? Notes = null
 );

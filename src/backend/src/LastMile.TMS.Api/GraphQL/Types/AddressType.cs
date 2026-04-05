@@ -22,8 +22,6 @@ public class AddressType : ObjectType<Address>
         descriptor.Field(x => x.Phone);
         descriptor.Field(x => x.Email);
         descriptor.Field(x => x.GeoLocation)
-            .IsProjected(true)
-            .Name("geoLocation")
             .Type<StringType>()
             .Resolve(ctx =>
             {

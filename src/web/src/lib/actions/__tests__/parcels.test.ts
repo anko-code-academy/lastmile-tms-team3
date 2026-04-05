@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ParcelStatus, ParcelSortBy, SortDirection } from "@/lib/types/parcel";
-import type { Parcel, ParcelListItem, PagedResult, SearchParcelInput } from "@/lib/types/parcel";
+import type { Parcel, ParcelListItem } from "@/lib/types/parcel";
 
 const mockGqlFetch = vi.fn();
 
@@ -10,7 +10,9 @@ vi.mock("@/lib/graphql/fetch", () => ({
 
 import { searchParcelsAction, getParcelAction } from "@/lib/actions/parcels";
 
-function createMockParcelListItem(overrides: Partial<ParcelListItem> = {}): ParcelListItem {
+function createMockParcelListItem(
+  overrides: Partial<ParcelListItem> = {},
+): ParcelListItem {
   return {
     id: "parcel-1",
     trackingNumber: "TRK001",
@@ -66,12 +68,38 @@ function createMockParcel(overrides: Partial<Parcel> = {}): Parcel {
   };
 }
 
-function createMockPagedResult(items: ParcelListItem[] = []): PagedResult<ParcelListItem> {
+function createMockParcelConnection(items: ParcelListItem[] = []) {
   return {
-    items,
-    totalCount: items.length,
-    hasNextPage: false,
-    hasPreviousPage: false,
+    parcels: {
+      nodes: items.map((item) => ({
+        id: item.id,
+        trackingNumber: item.trackingNumber,
+        description: item.description ?? null,
+        serviceType: item.serviceType,
+        status: item.status,
+        recipientAddress: {
+          contactName: item.recipientName,
+          companyName: null,
+          city: item.recipientCity,
+        },
+        zone: item.zoneName ? { name: item.zoneName } : null,
+        parcelType: item.parcelType ?? null,
+        weight: item.weight,
+        weightUnit: item.weightUnit,
+        declaredValue: item.declaredValue,
+        currency: item.currency,
+        estimatedDeliveryDate: item.estimatedDeliveryDate ?? null,
+        contentItemsCount: item.contentItemsCount,
+        createdAt: item.createdAt,
+      })),
+      totalCount: items.length,
+      pageInfo: {
+        hasNextPage: false,
+        hasPreviousPage: false,
+        startCursor: items[0]?.id ?? null,
+        endCursor: items.at(-1)?.id ?? null,
+      },
+    },
   };
 }
 
@@ -82,7 +110,7 @@ describe("parcel server actions", () => {
 
   describe("searchParcelsAction", () => {
     it("appends T00:00:00Z to dateFrom when provided", async () => {
-      mockGqlFetch.mockResolvedValue({ searchParcels: createMockPagedResult() });
+      mockGqlFetch.mockResolvedValue(createMockParcelConnection());
 
       await searchParcelsAction({
         search: null,
@@ -94,21 +122,24 @@ describe("parcel server actions", () => {
         sortBy: ParcelSortBy.CreatedAt,
         sortDirection: SortDirection.Desc,
         cursor: null,
+        pagingDirection: "forward",
         pageSize: 20,
       });
 
       expect(mockGqlFetch).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
-          input: expect.objectContaining({
-            dateFrom: "2024-01-01T00:00:00Z",
+          where: expect.objectContaining({
+            createdAt: expect.objectContaining({
+              gte: "2024-01-01T00:00:00Z",
+            }),
           }),
         }),
       );
     });
 
     it("appends T23:59:59Z to dateTo when provided", async () => {
-      mockGqlFetch.mockResolvedValue({ searchParcels: createMockPagedResult() });
+      mockGqlFetch.mockResolvedValue(createMockParcelConnection());
 
       await searchParcelsAction({
         search: null,
@@ -120,21 +151,24 @@ describe("parcel server actions", () => {
         sortBy: ParcelSortBy.CreatedAt,
         sortDirection: SortDirection.Desc,
         cursor: null,
+        pagingDirection: "forward",
         pageSize: 20,
       });
 
       expect(mockGqlFetch).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
-          input: expect.objectContaining({
-            dateTo: "2024-01-31T23:59:59Z",
+          where: expect.objectContaining({
+            createdAt: expect.objectContaining({
+              lte: "2024-01-31T23:59:59Z",
+            }),
           }),
         }),
       );
     });
 
     it("passes null for dateFrom and dateTo when not provided", async () => {
-      mockGqlFetch.mockResolvedValue({ searchParcels: createMockPagedResult() });
+      mockGqlFetch.mockResolvedValue(createMockParcelConnection());
 
       await searchParcelsAction({
         search: null,
@@ -146,16 +180,14 @@ describe("parcel server actions", () => {
         sortBy: ParcelSortBy.CreatedAt,
         sortDirection: SortDirection.Desc,
         cursor: null,
+        pagingDirection: "forward",
         pageSize: 20,
       });
 
       expect(mockGqlFetch).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
-          input: expect.objectContaining({
-            dateFrom: null,
-            dateTo: null,
-          }),
+          where: null,
         }),
       );
     });
@@ -165,7 +197,7 @@ describe("parcel server actions", () => {
         createMockParcelListItem({ id: "1", trackingNumber: "TRK001" }),
         createMockParcelListItem({ id: "2", trackingNumber: "TRK002" }),
       ];
-      mockGqlFetch.mockResolvedValue({ searchParcels: createMockPagedResult(items) });
+      mockGqlFetch.mockResolvedValue(createMockParcelConnection(items));
 
       const result = await searchParcelsAction({
         search: null,
@@ -177,26 +209,107 @@ describe("parcel server actions", () => {
         sortBy: ParcelSortBy.CreatedAt,
         sortDirection: SortDirection.Desc,
         cursor: null,
+        pagingDirection: "forward",
         pageSize: 20,
       });
 
       expect(result.items).toHaveLength(2);
       expect(result.totalCount).toBe(2);
     });
+
+    it("builds backward paging variables when using a previous cursor", async () => {
+      mockGqlFetch.mockResolvedValue(createMockParcelConnection());
+
+      await searchParcelsAction({
+        search: null,
+        status: null,
+        dateFrom: null,
+        dateTo: null,
+        zoneIds: null,
+        parcelType: null,
+        sortBy: ParcelSortBy.CreatedAt,
+        sortDirection: SortDirection.Desc,
+        cursor: "cursor-1",
+        pagingDirection: "backward",
+        pageSize: 20,
+      });
+
+      expect(mockGqlFetch).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          first: null,
+          last: 20,
+          before: "cursor-1",
+          after: null,
+        }),
+      );
+    });
+
+    it("builds tracking-number order variables when requested", async () => {
+      mockGqlFetch.mockResolvedValue(createMockParcelConnection());
+
+      await searchParcelsAction({
+        search: null,
+        status: null,
+        dateFrom: null,
+        dateTo: null,
+        zoneIds: null,
+        parcelType: null,
+        sortBy: ParcelSortBy.TrackingNumber,
+        sortDirection: SortDirection.Asc,
+        cursor: null,
+        pagingDirection: "forward",
+        pageSize: 20,
+      });
+
+      expect(mockGqlFetch).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          order: [{ trackingNumber: "ASC" }],
+        }),
+      );
+    });
+
+    it("builds status order variables when requested", async () => {
+      mockGqlFetch.mockResolvedValue(createMockParcelConnection());
+
+      await searchParcelsAction({
+        search: null,
+        status: null,
+        dateFrom: null,
+        dateTo: null,
+        zoneIds: null,
+        parcelType: null,
+        sortBy: ParcelSortBy.Status,
+        sortDirection: SortDirection.Desc,
+        cursor: null,
+        pagingDirection: "forward",
+        pageSize: 20,
+      });
+
+      expect(mockGqlFetch).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          order: [{ status: "DESC" }],
+        }),
+      );
+    });
   });
 
   describe("getParcelAction", () => {
     it("returns parcel when found", async () => {
-      const parcel = createMockParcel({ id: "parcel-123", trackingNumber: "TRK999" });
+      const parcel = createMockParcel({
+        id: "parcel-123",
+        trackingNumber: "TRK999",
+      });
       mockGqlFetch.mockResolvedValue({ parcel });
 
       const result = await getParcelAction("parcel-123");
 
       expect(result.trackingNumber).toBe("TRK999");
-      expect(mockGqlFetch).toHaveBeenCalledWith(
-        expect.any(String),
-        { id: "parcel-123" },
-      );
+      expect(mockGqlFetch).toHaveBeenCalledWith(expect.any(String), {
+        id: "parcel-123",
+      });
     });
 
     it("throws when parcel is not found", async () => {

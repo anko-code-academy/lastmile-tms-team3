@@ -1,6 +1,5 @@
 using FluentAssertions;
 using LastMile.TMS.Api.Tests.GraphQL;
-using LastMile.TMS.Application.Features.Parcels.DTOs;
 using LastMile.TMS.Domain.Entities;
 using LastMile.TMS.Domain.Enums;
 using LastMile.TMS.Persistence;
@@ -23,30 +22,27 @@ public class ParcelQueriesIntegrationTests(ApiWebApplicationFactory factory)
     private readonly Guid _depotId = Guid.NewGuid();
 
     [Fact]
-    public async Task SearchParcels_ReturnsResults()
+    public async Task Parcels_ReturnsConnectionResults()
     {
         await InsertTestParcelsAsync();
         var token = await GraphQLRequestHelper.GetOpsManagerTokenAsync(_client);
 
         var query = @"
             query {
-                searchParcels(input: {
-                    sortBy: CREATED_AT
-                    sortDirection: DESC
-                    pageSize: 10
-                }) {
-                    items {
+                parcels(first: 10, order: [{ createdAt: DESC }]) {
+                    totalCount
+                    nodes {
                         id
                         trackingNumber
                         status
                         serviceType
-                        recipientName
-                        recipientCity
+                        contentItemsCount
                         createdAt
                     }
-                    totalCount
-                    hasNextPage
-                    hasPreviousPage
+                    pageInfo {
+                        hasNextPage
+                        hasPreviousPage
+                    }
                 }
             }";
 
@@ -57,22 +53,25 @@ public class ParcelQueriesIntegrationTests(ApiWebApplicationFactory factory)
 
         body.TryGetProperty("errors", out var errors).Should().BeFalse();
 
-        var data = body.GetProperty("data").GetProperty("searchParcels");
+        var data = body.GetProperty("data").GetProperty("parcels");
         data.GetProperty("totalCount").GetInt32().Should().BeGreaterThan(0);
-        data.GetProperty("items").GetArrayLength().Should().BeGreaterThan(0);
+        data.GetProperty("nodes").GetArrayLength().Should().BeGreaterThan(0);
+
+        var matchingNode = data.GetProperty("nodes")
+            .EnumerateArray()
+            .FirstOrDefault(node => node.GetProperty("id").GetString() == _parcelId.ToString());
+
+        matchingNode.ValueKind.Should().NotBe(System.Text.Json.JsonValueKind.Undefined);
+        matchingNode.GetProperty("contentItemsCount").GetInt32().Should().Be(2);
     }
 
     [Fact]
-    public async Task SearchParcels_RequiresAuthentication()
+    public async Task Parcels_RequiresAuthentication()
     {
         var query = @"
             query {
-                searchParcels(input: {
-                    sortBy: CREATED_AT
-                    sortDirection: DESC
-                    pageSize: 10
-                }) {
-                    items { id }
+                parcels(first: 10) {
+                    nodes { id }
                 }
             }";
 
@@ -84,7 +83,7 @@ public class ParcelQueriesIntegrationTests(ApiWebApplicationFactory factory)
     }
 
     [Fact]
-    public async Task SearchParcels_FiltersbyStatus()
+    public async Task Parcels_FiltersByStatus()
     {
         // Insert a parcel with unique tracking number that we'll specifically search for
         await InsertUniqueStatusParcelAsync();
@@ -92,18 +91,17 @@ public class ParcelQueriesIntegrationTests(ApiWebApplicationFactory factory)
 
         var query = @"
             query {
-                searchParcels(input: {
-                    search: ""UNIQUE-FILTER-TEST""
-                    status: [REGISTERED]
-                    sortBy: CREATED_AT
-                    sortDirection: DESC
-                    pageSize: 10
-                }) {
-                    items {
+                parcels(
+                    first: 10
+                    search: ""UNIQUE""
+                    where: { status: { eq: REGISTERED } }
+                    order: [{ createdAt: DESC }]
+                ) {
+                    totalCount
+                    nodes {
                         id
                         status
                     }
-                    totalCount
                 }
             }";
 
@@ -113,10 +111,75 @@ public class ParcelQueriesIntegrationTests(ApiWebApplicationFactory factory)
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
         body.TryGetProperty("errors", out _).Should().BeFalse();
 
-        var data = body.GetProperty("data").GetProperty("searchParcels");
+        var data = body.GetProperty("data").GetProperty("parcels");
         data.GetProperty("totalCount").GetInt32().Should().Be(1);
-        var status = data.GetProperty("items")[0].GetProperty("status").GetString();
+        var status = data.GetProperty("nodes")[0].GetProperty("status").GetString();
         status.Should().Be("REGISTERED");
+    }
+
+    [Fact]
+    public async Task Parcels_Search_MatchesPrefixAndFullTextFields()
+    {
+        await InsertUniqueStatusParcelAsync();
+        var token = await GraphQLRequestHelper.GetOpsManagerTokenAsync(_client);
+
+        var query = @"
+            query {
+                parcels(first: 10, search: ""Filter Recipient"", order: [{ createdAt: DESC }]) {
+                    totalCount
+                    nodes {
+                        id
+                        trackingNumber
+                    }
+                }
+            }";
+
+        var response = await GraphQLRequestHelper.QueryAsync(_client, query, null, token);
+        var body = await GraphQLRequestHelper.ReadGraphQLResponseAsync(response);
+
+        response.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
+        body.TryGetProperty("errors", out _).Should().BeFalse();
+
+        var data = body.GetProperty("data").GetProperty("parcels");
+        data.GetProperty("totalCount").GetInt32().Should().Be(1);
+        data.GetProperty("nodes")[0].GetProperty("trackingNumber").GetString()
+            .Should().Be("UNIQUE-FILTER-TEST");
+    }
+
+    [Fact]
+    public async Task Parcels_FiltersByZoneAndParcelType()
+    {
+        await InsertTestParcelsAsync();
+        var token = await GraphQLRequestHelper.GetOpsManagerTokenAsync(_client);
+
+        var query = @"
+            query GetParcels($zoneId: UUID!) {
+                parcels(
+                    first: 10
+                    where: {
+                        zoneId: { eq: $zoneId }
+                        parcelType: { eq: ""Standard"" }
+                    }
+                    order: [{ createdAt: DESC }]
+                ) {
+                    totalCount
+                    nodes {
+                        id
+                        trackingNumber
+                        parcelType
+                    }
+                }
+            }";
+
+        var response = await GraphQLRequestHelper.QueryAsync(_client, query, new { zoneId = _zoneId }, token);
+        var body = await GraphQLRequestHelper.ReadGraphQLResponseAsync(response);
+
+        response.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
+        body.TryGetProperty("errors", out _).Should().BeFalse();
+
+        var data = body.GetProperty("data").GetProperty("parcels");
+        data.GetProperty("totalCount").GetInt32().Should().Be(1);
+        data.GetProperty("nodes")[0].GetProperty("parcelType").GetString().Should().Be("Standard");
     }
 
     [Fact]
@@ -286,7 +349,37 @@ public class ParcelQueriesIntegrationTests(ApiWebApplicationFactory factory)
             DeliveryAttempts = 0,
             CreatedAt = DateTimeOffset.UtcNow.AddDays(-1),
             TrackingEvents = new List<TrackingEvent>(),
-            ContentItems = new List<ParcelContentItem>(),
+            ContentItems =
+            [
+                new ParcelContentItem
+                {
+                    Id = Guid.NewGuid(),
+                    ParcelId = _parcelId,
+                    HsCode = "1234.56",
+                    Description = "Widget",
+                    Quantity = 1,
+                    UnitValue = 150,
+                    Currency = "USD",
+                    Weight = 1.0m,
+                    WeightUnit = WeightUnit.Kg,
+                    OriginCountryCode = "US",
+                    CreatedAt = DateTimeOffset.UtcNow
+                },
+                new ParcelContentItem
+                {
+                    Id = Guid.NewGuid(),
+                    ParcelId = _parcelId,
+                    HsCode = "6543.21",
+                    Description = "Accessory",
+                    Quantity = 2,
+                    UnitValue = 25,
+                    Currency = "USD",
+                    Weight = 0.5m,
+                    WeightUnit = WeightUnit.Kg,
+                    OriginCountryCode = "US",
+                    CreatedAt = DateTimeOffset.UtcNow
+                }
+            ],
             Watchers = new List<ParcelWatcher>()
         };
 

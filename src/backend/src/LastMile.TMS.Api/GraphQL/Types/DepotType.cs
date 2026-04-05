@@ -14,7 +14,7 @@ public class DepotType : ObjectType<Depot>
         descriptor.Field(x => x.Address);
         descriptor.Field(x => x.IsActive);
         descriptor.Field(x => x.CreatedAt);
-        descriptor.Field(x => x.LastModifiedAt).Name("updatedAt");
+        descriptor.Field(x => x.LastModifiedAt);
         descriptor.Field(x => x.OperatingHours).Type<OperatingHoursType>();
         descriptor.Field(x => x.Vehicles).Type<NonNullType<ListType<NonNullType<VehicleType>>>>();
         descriptor.Field(x => x.Zones).Type<NonNullType<ListType<NonNullType<ZoneType>>>>();

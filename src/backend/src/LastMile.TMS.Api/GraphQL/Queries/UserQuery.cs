@@ -11,7 +11,7 @@ namespace LastMile.TMS.Api.GraphQL.Queries;
 [ExtendObjectType(OperationTypeNames.Query)]
 public class UserQuery
 {
-    // [Authorize(Policy = "Admin")]
+    [Authorize(Policy = "Admin")]
     [UseProjection]
     public IQueryable<AppUser> GetUsers(
         AppDbContext context,
@@ -24,11 +24,14 @@ public class UserQuery
             query = query.Where(u => u.Role == role.Value);
 
         if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim().ToLower();
             query = query.Where(u =>
-                u.FirstName.Contains(search) ||
-                u.LastName.Contains(search) ||
-                u.Email.Contains(search));
+                u.FirstName.ToLower().Contains(term) ||
+                u.LastName.ToLower().Contains(term) ||
+                u.Email!.ToLower().Contains(term));
+        }
 
-        return query;
+        return query.OrderBy(u => u.LastName).ThenBy(u => u.FirstName);
     }
 }

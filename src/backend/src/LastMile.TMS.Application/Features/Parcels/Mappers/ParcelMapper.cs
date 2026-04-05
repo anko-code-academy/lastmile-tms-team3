@@ -9,6 +9,7 @@ public static class ParcelMapper
     public static ParcelDto ToDto(Parcel parcel) => new(
         parcel.Id,
         parcel.TrackingNumber,
+        parcel.BarcodeData ?? parcel.TrackingNumber,
         parcel.Description,
         parcel.ServiceType,
         parcel.Status,
@@ -26,6 +27,7 @@ public static class ParcelMapper
         parcel.ActualDeliveryDate,
         parcel.DeliveryAttempts,
         parcel.ParcelType,
+        parcel.Notes,
         parcel.ZoneId,
         parcel.Zone?.Name,
         parcel.CreatedAt,
@@ -85,6 +87,7 @@ public static class ParcelMapper
         address.Phone,
         address.Email,
         address.GeoLocation?.Y,
-        address.GeoLocation?.X
+        address.GeoLocation?.X,
+        address.GeoLocation?.AsText()
     );
 }

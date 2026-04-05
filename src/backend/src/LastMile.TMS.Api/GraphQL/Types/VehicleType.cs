@@ -16,7 +16,7 @@ public class VehicleType : ObjectType<Vehicle>
         descriptor.Field(x => x.ParcelCapacity);
         descriptor.Field(x => x.WeightCapacity);
         descriptor.Field(x => x.WeightUnit);
-        descriptor.Field(x => x.DepotId).IsProjected(true);
+        descriptor.Field(x => x.DepotId);
         descriptor.Field(x => x.Depot).Type<DepotType>();
         descriptor.Field(x => x.CreatedAt);
         descriptor.Field(x => x.LastModifiedAt);

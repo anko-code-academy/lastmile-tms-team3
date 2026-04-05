@@ -13,6 +13,9 @@ public class Parcel : BaseAuditableEntity
     [MaxLength(50)]
     public string TrackingNumber { get; set; } = string.Empty;
 
+    [MaxLength(200)]
+    public string? BarcodeData { get; set; }
+
     [MaxLength(500)]
     public string? Description { get; set; }
 
@@ -50,6 +53,9 @@ public class Parcel : BaseAuditableEntity
     // ParcelType (notes field from MVP spec)
     [MaxLength(100)]
     public string? ParcelType { get; set; }
+
+    [MaxLength(500)]
+    public string? Notes { get; set; }
 
     // Zone assignment (auto-assigned via geocoding)
     public Guid? ZoneId { get; set; }

@@ -1,4 +1,5 @@
 import { graphql } from "./graphql";
+import { parseWktPoint } from "../graphql/utils";
 import { DepotDto, CreateDepotDto, UpdateDepotDto } from "../types/depot";
 
 const DEPOTS_QUERY = `
@@ -18,8 +19,7 @@ const DEPOTS_QUERY = `
         companyName
         phone
         email
-        latitude
-        longitude
+        geoLocation
       }
       isActive
       operatingHours {
@@ -57,8 +57,7 @@ const DEPOT_QUERY = `
         companyName
         phone
         email
-        latitude
-        longitude
+        geoLocation
       }
       isActive
       operatingHours {
@@ -78,6 +77,18 @@ const DEPOT_QUERY = `
     }
   }
 `;
+
+function mapDepot(raw: Record<string, unknown>): DepotDto {
+  const address = raw.address as Record<string, unknown> | undefined;
+  if (address?.geoLocation) {
+    const coords = parseWktPoint(address.geoLocation as string);
+    if (coords) {
+      address.latitude = coords.latitude;
+      address.longitude = coords.longitude;
+    }
+  }
+  return raw as unknown as DepotDto;
+}
 
 const CREATE_DEPOT_MUTATION = `
   mutation CreateDepot($input: CreateDepotDtoInput!) {
@@ -164,15 +175,15 @@ const DELETE_DEPOT_MUTATION = `
 `;
 
 export async function getDepots(includeInactive?: boolean): Promise<DepotDto[]> {
-  const data = await graphql<{ depots: DepotDto[] }>(DEPOTS_QUERY, {
+  const data = await graphql<{ depots: Record<string, unknown>[] }>(DEPOTS_QUERY, {
     includeInactive,
   });
-  return data.depots;
+  return data.depots.map(mapDepot);
 }
 
 export async function getDepot(id: string): Promise<DepotDto> {
-  const data = await graphql<{ depot: DepotDto }>(DEPOT_QUERY, { id });
-  return data.depot;
+  const data = await graphql<{ depot: Record<string, unknown> }>(DEPOT_QUERY, { id });
+  return mapDepot(data.depot);
 }
 
 export async function createDepot(dto: CreateDepotDto): Promise<DepotDto> {

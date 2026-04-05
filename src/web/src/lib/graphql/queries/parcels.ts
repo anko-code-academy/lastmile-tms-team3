@@ -1,38 +1,9 @@
-export const SEARCH_PARCELS = `
-  query SearchParcels($input: SearchParcelDtoInput!) {
-    searchParcels(input: $input) {
-      items {
-        id
-        trackingNumber
-        description
-        serviceType
-        status
-        recipientName
-        recipientCity
-        zoneName
-        parcelType
-        weight
-        weightUnit
-        declaredValue
-        currency
-        estimatedDeliveryDate
-        contentItemsCount
-        createdAt
-      }
-      totalCount
-      hasNextPage
-      hasPreviousPage
-      nextCursor
-      previousCursor
-    }
-  }
-`;
-
-export const GET_PARCEL = `
-  query GetParcel($id: UUID!) {
-    parcel(id: $id) {
+export const CREATE_PARCEL = `
+  mutation CreateParcel($input: CreateParcelDtoInput!) {
+    createParcel(input: $input) {
       id
       trackingNumber
+      barcodeData
       description
       serviceType
       status
@@ -48,8 +19,7 @@ export const GET_PARCEL = `
         companyName
         phone
         email
-        latitude
-        longitude
+        geoLocation
       }
       shipperAddress {
         street1
@@ -63,8 +33,114 @@ export const GET_PARCEL = `
         companyName
         phone
         email
-        latitude
-        longitude
+        geoLocation
+      }
+      weight
+      weightUnit
+      length
+      width
+      height
+      dimensionUnit
+      declaredValue
+      currency
+      parcelType
+      notes
+      zoneId
+      zoneName
+      createdAt
+    }
+  }
+`;
+
+export const SEARCH_PARCELS = `
+  query SearchParcels(
+    $first: Int
+    $last: Int
+    $after: String
+    $before: String
+    $search: String
+    $where: ParcelFilterInput
+    $order: [ParcelSortInput!]
+  ) {
+    parcels(
+      first: $first
+      last: $last
+      after: $after
+      before: $before
+      search: $search
+      where: $where
+      order: $order
+    ) {
+      nodes {
+        id
+        trackingNumber
+        description
+        serviceType
+        status
+        recipientAddress {
+          contactName
+          companyName
+          city
+        }
+        zone {
+          name
+        }
+        parcelType
+        weight
+        weightUnit
+        declaredValue
+        currency
+        estimatedDeliveryDate
+        contentItemsCount
+        createdAt
+      }
+      totalCount
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+    }
+  }
+`;
+
+export const GET_PARCEL = `
+  query GetParcel($id: UUID!) {
+    parcel(id: $id) {
+      id
+      trackingNumber
+      barcodeData
+      description
+      serviceType
+      status
+      recipientAddress {
+        street1
+        street2
+        city
+        state
+        postalCode
+        countryCode
+        isResidential
+        contactName
+        companyName
+        phone
+        email
+        geoLocation
+      }
+      shipperAddress {
+        street1
+        street2
+        city
+        state
+        postalCode
+        countryCode
+        isResidential
+        contactName
+        companyName
+        phone
+        email
+        geoLocation
       }
       weight
       weightUnit
@@ -78,6 +154,7 @@ export const GET_PARCEL = `
       actualDeliveryDate
       deliveryAttempts
       parcelType
+      notes
       zoneId
       zoneName
       createdAt
@@ -113,12 +190,11 @@ export const GET_PARCEL = `
       deliveryConfirmation {
         id
         receivedBy
-        deliveryLocation
+        location
         signatureImage
         photo
         deliveredAt
-        latitude
-        longitude
+        geoLocation
       }
     }
   }

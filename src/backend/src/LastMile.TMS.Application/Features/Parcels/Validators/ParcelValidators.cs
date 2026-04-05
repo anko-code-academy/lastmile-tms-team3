@@ -8,10 +8,6 @@ public class CreateParcelValidator : AbstractValidator<CreateParcel.Command>
 {
     public CreateParcelValidator()
     {
-        RuleFor(x => x.Dto.TrackingNumber)
-            .NotEmpty().WithMessage("Tracking number is required")
-            .MaximumLength(50);
-
         RuleFor(x => x.Dto.RecipientAddress)
             .NotNull().WithMessage("Recipient address is required");
 
@@ -32,6 +28,9 @@ public class CreateParcelValidator : AbstractValidator<CreateParcel.Command>
 
         RuleFor(x => x.Dto.DeclaredValue)
             .GreaterThanOrEqualTo(0).WithMessage("Declared value cannot be negative");
+
+        RuleFor(x => x.Dto.Notes)
+            .MaximumLength(500).WithMessage("Notes cannot exceed 500 characters");
     }
 }
 

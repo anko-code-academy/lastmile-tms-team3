@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
+import { useQueryClient } from "@tanstack/react-query";
 import TmNavbar from "@/components/TmNavbar";
 import { getVehicleAction, updateVehicleAction, setVehicleStatusAction } from "@/lib/actions/vehicles";
 import { getDepotsAction } from "@/lib/actions/depots";
@@ -58,6 +59,7 @@ function TmLabel({ children, htmlFor }: { children: React.ReactNode; htmlFor?: s
 export default function VehicleDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [depots, setDepots] = useState<DepotOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -107,6 +109,7 @@ export default function VehicleDetailPage() {
     } else {
       setVehicle((v) => v ? { ...v, ...input } : v);
       setEditing(false);
+      queryClient.invalidateQueries({ queryKey: ["vehicles"] });
     }
   }
 
@@ -120,6 +123,7 @@ export default function VehicleDetailPage() {
     } else {
       setVehicle((v) => v ? { ...v, status: pendingStatus } : v);
       setPendingStatus(null);
+      queryClient.invalidateQueries({ queryKey: ["vehicles"] });
     }
   }
 

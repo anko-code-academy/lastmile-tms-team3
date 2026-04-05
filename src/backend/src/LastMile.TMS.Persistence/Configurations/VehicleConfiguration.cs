@@ -46,8 +46,12 @@ public class VehicleConfiguration : IEntityTypeConfiguration<Vehicle>
             .OnDelete(DeleteBehavior.Restrict);
 
         // Indexes
+        builder.HasIndex(v => v.CreatedAt);
         builder.HasIndex(v => v.Status);
         builder.HasIndex(v => v.Type);
         builder.HasIndex(v => v.DepotId);
+        builder.HasIndex([nameof(Vehicle.RegistrationPlate)], "IX_Vehicles_RegistrationPlate_Trgm")
+            .HasMethod("GIN")
+            .HasOperators("gin_trgm_ops");
     }
 }

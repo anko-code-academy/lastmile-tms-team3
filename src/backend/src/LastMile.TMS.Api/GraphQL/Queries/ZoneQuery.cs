@@ -1,3 +1,4 @@
+using HotChocolate.Authorization;
 using HotChocolate.Data;
 using HotChocolate.Types;
 using LastMile.TMS.Domain.Entities;
@@ -9,8 +10,8 @@ namespace LastMile.TMS.Api.GraphQL.Queries;
 [ExtendObjectType(OperationTypeNames.Query)]
 public class ZoneQuery
 {
-    // [Authorize(Policy = "AdminOrOperationsManager")]
-    [UseSingleOrDefault]
+    [Authorize(Policy = "AdminOrOperationsManager")]
+    [UseFirstOrDefault]
     [UseProjection]
     public IQueryable<Zone> GetZone(
         AppDbContext context,
@@ -19,7 +20,7 @@ public class ZoneQuery
             .AsNoTracking()
             .Where(z => z.Id == id);
 
-    // [Authorize(Policy = "AdminOrOperationsManager")]
+    [Authorize(Policy = "AdminOrOperationsManager")]
     [UseProjection]
     public IQueryable<Zone> GetZones(
         AppDbContext context,

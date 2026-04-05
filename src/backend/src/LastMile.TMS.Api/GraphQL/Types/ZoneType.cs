@@ -12,7 +12,6 @@ public class ZoneType : ObjectType<Zone>
         descriptor.Field(z => z.Id);
         descriptor.Field(z => z.Name);
         descriptor.Field(z => z.Boundary)
-            .IsProjected(true)
             .Type<StringType>()
             .Resolve(ctx =>
             {
@@ -20,7 +19,7 @@ public class ZoneType : ObjectType<Zone>
                 return zone.Boundary?.AsText();
             });
         descriptor.Field(z => z.IsActive);
-        descriptor.Field(z => z.DepotId).IsProjected(true);
+        descriptor.Field(z => z.DepotId);
         descriptor.Field(z => z.Depot).Type<DepotType>();
         descriptor.Field(z => z.CreatedAt);
         descriptor.Field(z => z.LastModifiedAt);

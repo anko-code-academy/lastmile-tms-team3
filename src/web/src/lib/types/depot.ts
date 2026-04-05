@@ -14,6 +14,7 @@ export interface AddressDto {
   email?: string;
   latitude?: number;
   longitude?: number;
+  geoLocation?: string;
 }
 
 export interface OperatingHoursDto {

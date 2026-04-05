@@ -1,20 +1,28 @@
 export const GET_VEHICLES = `
-  query GetVehicles {
-    vehicles {
-      id
-      registrationPlate
-      type
-      status
-      parcelCapacity
-      weightCapacity
-      weightUnit
-      depotId
-      depot {
+  query GetVehicles($first: Int, $after: String, $last: Int, $before: String, $search: String, $where: VehicleFilterInput, $order: [VehicleSortInput!]) {
+    vehicles(first: $first, after: $after, last: $last, before: $before, search: $search, where: $where, order: $order) {
+      nodes {
         id
-        name
+        registrationPlate
+        type
+        status
+        parcelCapacity
+        weightCapacity
+        weightUnit
+        depotId
+        depot {
+          id
+          name
+        }
+        createdAt
       }
-      createdAt
-      lastModifiedAt
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+      totalCount
     }
   }
 `;

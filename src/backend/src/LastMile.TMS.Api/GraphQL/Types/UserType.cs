@@ -13,11 +13,7 @@ public class UserType : ObjectType<AppUser>
         descriptor.Field(u => u.FirstName);
         descriptor.Field(u => u.LastName);
         descriptor.Field("fullName")
-            .Resolve(ctx =>
-            {
-                var user = ctx.Parent<AppUser>();
-                return user.FullName;
-            });
+            .Resolve(ctx => ctx.Parent<AppUser>().FullName);
         descriptor.Field(u => u.Email);
         descriptor.Field(u => u.Phone);
         descriptor.Field(u => u.Role);
