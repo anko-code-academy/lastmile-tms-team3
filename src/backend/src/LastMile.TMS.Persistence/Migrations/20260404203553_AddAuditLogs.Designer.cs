@@ -3,6 +3,7 @@ using System;
 using LastMile.TMS.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NetTopologySuite.Geometries;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -13,9 +14,11 @@ using NpgsqlTypes;
 namespace LastMile.TMS.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260404203553_AddAuditLogs")]
+    partial class AddAuditLogs
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -172,16 +175,7 @@ namespace LastMile.TMS.Persistence.Migrations
 
                     b.HasIndex("ActorUserId");
 
-                    b.HasIndex("ActorUserName");
-
-                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("ActorUserName"), "GIN");
-                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("ActorUserName"), new[] { "gin_trgm_ops" });
-
-                    b.HasIndex("CorrelationId");
-
                     b.HasIndex("OccurredAt");
-
-                    b.HasIndex("ResourceType");
 
                     b.HasIndex("ResourceType", "ResourceId");
 

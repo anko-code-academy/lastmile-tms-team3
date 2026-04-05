@@ -7,7 +7,7 @@ using NetTopologySuite.Geometries;
 
 namespace LastMile.TMS.Domain.Entities;
 
-public class Parcel : BaseAuditableEntity
+public class Parcel : BaseAuditableEntity, IAuditTracked
 {
     [Required]
     [MaxLength(50)]

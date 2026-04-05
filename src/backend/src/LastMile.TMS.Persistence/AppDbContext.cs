@@ -10,6 +10,7 @@ namespace LastMile.TMS.Persistence;
 public class AppDbContext(DbContextOptions<AppDbContext> options)
     : IdentityDbContext<AppUser, AppRole, Guid>(options), IAppDbContext
 {
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<Depot> Depots => Set<Depot>();
     public DbSet<Zone> Zones => Set<Zone>();
     public DbSet<Parcel> Parcels => Set<Parcel>();
@@ -30,36 +31,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         modelBuilder.UseOpenIddict<Guid>();
     }
 
-    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-    {
-        StampAuditableEntities();
-        return base.SaveChangesAsync(cancellationToken);
-    }
-
     public async Task<List<Zone>> GetZonesAsync(CancellationToken cancellationToken = default)
     {
         return await Zones.Where(z => z.IsActive && z.Boundary != null).ToListAsync(cancellationToken);
-    }
-
-    private void StampAuditableEntities()
-    {
-        var now = DateTimeOffset.UtcNow;
-
-        foreach (var entry in ChangeTracker.Entries<BaseAuditableEntity>())
-        {
-            if (entry.State == EntityState.Added)
-            {
-                if (entry.Entity.CreatedAt <= DateTimeOffset.MinValue)
-                {
-                    entry.Entity.CreatedAt = now;
-                }
-
-                entry.Entity.LastModifiedAt = null;
-            }
-            else if (entry.State == EntityState.Modified)
-            {
-                entry.Entity.LastModifiedAt = now;
-            }
-        }
     }
 }

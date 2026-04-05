@@ -7,8 +7,10 @@ namespace LastMile.TMS.Infrastructure.Services;
 public class CurrentUserService(IHttpContextAccessor httpContextAccessor) : ICurrentUserService
 {
     public string? UserId =>
+        httpContextAccessor.HttpContext?.User.FindFirstValue("sub") ??
         httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier);
 
     public string? UserName =>
+        httpContextAccessor.HttpContext?.User.FindFirstValue("name") ??
         httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.Name);
 }

@@ -121,6 +121,7 @@ try
         .AddType<DriverMutation>()
         .AddType<UserQuery>()
         .AddType<UserMutation>()
+        .AddType<AuditLogQuery>()
         .AddType<AddressType>()
         .AddType<DepotType>()
         .AddType<VehicleType>()
