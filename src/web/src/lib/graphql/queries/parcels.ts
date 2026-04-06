@@ -1,15 +1,36 @@
 export const SEARCH_PARCELS = `
-  query SearchParcels($input: SearchParcelDtoInput!) {
-    searchParcels(input: $input) {
-      items {
+  query SearchParcels(
+    $first: Int
+    $last: Int
+    $after: String
+    $before: String
+    $search: String
+    $where: ParcelFilterInput
+    $order: [ParcelSortInput!]
+  ) {
+    parcels(
+      first: $first
+      last: $last
+      after: $after
+      before: $before
+      search: $search
+      where: $where
+      order: $order
+    ) {
+      nodes {
         id
         trackingNumber
         description
         serviceType
         status
-        recipientName
-        recipientCity
-        zoneName
+        recipientAddress {
+          contactName
+          companyName
+          city
+        }
+        zone {
+          name
+        }
         parcelType
         weight
         weightUnit
@@ -20,10 +41,12 @@ export const SEARCH_PARCELS = `
         createdAt
       }
       totalCount
-      hasNextPage
-      hasPreviousPage
-      nextCursor
-      previousCursor
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
     }
   }
 `;
@@ -48,8 +71,7 @@ export const GET_PARCEL = `
         companyName
         phone
         email
-        latitude
-        longitude
+        geoLocation
       }
       shipperAddress {
         street1
@@ -63,8 +85,7 @@ export const GET_PARCEL = `
         companyName
         phone
         email
-        latitude
-        longitude
+        geoLocation
       }
       weight
       weightUnit
@@ -79,7 +100,9 @@ export const GET_PARCEL = `
       deliveryAttempts
       parcelType
       zoneId
-      zoneName
+      zone {
+        name
+      }
       createdAt
       lastModifiedAt
       trackingEvents {
@@ -113,12 +136,11 @@ export const GET_PARCEL = `
       deliveryConfirmation {
         id
         receivedBy
-        deliveryLocation
+        location
         signatureImage
         photo
         deliveredAt
-        latitude
-        longitude
+        geoLocation
       }
     }
   }

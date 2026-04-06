@@ -3,17 +3,18 @@ export interface DriverListItem {
   fullName: string;
   email: string;
   licenseNumber: string;
-  depotName?: string;
+  depot?: { name: string };
   isActive: boolean;
   createdAt: string;
 }
 
-export interface PagedDriversResult {
+export interface SearchDriversResult {
   items: DriverListItem[];
   totalCount: number;
-  page: number;
-  pageSize: number;
-  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+  startCursor: string | null;
+  endCursor: string | null;
 }
 
 export interface DriverSchedule {
@@ -43,10 +44,8 @@ export interface Driver {
   licenseNumber: string;
   licenseExpiryDate: string;
   photoUrl?: string;
-  zoneId?: string;
-  zoneName?: string;
   depotId?: string;
-  depotName?: string;
+  depot?: { name: string };
   userId?: string;
   isActive: boolean;
   availability: DriverAvailability;

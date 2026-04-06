@@ -6,12 +6,14 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace LastMile.TMS.Persistence;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddPersistence(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddPersistence(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
     {
         services.AddPooledDbContextFactory<AppDbContext>(options =>
             options.UseNpgsql(
@@ -20,7 +22,9 @@ public static class DependencyInjection
                 {
                     npgsql.UseNetTopologySuite();
                     npgsql.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName);
-                }));
+                })
+                .LogTo(Console.WriteLine, LogLevel.Information)
+                .EnableSensitiveDataLogging(environment.IsDevelopment()));
 
         services.AddScoped<IAppDbContextFactory, AppDbContextFactory>();
 

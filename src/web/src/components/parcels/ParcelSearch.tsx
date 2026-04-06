@@ -10,7 +10,6 @@ import type {
   ParcelSortBy,
   PagedResult,
   SearchParcelInput,
-  SortDirection,
 } from "@/lib/types/parcel";
 import {
   ParcelStatus,
@@ -22,17 +21,7 @@ import { searchParcelsAction } from "@/lib/actions/parcels";
 import { getZones } from "@/lib/api/zones";
 import type { ZoneDto } from "@/lib/types/zone";
 
-type LocalSortField =
-  | "trackingNumber"
-  | "recipientName"
-  | "status"
-  | "createdAt"
-  | "city"
-  | "zone"
-  | "service"
-  | "weight"
-  | "parcelType";
-type SortDir = "asc" | "desc";
+type SortableParcelColumn = "trackingNumber" | "status" | "createdAt";
 
 const STATUS_OPTIONS: { label: string; value: ParcelStatus }[] = [
   { label: "Registered", value: ParcelStatus.Registered },
@@ -51,7 +40,6 @@ const STATUS_OPTIONS: { label: string; value: ParcelStatus }[] = [
 const SORT_BY_OPTIONS: { label: string; value: ParcelSortBy }[] = [
   { label: "Created At", value: SortByEnum.CreatedAt },
   { label: "Tracking Number", value: SortByEnum.TrackingNumber },
-  { label: "Recipient Name", value: SortByEnum.RecipientName },
   { label: "Status", value: SortByEnum.Status },
 ];
 
@@ -68,6 +56,7 @@ function defaultInput(): SearchParcelInput {
     sortBy: SortByEnum.CreatedAt,
     sortDirection: SortDirEnum.Desc,
     cursor: null,
+    pagingDirection: "forward",
     pageSize: PAGE_SIZE,
   };
 }
@@ -88,12 +77,6 @@ export function ParcelSearch({ initialResult }: ParcelSearchProps) {
   const [zones, setZones] = useState<ZoneDto[]>([]);
   const [selectedZoneIds, setSelectedZoneIds] = useState<string[]>([]);
 
-  // Local sort is opt-in: by default we render exactly as the server returned.
-  const [localSortField, setLocalSortField] = useState<LocalSortField | null>(
-    null,
-  );
-  const [localSortDir, setLocalSortDir] = useState<SortDir>("asc");
-
   useEffect(() => {
     getZones(undefined, false)
       .then(setZones)
@@ -109,12 +92,11 @@ export function ParcelSearch({ initialResult }: ParcelSearchProps) {
         zoneIds: selectedZoneIds.length > 0 ? selectedZoneIds : null,
         pageSize: PAGE_SIZE,
         cursor: null,
+        pagingDirection: "forward",
       };
       setSearchParams(input);
       const data = await searchParcelsAction(input);
       setResult(data);
-      setLocalSortField(null);
-      setLocalSortDir("asc");
     } finally {
       setIsLoading(false);
     }
@@ -127,11 +109,10 @@ export function ParcelSearch({ initialResult }: ParcelSearchProps) {
       const input: SearchParcelInput = {
         ...searchParams,
         cursor: result.previousCursor,
+        pagingDirection: "backward",
       };
       const data = await searchParcelsAction(input);
       setResult(data);
-      setLocalSortField(null);
-      setLocalSortDir("asc");
       // sync searchInput back to searchParams so form reflects what was searched
       setSearchInput(searchParams);
     } finally {
@@ -146,23 +127,45 @@ export function ParcelSearch({ initialResult }: ParcelSearchProps) {
       const input: SearchParcelInput = {
         ...searchParams,
         cursor: result.nextCursor,
+        pagingDirection: "forward",
       };
       const data = await searchParcelsAction(input);
       setResult(data);
-      setLocalSortField(null);
-      setLocalSortDir("asc");
       setSearchInput(searchParams);
     } finally {
       setIsLoading(false);
     }
   }
 
-  function handleLocalSort(field: LocalSortField) {
-    if (localSortField === field) {
-      setLocalSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    } else {
-      setLocalSortField(field);
-      setLocalSortDir("asc");
+  async function handleTableSort(column: SortableParcelColumn) {
+    setIsLoading(true);
+    try {
+      const sortBy = mapColumnToSortBy(column);
+      const sortDirection =
+        searchParams.sortBy === sortBy &&
+        searchParams.sortDirection === SortDirEnum.Asc
+          ? SortDirEnum.Desc
+          : SortDirEnum.Asc;
+
+      const input: SearchParcelInput = {
+        ...searchParams,
+        sortBy,
+        sortDirection,
+        cursor: null,
+        pagingDirection: "forward",
+      };
+
+      setSearchParams(input);
+      setSearchInput((current) => ({
+        ...current,
+        sortBy,
+        sortDirection,
+      }));
+
+      const data = await searchParcelsAction(input);
+      setResult(data);
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -452,9 +455,11 @@ export function ParcelSearch({ initialResult }: ParcelSearchProps) {
       {/* Table — local sort only, no API call on header click */}
       <ParcelTable
         items={result.items}
-        localSortField={localSortField}
-        localSortDir={localSortDir}
-        onSort={handleLocalSort}
+        sortField={mapSortByToColumn(searchParams.sortBy)}
+        sortDir={
+          searchParams.sortDirection === SortDirEnum.Desc ? "desc" : "asc"
+        }
+        onSort={handleTableSort}
       />
 
       {/* Bottom pagination */}
@@ -480,4 +485,28 @@ export function ParcelSearch({ initialResult }: ParcelSearchProps) {
       </div>
     </div>
   );
+}
+
+function mapColumnToSortBy(column: SortableParcelColumn): ParcelSortBy {
+  switch (column) {
+    case "trackingNumber":
+      return SortByEnum.TrackingNumber;
+    case "status":
+      return SortByEnum.Status;
+    case "createdAt":
+    default:
+      return SortByEnum.CreatedAt;
+  }
+}
+
+function mapSortByToColumn(sortBy: ParcelSortBy): SortableParcelColumn {
+  switch (sortBy) {
+    case SortByEnum.TrackingNumber:
+      return "trackingNumber";
+    case SortByEnum.Status:
+      return "status";
+    case SortByEnum.CreatedAt:
+    default:
+      return "createdAt";
+  }
 }

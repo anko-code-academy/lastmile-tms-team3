@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { CreateVehicleInput, UpdateVehicleInput, Vehicle } from "@/lib/types/vehicle";
+import type {
+  CreateVehicleInput,
+  UpdateVehicleInput,
+  Vehicle,
+} from "@/lib/types/vehicle";
 import { VehicleType, WeightUnit, VehicleStatus } from "@/lib/types/vehicle";
 
 // Create mock outside - will be set in beforeEach
@@ -16,6 +20,7 @@ import {
   createVehicleAction,
   updateVehicleAction,
   setVehicleStatusAction,
+  searchVehiclesAction,
 } from "@/lib/actions/vehicles";
 
 function createMockVehicle(overrides: Partial<Vehicle> = {}): Vehicle {
@@ -28,7 +33,12 @@ function createMockVehicle(overrides: Partial<Vehicle> = {}): Vehicle {
     weightCapacity: 1000,
     weightUnit: WeightUnit.Kg,
     depotId: "depot-1",
-    depot: { id: "depot-1", name: "Main Depot", isActive: true, createdAt: "2024-01-01" },
+    depot: {
+      id: "depot-1",
+      name: "Main Depot",
+      isActive: true,
+      createdAt: "2024-01-01",
+    },
     createdAt: "2024-01-15T00:00:00Z",
     ...overrides,
   };
@@ -41,8 +51,11 @@ describe("Vehicle Server Actions", () => {
 
   describe("getVehiclesAction", () => {
     it("returns array of vehicles on success", async () => {
-      const mockVehicles = [createMockVehicle(), createMockVehicle({ id: "2" })];
-      mockGqlFetch.mockResolvedValue({ vehicles: mockVehicles });
+      const mockVehicles = [
+        createMockVehicle(),
+        createMockVehicle({ id: "2" }),
+      ];
+      mockGqlFetch.mockResolvedValue({ vehicles: { nodes: mockVehicles } });
 
       const result = await getVehiclesAction();
 
@@ -51,11 +64,55 @@ describe("Vehicle Server Actions", () => {
     });
 
     it("returns empty array when no vehicles exist", async () => {
-      mockGqlFetch.mockResolvedValue({ vehicles: [] });
+      mockGqlFetch.mockResolvedValue({ vehicles: { nodes: [] } });
 
       const result = await getVehiclesAction();
 
       expect(result).toEqual([]);
+    });
+  });
+
+  describe("searchVehiclesAction", () => {
+    it("sends search, where and order variables", async () => {
+      mockGqlFetch.mockResolvedValue({
+        vehicles: {
+          nodes: [createMockVehicle()],
+          totalCount: 1,
+          pageInfo: {
+            hasNextPage: false,
+            hasPreviousPage: false,
+            startCursor: null,
+            endCursor: null,
+          },
+        },
+      });
+
+      const result = await searchVehiclesAction({
+        search: "ABC",
+        filter: {
+          depotId: { eq: "depot-1" },
+          status: { eq: VehicleStatus.Available },
+          type: { eq: VehicleType.Van },
+        },
+        sortField: "registrationPlate",
+        sortDirection: "ASC",
+        first: 20,
+      });
+
+      expect(result.totalCount).toBe(1);
+      expect(mockGqlFetch).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          search: "ABC",
+          where: {
+            depotId: { eq: "depot-1" },
+            status: { eq: VehicleStatus.Available },
+            type: { eq: VehicleType.Van },
+          },
+          order: [{ registrationPlate: "ASC" }],
+          first: 20,
+        }),
+      );
     });
   });
 
@@ -67,10 +124,9 @@ describe("Vehicle Server Actions", () => {
       const result = await getVehicleAction("test-id");
 
       expect(result).toEqual(mockVehicle);
-      expect(mockGqlFetch).toHaveBeenCalledWith(
-        expect.anything(),
-        { id: "test-id" }
-      );
+      expect(mockGqlFetch).toHaveBeenCalledWith(expect.anything(), {
+        id: "test-id",
+      });
     });
 
     it("returns null when vehicle not found", async () => {
@@ -92,16 +148,16 @@ describe("Vehicle Server Actions", () => {
         weightUnit: WeightUnit.Kg,
         depotId: "depot-1",
       };
-      const createdVehicle = createMockVehicle({ id: "new-vehicle-id", registrationPlate: "NEW123" });
+      const createdVehicle = createMockVehicle({
+        id: "new-vehicle-id",
+        registrationPlate: "NEW123",
+      });
       mockGqlFetch.mockResolvedValue({ createVehicle: createdVehicle });
 
       const result = await createVehicleAction(input);
 
       expect(result).toEqual({ vehicleId: "new-vehicle-id" });
-      expect(mockGqlFetch).toHaveBeenCalledWith(
-        expect.anything(),
-        { input }
-      );
+      expect(mockGqlFetch).toHaveBeenCalledWith(expect.anything(), { input });
     });
 
     it("returns error on failure", async () => {
@@ -130,7 +186,7 @@ describe("Vehicle Server Actions", () => {
           weightCapacity: 1000,
           weightUnit: WeightUnit.Kg,
           depotId: "depot-1",
-        })
+        }),
       ).rejects.toThrow("NEXT_REDIRECT");
     });
   });
@@ -141,7 +197,10 @@ describe("Vehicle Server Actions", () => {
         registrationPlate: "UPDATED",
         depotId: "depot-1",
       };
-      const updatedVehicle = createMockVehicle({ id: "vehicle-1", registrationPlate: "UPDATED" });
+      const updatedVehicle = createMockVehicle({
+        id: "vehicle-1",
+        registrationPlate: "UPDATED",
+      });
       mockGqlFetch.mockResolvedValue({ updateVehicle: updatedVehicle });
 
       const result = await updateVehicleAction("vehicle-1", input);
@@ -152,7 +211,9 @@ describe("Vehicle Server Actions", () => {
     it("returns error on failure", async () => {
       mockGqlFetch.mockRejectedValue(new Error("Not found"));
 
-      const result = await updateVehicleAction("bad-id", { depotId: "depot-1" });
+      const result = await updateVehicleAction("bad-id", {
+        depotId: "depot-1",
+      });
 
       expect(result).toEqual({ error: "Not found" });
     });
@@ -161,7 +222,7 @@ describe("Vehicle Server Actions", () => {
       mockGqlFetch.mockRejectedValue(new Error("NEXT_REDIRECT"));
 
       await expect(
-        updateVehicleAction("vehicle-1", { depotId: "depot-1" })
+        updateVehicleAction("vehicle-1", { depotId: "depot-1" }),
       ).rejects.toThrow("NEXT_REDIRECT");
     });
   });
@@ -169,10 +230,17 @@ describe("Vehicle Server Actions", () => {
   describe("setVehicleStatusAction", () => {
     it("returns empty object on success", async () => {
       mockGqlFetch.mockResolvedValue({
-        updateVehicleStatus: { id: "1", status: VehicleStatus.Maintenance, lastModifiedAt: "2024-01-16" },
+        updateVehicleStatus: {
+          id: "1",
+          status: VehicleStatus.Maintenance,
+          lastModifiedAt: "2024-01-16",
+        },
       });
 
-      const result = await setVehicleStatusAction("1", VehicleStatus.Maintenance);
+      const result = await setVehicleStatusAction(
+        "1",
+        VehicleStatus.Maintenance,
+      );
 
       expect(result).toEqual({});
     });
@@ -180,7 +248,10 @@ describe("Vehicle Server Actions", () => {
     it("returns error on failure", async () => {
       mockGqlFetch.mockRejectedValue(new Error("Failed to update"));
 
-      const result = await setVehicleStatusAction("1", VehicleStatus.Maintenance);
+      const result = await setVehicleStatusAction(
+        "1",
+        VehicleStatus.Maintenance,
+      );
 
       expect(result).toEqual({ error: "Failed to update" });
     });

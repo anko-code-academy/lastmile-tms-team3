@@ -3,6 +3,7 @@ using LastMile.TMS.Api.Tests.GraphQL;
 using LastMile.TMS.Domain.Entities;
 using LastMile.TMS.Domain.Enums;
 using LastMile.TMS.Persistence;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NetTopologySuite.Geometries;
 
@@ -15,6 +16,9 @@ public class VehicleQueriesIntegrationTests(ApiWebApplicationFactory factory)
     private readonly Guid _vehicleId = Guid.NewGuid();
     private readonly Guid _depotId = Guid.NewGuid();
     private readonly Guid _addressId = Guid.NewGuid();
+    private string VehicleSearchPrefix => $"VEH-{_depotId.ToString("N")[..4].ToUpperInvariant()}";
+    private string AdditionalVehiclePlate1 => $"{VehicleSearchPrefix}A001";
+    private string AdditionalVehiclePlate2 => $"{VehicleSearchPrefix}A002";
 
     [Fact]
     public async Task GetVehicles_ReturnsAllVehicles()
@@ -26,35 +30,19 @@ public class VehicleQueriesIntegrationTests(ApiWebApplicationFactory factory)
         var query = @"
             query {
                 vehicles {
-                    id
-                    registrationPlate
-                    type
-                    status
-                    parcelCapacity
-                }
-            }";
-
-        // Act
-        var response = await GraphQLRequestHelper.QueryAsync(_client, query, null, token);
-        var body = await GraphQLRequestHelper.ReadGraphQLResponseAsync(response);
-
-        if (body.TryGetProperty("errors", out var firstErrors)
-            && firstErrors.ToString().Contains("Cannot query field", StringComparison.OrdinalIgnoreCase))
-        {
-            var fallbackQuery = @"
-                query {
-                    getVehicles {
+                    nodes {
                         id
                         registrationPlate
                         type
                         status
                         parcelCapacity
                     }
-                }";
+                }
+            }";
 
-            response = await GraphQLRequestHelper.QueryAsync(_client, fallbackQuery, null, token);
-            body = await GraphQLRequestHelper.ReadGraphQLResponseAsync(response);
-        }
+        // Act
+        var response = await GraphQLRequestHelper.QueryAsync(_client, query, null, token);
+        var body = await GraphQLRequestHelper.ReadGraphQLResponseAsync(response);
 
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
@@ -66,9 +54,7 @@ public class VehicleQueriesIntegrationTests(ApiWebApplicationFactory factory)
         }
         
         var data = body.GetProperty("data");
-        var vehicles = data.TryGetProperty("vehicles", out var vehiclesValue)
-            ? vehiclesValue
-            : data.GetProperty("getVehicles");
+        var vehicles = data.GetProperty("vehicles").GetProperty("nodes");
         vehicles.ValueKind.Should().Be(System.Text.Json.JsonValueKind.Array);
         vehicles.GetArrayLength().Should().BeGreaterThan(0);
     }
@@ -162,6 +148,78 @@ public class VehicleQueriesIntegrationTests(ApiWebApplicationFactory factory)
         vehicle.ValueKind.Should().Be(System.Text.Json.JsonValueKind.Null);
     }
 
+    [Fact]
+    public async Task Vehicles_Search_Filter_Sort_And_Paging_WorkServerSide()
+    {
+        await InsertAdditionalVehicleAsync();
+        var token = await GraphQLRequestHelper.GetOpsManagerTokenAsync(_client);
+
+        var firstQuery = @"
+            query GetVehicles($depotId: UUID!, $search: String!) {
+                vehicles(
+                    first: 1
+                    search: $search
+                    where: { depotId: { eq: $depotId }, status: { eq: AVAILABLE }, type: { eq: VAN } }
+                    order: [{ registrationPlate: ASC }]
+                ) {
+                    totalCount
+                    nodes {
+                        id
+                        registrationPlate
+                    }
+                    pageInfo {
+                        hasNextPage
+                        endCursor
+                    }
+                }
+            }";
+
+        var firstResponse = await GraphQLRequestHelper.QueryAsync(
+            _client,
+            firstQuery,
+            new { depotId = _depotId, search = VehicleSearchPrefix },
+            token);
+        var firstBody = await GraphQLRequestHelper.ReadGraphQLResponseAsync(firstResponse);
+
+        firstResponse.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
+        firstBody.TryGetProperty("errors", out _).Should().BeFalse();
+
+        var vehicles = firstBody.GetProperty("data").GetProperty("vehicles");
+        vehicles.GetProperty("totalCount").GetInt32().Should().Be(2);
+        vehicles.GetProperty("nodes")[0].GetProperty("registrationPlate").GetString().Should().Be(AdditionalVehiclePlate1);
+        vehicles.GetProperty("pageInfo").GetProperty("hasNextPage").GetBoolean().Should().BeTrue();
+
+        var endCursor = vehicles.GetProperty("pageInfo").GetProperty("endCursor").GetString();
+
+        var secondQuery = @"
+            query GetVehicles($depotId: UUID!, $after: String, $search: String!) {
+                vehicles(
+                    first: 1
+                    after: $after
+                    search: $search
+                    where: { depotId: { eq: $depotId }, status: { eq: AVAILABLE }, type: { eq: VAN } }
+                    order: [{ registrationPlate: ASC }]
+                ) {
+                    nodes {
+                        id
+                        registrationPlate
+                    }
+                }
+            }";
+
+        var secondResponse = await GraphQLRequestHelper.QueryAsync(
+            _client,
+            secondQuery,
+            new { depotId = _depotId, after = endCursor, search = VehicleSearchPrefix },
+            token);
+        var secondBody = await GraphQLRequestHelper.ReadGraphQLResponseAsync(secondResponse);
+
+        secondResponse.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
+        secondBody.TryGetProperty("errors", out _).Should().BeFalse();
+        secondBody.GetProperty("data").GetProperty("vehicles").GetProperty("nodes")[0].GetProperty("registrationPlate").GetString()
+            .Should().Be(AdditionalVehiclePlate2);
+    }
+
     private async Task InsertTestVehicleAsync()
     {
         using var scope = factory.Services.CreateScope();
@@ -211,6 +269,55 @@ public class VehicleQueriesIntegrationTests(ApiWebApplicationFactory factory)
         await db.SaveChangesAsync();
     }
 
+    private async Task InsertAdditionalVehicleAsync()
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        if (await db.Vehicles.AnyAsync(v => v.RegistrationPlate == AdditionalVehiclePlate1 || v.RegistrationPlate == AdditionalVehiclePlate2))
+        {
+            return;
+        }
+
+        if (await db.Depots.FindAsync(_depotId) == null)
+        {
+            await InsertTestVehicleAsync();
+        }
+
+        var depot = await db.Depots.FindAsync(_depotId);
+
+        var vehicle1 = new Vehicle
+        {
+            Id = Guid.NewGuid(),
+            RegistrationPlate = AdditionalVehiclePlate1,
+            Type = VehicleType.Van,
+            Status = VehicleStatus.Available,
+            ParcelCapacity = 40,
+            WeightCapacity = 800,
+            WeightUnit = WeightUnit.Kg,
+            DepotId = _depotId,
+            Depot = depot!,
+            CreatedAt = new DateTimeOffset(2026, 4, 1, 8, 0, 0, TimeSpan.Zero)
+        };
+
+        var vehicle2 = new Vehicle
+        {
+            Id = Guid.NewGuid(),
+            RegistrationPlate = AdditionalVehiclePlate2,
+            Type = VehicleType.Van,
+            Status = VehicleStatus.Available,
+            ParcelCapacity = 45,
+            WeightCapacity = 850,
+            WeightUnit = WeightUnit.Kg,
+            DepotId = _depotId,
+            Depot = depot!,
+            CreatedAt = new DateTimeOffset(2026, 4, 2, 8, 0, 0, TimeSpan.Zero)
+        };
+
+        await db.Vehicles.AddRangeAsync(vehicle1, vehicle2);
+        await db.SaveChangesAsync();
+    }
+
     public async ValueTask DisposeAsync()
     {
         using var scope = factory.Services.CreateScope();
@@ -218,6 +325,9 @@ public class VehicleQueriesIntegrationTests(ApiWebApplicationFactory factory)
 
         var vehicle = await db.Vehicles.FindAsync(_vehicleId);
         if (vehicle != null) db.Vehicles.Remove(vehicle);
+
+        var extraVehicles = db.Vehicles.Where(v => v.RegistrationPlate == AdditionalVehiclePlate1 || v.RegistrationPlate == AdditionalVehiclePlate2);
+        db.Vehicles.RemoveRange(extraVehicles);
 
         var depot = await db.Depots.FindAsync(_depotId);
         if (depot != null) db.Depots.Remove(depot);

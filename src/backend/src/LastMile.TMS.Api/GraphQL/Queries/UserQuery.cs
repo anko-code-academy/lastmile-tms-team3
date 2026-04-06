@@ -1,9 +1,10 @@
 using HotChocolate.Authorization;
+using HotChocolate.Data;
 using HotChocolate.Types;
-using LastMile.TMS.Application.Users.Dtos;
-using LastMile.TMS.Application.Users.Queries.GetUsers;
 using LastMile.TMS.Domain.Enums;
-using MediatR;
+using LastMile.TMS.Persistence;
+using LastMile.TMS.Persistence.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace LastMile.TMS.Api.GraphQL.Queries;
 
@@ -11,10 +12,26 @@ namespace LastMile.TMS.Api.GraphQL.Queries;
 public class UserQuery
 {
     [Authorize(Policy = "Admin")]
-    public Task<List<UserDto>> GetUsersAsync(
-        string? search,
-        UserRole? role,
-        [Service] ISender sender,
-        CancellationToken cancellationToken)
-        => sender.Send(new GetUsersQuery(search, role), cancellationToken);
+    [UseProjection]
+    public IQueryable<AppUser> GetUsers(
+        AppDbContext context,
+        string? search = null,
+        UserRole? role = null)
+    {
+        var query = context.Users.AsNoTracking();
+
+        if (role.HasValue)
+            query = query.Where(u => u.Role == role.Value);
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim().ToLower();
+            query = query.Where(u =>
+                u.FirstName.ToLower().Contains(term) ||
+                u.LastName.ToLower().Contains(term) ||
+                u.Email!.ToLower().Contains(term));
+        }
+
+        return query.OrderBy(u => u.LastName).ThenBy(u => u.FirstName);
+    }
 }

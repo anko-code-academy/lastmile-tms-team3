@@ -32,6 +32,7 @@ public class ApplicationDbSeeder(
         await SeedAdminUserAsync();
         await SeedOperationsManagerUserAsync();
         await SeedDepotsAsync(cancellationToken);
+        await SeedVehiclesAsync(cancellationToken);
         await SeedZonesAsync(cancellationToken);
         await SeedParcelsAsync(cancellationToken);
         await SeedDriversAsync(cancellationToken);
@@ -43,7 +44,9 @@ public class ApplicationDbSeeder(
             .Select(d => d.Name)
             .ToHashSetAsync(cancellationToken);
 
-        var depotsToSeed = CreateSeedDepots()
+        var geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
+
+        var depotsToSeed = CreateSeedDepots(geometryFactory)
             .Where(depot => !existingDepotNames.Contains(depot.Name))
             .ToList();
 
@@ -59,7 +62,67 @@ public class ApplicationDbSeeder(
         logger.LogInformation("Seeded {Count} depot records", depotsToSeed.Count);
     }
 
-    private static List<Depot> CreateSeedDepots()
+    private async Task SeedVehiclesAsync(CancellationToken cancellationToken)
+    {
+        if (await dbContext.Vehicles.AnyAsync(cancellationToken))
+            return;
+
+        var depots = await dbContext.Depots.ToListAsync(cancellationToken);
+        if (depots.Count == 0) return;
+
+        var vehicles = new List<Vehicle>();
+        var random = new Random(42);
+        var states = new[] { "TN", "KY", "AL" };
+        var plateLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+        for (var i = 0; i < 25; i++)
+        {
+            var depot = depots[i % depots.Count];
+            var state = states[i % states.Length];
+            var type = (VehicleType)(i % 3); // Van, Car, Bike rotation
+            var status = i < 18 ? VehicleStatus.Available
+                : i < 22 ? VehicleStatus.InUse
+                : VehicleStatus.Maintenance;
+
+            var parcelCapacity = type switch
+            {
+                VehicleType.Van => random.Next(40, 80),
+                VehicleType.Car => random.Next(15, 40),
+                VehicleType.Bike => random.Next(1, 10),
+                _ => random.Next(20, 60)
+            };
+
+            var weightCapacity = type switch
+            {
+                VehicleType.Van => random.Next(500, 1000),
+                VehicleType.Car => random.Next(200, 500),
+                VehicleType.Bike => random.Next(10, 50),
+                _ => random.Next(100, 500)
+            };
+
+            var plate = $"{state}-{plateLetters[random.Next(26)]}{plateLetters[random.Next(26)]}{plateLetters[random.Next(26)]}-{random.Next(100, 999)}";
+
+            vehicles.Add(new Vehicle
+            {
+                Id = Guid.NewGuid(),
+                RegistrationPlate = plate,
+                Type = type,
+                Status = status,
+                ParcelCapacity = parcelCapacity,
+                WeightCapacity = weightCapacity,
+                WeightUnit = WeightUnit.Kg,
+                DepotId = depot.Id,
+                Depot = depot,
+                CreatedAt = DateTimeOffset.UtcNow
+            });
+        }
+
+        await dbContext.Vehicles.AddRangeAsync(vehicles, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        logger.LogInformation("Seeded {Count} vehicle records", vehicles.Count);
+    }
+
+    private static List<Depot> CreateSeedDepots(GeometryFactory geometryFactory)
     {
         return
         [
@@ -68,19 +131,28 @@ public class ApplicationDbSeeder(
                 street1: "101 Logistics Way",
                 city: "Nashville",
                 state: "TN",
-                postalCode: "37211"),
+                postalCode: "37211",
+                lon: -86.78,
+                lat: 36.17,
+                geometryFactory),
             CreateDepot(
                 name: "North Distribution Center",
                 street1: "2200 Commerce Drive",
                 city: "Louisville",
                 state: "KY",
-                postalCode: "40216"),
+                postalCode: "40216",
+                lon: -85.74,
+                lat: 38.25,
+                geometryFactory),
             CreateDepot(
                 name: "South Fleet Yard",
                 street1: "850 Industrial Park Rd",
                 city: "Birmingham",
                 state: "AL",
-                postalCode: "35210")
+                postalCode: "35210",
+                lon: -86.80,
+                lat: 33.45,
+                geometryFactory)
         ];
     }
 
@@ -89,7 +161,10 @@ public class ApplicationDbSeeder(
         string street1,
         string city,
         string state,
-        string postalCode)
+        string postalCode,
+        double lon,
+        double lat,
+        GeometryFactory geometryFactory)
     {
         var address = new Address
         {
@@ -101,6 +176,7 @@ public class ApplicationDbSeeder(
             CountryCode = "US",
             IsResidential = false,
             CompanyName = name,
+            GeoLocation = geometryFactory.CreatePoint(new Coordinate(lon, lat)),
             CreatedAt = DateTimeOffset.UtcNow
         };
 
@@ -419,6 +495,7 @@ public class ApplicationDbSeeder(
         var zones = await dbContext.Zones.ToListAsync(cancellationToken);
         if (depots.Count == 0) return;
 
+        var geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
         var random = new Random(42); // fixed seed for reproducibility
 
         var cities = new[]
@@ -480,18 +557,23 @@ public class ApplicationDbSeeder(
             ("Mark", "Stevens"), ("Diane", "Harper"), ("Ray", "Chen"), ("Sandra", "Owens"), ("Tyrone", "Bell")
         };
 
-        var shipperAddresses = shipperCompanies.Select((company, idx) => new Address
+        var shipperAddresses = shipperCompanies.Select((company, idx) =>
         {
-            Id = Guid.NewGuid(),
-            Street1 = $"{100 + (idx + 1) * 10} Commerce Drive",
-            City = cities[idx % cities.Length].Item1,
-            State = cities[idx % cities.Length].Item2,
-            PostalCode = cities[idx % cities.Length].Item3,
-            CountryCode = "US",
-            IsResidential = false,
-            CompanyName = company,
-            ContactName = $"{shipperContacts[idx].Item1} {shipperContacts[idx].Item2}",
-            CreatedAt = DateTimeOffset.UtcNow,
+            var cityInfo = cities[idx % cities.Length];
+            return new Address
+            {
+                Id = Guid.NewGuid(),
+                Street1 = $"{100 + (idx + 1) * 10} Commerce Drive",
+                City = cityInfo.Item1,
+                State = cityInfo.Item2,
+                PostalCode = cityInfo.Item3,
+                CountryCode = "US",
+                IsResidential = false,
+                CompanyName = company,
+                ContactName = $"{shipperContacts[idx].Item1} {shipperContacts[idx].Item2}",
+                GeoLocation = geometryFactory.CreatePoint(new Coordinate(cityInfo.Item4, cityInfo.Item5)),
+                CreatedAt = DateTimeOffset.UtcNow,
+            };
         }).ToList();
 
         await dbContext.Addresses.AddRangeAsync(shipperAddresses, cancellationToken);
@@ -531,6 +613,7 @@ public class ApplicationDbSeeder(
                     ContactName = $"{firstNames[random.Next(firstNames.Length)]} {lastNames[random.Next(lastNames.Length)]}",
                     Phone = $"615-{random.Next(100, 999)}-{random.Next(1000, 9999)}",
                     Email = $"recipient{i}@example.com",
+                    GeoLocation = geometryFactory.CreatePoint(new Coordinate(cityInfo.Item4, cityInfo.Item5)),
                     CreatedAt = DateTimeOffset.UtcNow,
                 };
 

@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NetTopologySuite.Geometries;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+using NpgsqlTypes;
 
 #nullable disable
 
@@ -21,6 +22,7 @@ namespace LastMile.TMS.Persistence.Migrations
                 .HasAnnotation("ProductVersion", "10.0.4")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
+            NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "pg_trgm");
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "postgis");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
@@ -79,6 +81,11 @@ namespace LastMile.TMS.Persistence.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
+                    b.Property<NpgsqlTsVector>("SearchVector")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("tsvector")
+                        .HasComputedColumnSql("to_tsvector('simple', coalesce(\"ContactName\", '') || ' ' || coalesce(\"CompanyName\", '') || ' ' || coalesce(\"Street1\", '') || ' ' || coalesce(\"Street2\", ''))", true);
+
                     b.Property<string>("State")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -102,6 +109,15 @@ namespace LastMile.TMS.Persistence.Migrations
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("GeoLocation"), "gist");
 
                     b.HasIndex("PostalCode");
+
+                    b.HasIndex("SearchVector");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("SearchVector"), "GIN");
+
+                    b.HasIndex(new[] { "City" }, "IX_Addresses_City_Trgm");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex(new[] { "City" }, "IX_Addresses_City_Trgm"), "GIN");
+                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex(new[] { "City" }, "IX_Addresses_City_Trgm"), new[] { "gin_trgm_ops" });
 
                     b.ToTable("Addresses");
                 });
@@ -263,6 +279,8 @@ namespace LastMile.TMS.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CreatedAt");
+
                     b.HasIndex("DepotId");
 
                     b.HasIndex("IsActive");
@@ -270,6 +288,26 @@ namespace LastMile.TMS.Persistence.Migrations
                     b.HasIndex("UserId");
 
                     b.HasIndex("ZoneId");
+
+                    b.HasIndex(new[] { "Email" }, "IX_Drivers_Email_Trgm");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex(new[] { "Email" }, "IX_Drivers_Email_Trgm"), "GIN");
+                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex(new[] { "Email" }, "IX_Drivers_Email_Trgm"), new[] { "gin_trgm_ops" });
+
+                    b.HasIndex(new[] { "FirstName" }, "IX_Drivers_FirstName_Trgm");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex(new[] { "FirstName" }, "IX_Drivers_FirstName_Trgm"), "GIN");
+                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex(new[] { "FirstName" }, "IX_Drivers_FirstName_Trgm"), new[] { "gin_trgm_ops" });
+
+                    b.HasIndex(new[] { "LastName" }, "IX_Drivers_LastName_Trgm");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex(new[] { "LastName" }, "IX_Drivers_LastName_Trgm"), "GIN");
+                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex(new[] { "LastName" }, "IX_Drivers_LastName_Trgm"), new[] { "gin_trgm_ops" });
+
+                    b.HasIndex(new[] { "LicenseNumber" }, "IX_Drivers_LicenseNumber_Trgm");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex(new[] { "LicenseNumber" }, "IX_Drivers_LicenseNumber_Trgm"), "GIN");
+                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex(new[] { "LicenseNumber" }, "IX_Drivers_LicenseNumber_Trgm"), new[] { "gin_trgm_ops" });
 
                     b.ToTable("Drivers", (string)null);
                 });
@@ -374,6 +412,8 @@ namespace LastMile.TMS.Persistence.Migrations
 
                     b.HasIndex("EstimatedDeliveryDate");
 
+                    b.HasIndex("ParcelType");
+
                     b.HasIndex("RecipientAddressId");
 
                     b.HasIndex("ShipperAddressId");
@@ -384,6 +424,11 @@ namespace LastMile.TMS.Persistence.Migrations
                         .IsUnique();
 
                     b.HasIndex("ZoneId");
+
+                    b.HasIndex(new[] { "TrackingNumber" }, "IX_Parcels_TrackingNumber_Trgm");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex(new[] { "TrackingNumber" }, "IX_Parcels_TrackingNumber_Trgm"), "GIN");
+                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex(new[] { "TrackingNumber" }, "IX_Parcels_TrackingNumber_Trgm"), new[] { "gin_trgm_ops" });
 
                     b.ToTable("Parcels");
                 });
@@ -651,6 +696,8 @@ namespace LastMile.TMS.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CreatedAt");
+
                     b.HasIndex("DepotId");
 
                     b.HasIndex("RegistrationPlate")
@@ -659,6 +706,11 @@ namespace LastMile.TMS.Persistence.Migrations
                     b.HasIndex("Status");
 
                     b.HasIndex("Type");
+
+                    b.HasIndex(new[] { "RegistrationPlate" }, "IX_Vehicles_RegistrationPlate_Trgm");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex(new[] { "RegistrationPlate" }, "IX_Vehicles_RegistrationPlate_Trgm"), "GIN");
+                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex(new[] { "RegistrationPlate" }, "IX_Vehicles_RegistrationPlate_Trgm"), new[] { "gin_trgm_ops" });
 
                     b.ToTable("Vehicles", (string)null);
                 });

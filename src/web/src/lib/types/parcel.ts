@@ -50,7 +50,6 @@ export enum DimensionUnit {
 export enum ParcelSortBy {
   CreatedAt = "CREATED_AT",
   TrackingNumber = "TRACKING_NUMBER",
-  RecipientName = "RECIPIENT_NAME",
   Status = "STATUS",
 }
 
@@ -73,6 +72,7 @@ export interface Address {
   email?: string;
   latitude?: number;
   longitude?: number;
+  geoLocation?: string;
 }
 
 export interface TrackingEvent {
@@ -109,12 +109,13 @@ export interface ParcelWatcher {
 export interface DeliveryConfirmation {
   id: string;
   receivedBy?: string;
-  deliveryLocation?: string;
+  location?: string;
   signatureImage?: string;
   photo?: string;
   deliveredAt: string;
   latitude?: number;
   longitude?: number;
+  geoLocation?: string;
 }
 
 export interface ParcelListItem {
@@ -157,7 +158,7 @@ export interface Parcel {
   deliveryAttempts: number;
   parcelType?: string;
   zoneId?: string;
-  zoneName?: string;
+  zone?: { name?: string };
   createdAt: string;
   lastModifiedAt?: string;
   trackingEvents: TrackingEvent[];
@@ -175,6 +176,8 @@ export interface PagedResult<T> {
   previousCursor?: string;
 }
 
+export type PagingDirection = "forward" | "backward";
+
 export interface SearchParcelInput {
   search: string | null;
   status: ParcelStatus[] | null;
@@ -185,5 +188,6 @@ export interface SearchParcelInput {
   sortBy: ParcelSortBy;
   sortDirection: SortDirection;
   cursor: string | null;
+  pagingDirection?: PagingDirection;
   pageSize: number;
 }

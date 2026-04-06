@@ -1,8 +1,10 @@
 using Hangfire;
 using Hangfire.PostgreSql;
+using LastMile.TMS.Api.GraphQL.DataLoaders;
 using LastMile.TMS.Api.GraphQL.ErrorFilters;
 using LastMile.TMS.Api.GraphQL.Mutations;
 using LastMile.TMS.Api.GraphQL.Queries;
+using LastMile.TMS.Api.GraphQL.Types;
 using LastMile.TMS.Application;
 using LastMile.TMS.Infrastructure;
 using LastMile.TMS.Persistence;
@@ -27,7 +29,7 @@ try
     builder.Services
         .AddApplication()
         .AddInfrastructure(builder.Configuration)
-        .AddPersistence(builder.Configuration);
+        .AddPersistence(builder.Configuration, builder.Environment);
 
     builder.Services.AddAuthentication(options =>
     {
@@ -99,6 +101,12 @@ try
     builder.Services
         .AddGraphQLServer()
         .AddAuthorization()
+        .AddProjections()
+        .AddFiltering()
+        .AddSorting()
+        .AddPagingArguments()
+        .AddDataLoader<ParcelContentItemsCountDataLoader>()
+        .RegisterDbContextFactory<AppDbContext>()
         .AddQueryType<Query>()
         .AddMutationType<Mutation>()
         .AddType<DepotQuery>()
@@ -113,7 +121,26 @@ try
         .AddType<DriverMutation>()
         .AddType<UserQuery>()
         .AddType<UserMutation>()
-        .AddErrorFilter<ValidationErrorFilter>();
+        .AddType<AddressType>()
+        .AddType<DepotType>()
+        .AddType<VehicleType>()
+        .AddType<ZoneType>()
+        .AddType<DriverType>()
+        .AddType<UserType>()
+        .AddType<OperatingHoursType>()
+        .AddType<DailyAvailabilityType>()
+        .AddType<DayOffType>()
+        .AddType<ParcelType>()
+        .AddType<TrackingEventType>()
+        .AddType<DeliveryConfirmationType>()
+        .AddType<ParcelContentItemType>()
+        .AddType<ParcelWatcherType>()
+        .AddErrorFilter<ValidationErrorFilter>()
+        .ModifyCostOptions(options => 
+        {
+            options.EnforceCostLimits = false;
+
+        });;
 
     builder.Services.AddControllers();
     builder.Services.AddEndpointsApiExplorer();
