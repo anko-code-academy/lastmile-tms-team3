@@ -250,7 +250,7 @@ public class AuditLogIntegrationTests(ApiWebApplicationFactory factory)
         var markerEmail = $"audit.filter.{Guid.NewGuid():N}@example.com";
         var from = DateTimeOffset.UtcNow.AddMinutes(-1);
 
-        await CreateUserAsync(adminToken, markerEmail);
+        var userId = await CreateUserAsync(adminToken, markerEmail);
 
         var auditBody = await QueryAuditLogsAsync(
             token: adminToken,
@@ -262,7 +262,7 @@ public class AuditLogIntegrationTests(ApiWebApplicationFactory factory)
 
         auditBody.GetProperty("data").GetProperty("auditLogs").GetProperty("nodes")
             .EnumerateArray()
-            .Any(entry => entry.GetProperty("afterValuesJson").GetString()!.Contains(markerEmail, StringComparison.Ordinal))
+            .Any(entry => entry.GetProperty("resourceId").GetString() == userId)
             .Should().BeTrue();
     }
 
@@ -454,6 +454,76 @@ public class AuditLogIntegrationTests(ApiWebApplicationFactory factory)
         body.Should().Contain("Export correlation create");
         body.Should().Contain("Export correlation update");
         body.Should().NotContain("Export different correlation");
+    }
+
+    [Fact]
+    public async Task AuditLog_Export_Applies_Configured_Row_Limit_And_Warns_When_Truncated()
+    {
+        var limitedFactory = factory.WithWebHostBuilder(builder =>
+            builder.UseSetting("AuditLogs:ExportRowLimit", "2"));
+        var client = limitedFactory.CreateClient();
+        var adminToken = await GraphQLRequestHelper.GetAdminTokenAsync(client);
+        var correlationId = $"export-limit-{Guid.NewGuid():N}";
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var occurredAt = DateTimeOffset.UtcNow;
+
+            db.AuditLogs.AddRange(
+                new AuditLog
+                {
+                    Id = Guid.NewGuid(),
+                    OccurredAt = occurredAt,
+                    ActorUserId = "admin",
+                    ActorUserName = "admin@lastmile.local",
+                    ActionType = AuditActionType.Create,
+                    ResourceType = AuditResourceType.User,
+                    ResourceId = Guid.NewGuid().ToString(),
+                    CorrelationId = correlationId,
+                    Summary = "Export limit first"
+                },
+                new AuditLog
+                {
+                    Id = Guid.NewGuid(),
+                    OccurredAt = occurredAt.AddSeconds(1),
+                    ActorUserId = "admin",
+                    ActorUserName = "admin@lastmile.local",
+                    ActionType = AuditActionType.Update,
+                    ResourceType = AuditResourceType.Vehicle,
+                    ResourceId = Guid.NewGuid().ToString(),
+                    CorrelationId = correlationId,
+                    Summary = "Export limit second"
+                },
+                new AuditLog
+                {
+                    Id = Guid.NewGuid(),
+                    OccurredAt = occurredAt.AddSeconds(2),
+                    ActorUserId = "admin",
+                    ActorUserName = "admin@lastmile.local",
+                    ActionType = AuditActionType.Delete,
+                    ResourceType = AuditResourceType.Driver,
+                    ResourceId = Guid.NewGuid().ToString(),
+                    CorrelationId = correlationId,
+                    Summary = "Export limit third"
+                });
+
+            await db.SaveChangesAsync();
+        }
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+
+        var response = await client.GetAsync($"/api/audit-logs/export?correlationId={correlationId}");
+        var body = await response.Content.ReadAsStringAsync();
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        response.Headers.TryGetValues("X-Export-Truncated", out var truncatedValues).Should().BeTrue();
+        truncatedValues.Should().ContainSingle().Which.Should().Be("true");
+        response.Headers.TryGetValues("X-Export-Row-Limit", out var limitValues).Should().BeTrue();
+        limitValues.Should().ContainSingle().Which.Should().Be("2");
+        body.Should().Contain("Export limit third");
+        body.Should().Contain("Export limit second");
+        body.Should().NotContain("Export limit first");
     }
 
     [Fact]

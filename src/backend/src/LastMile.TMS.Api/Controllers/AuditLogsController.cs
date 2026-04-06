@@ -9,6 +9,7 @@ using LastMile.TMS.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using OpenIddict.Validation.AspNetCore;
 
 namespace LastMile.TMS.Api.Controllers;
@@ -19,8 +20,14 @@ namespace LastMile.TMS.Api.Controllers;
     Policy = "Admin",
     AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)]
 public class AuditLogsController(
-    IDbContextFactory<AppDbContext> dbContextFactory) : ControllerBase
+    IDbContextFactory<AppDbContext> dbContextFactory,
+    IConfiguration configuration) : ControllerBase
 {
+    private const int DefaultExportRowLimit = 100_000;
+    private const string ExportRowLimitConfigurationKey = "AuditLogs:ExportRowLimit";
+    private const string ExportTruncatedHeaderName = "X-Export-Truncated";
+    private const string ExportRowLimitHeaderName = "X-Export-Row-Limit";
+
     private static readonly JsonSerializerOptions ExportJsonSerializerOptions = new()
     {
         WriteIndented = false
@@ -40,10 +47,12 @@ public class AuditLogsController(
         await using var context = await dbContextFactory.CreateDbContextAsync(cancellationToken);
 
         var parameters = new AuditLogQueryParameters(actor, actionType, resourceType, resourceId, correlationId, from, to);
+        var exportRowLimit = GetExportRowLimit(configuration);
         var rows = await context.AuditLogs
             .AsNoTracking()
             .ApplyAuditFilters(parameters)
             .OrderByDescending(log => log.OccurredAt)
+            .Take(exportRowLimit + 1)
             .Select(log => new AuditLogCsvRow(
                 log.OccurredAt.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture),
                 log.ActorUserId,
@@ -56,6 +65,15 @@ public class AuditLogsController(
                 NormalizeJson(log.BeforeValuesJson),
                 NormalizeJson(log.AfterValuesJson)))
             .ToListAsync(cancellationToken);
+
+        var isTruncated = rows.Count > exportRowLimit;
+
+        if (isTruncated)
+        {
+            rows = rows.Take(exportRowLimit).ToList();
+            Response.Headers.Append(ExportTruncatedHeaderName, "true");
+            Response.Headers.Append(ExportRowLimitHeaderName, exportRowLimit.ToString(CultureInfo.InvariantCulture));
+        }
 
         await using var stream = new MemoryStream();
         var csvConfiguration = new CsvConfiguration(CultureInfo.InvariantCulture)
@@ -74,6 +92,12 @@ public class AuditLogsController(
         stream.Position = 0;
         var fileName = $"audit-logs-{DateTimeOffset.UtcNow:yyyyMMddHHmmss}.csv";
         return File(stream.ToArray(), "text/csv", fileName);
+    }
+
+    private static int GetExportRowLimit(IConfiguration configuration)
+    {
+        var configuredValue = configuration.GetValue<int?>(ExportRowLimitConfigurationKey);
+        return configuredValue is > 0 ? configuredValue.Value : DefaultExportRowLimit;
     }
 
     private static string FormatEnum<TEnum>(TEnum value)

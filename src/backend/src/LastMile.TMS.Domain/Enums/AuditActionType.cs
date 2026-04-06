@@ -7,6 +7,5 @@ public enum AuditActionType
     Delete = 2,
     StatusTransition = 3,
     Activate = 4,
-    Deactivate = 5,
-    SystemEvent = 6
+    Deactivate = 5
 }

@@ -1,7 +1,7 @@
-import type {
-  PagedResult,
-  PagingDirection,
+import {
   SortDirection,
+  type PagedResult,
+  type PagingDirection,
 } from "@/lib/types/parcel";
 
 export enum AuditActionType {
@@ -11,7 +11,6 @@ export enum AuditActionType {
   StatusTransition = "STATUS_TRANSITION",
   Activate = "ACTIVATE",
   Deactivate = "DEACTIVATE",
-  SystemEvent = "SYSTEM_EVENT",
 }
 
 export enum AuditResourceType {
@@ -21,7 +20,6 @@ export enum AuditResourceType {
   Depot = "DEPOT",
   Zone = "ZONE",
   Driver = "DRIVER",
-  System = "SYSTEM",
 }
 
 export type AuditLogSortBy =
@@ -29,6 +27,9 @@ export type AuditLogSortBy =
   | "ACTION_TYPE"
   | "RESOURCE_TYPE"
   | "ACTOR_USER_NAME";
+
+export const DEFAULT_AUDIT_LOG_SORT_BY: AuditLogSortBy = "OCCURRED_AT";
+export const DEFAULT_AUDIT_LOG_SORT_DIRECTION = SortDirection.Desc;
 
 export interface AuditLogListItem {
   id: string;

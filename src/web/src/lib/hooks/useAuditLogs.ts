@@ -3,7 +3,10 @@ import {
   getAuditLogAction,
   searchAuditLogsAction,
 } from "@/lib/actions/auditLogs";
-import { SortDirection } from "@/lib/types/parcel";
+import {
+  DEFAULT_AUDIT_LOG_SORT_BY,
+  DEFAULT_AUDIT_LOG_SORT_DIRECTION,
+} from "@/lib/types/auditLog";
 import type { SearchAuditLogsInput } from "@/lib/types/auditLog";
 
 export function useSearchAuditLogs(input: SearchAuditLogsInput) {
@@ -28,8 +31,8 @@ export function useRelatedAuditLogs(
         correlationId: correlationId ?? null,
         from: null,
         to: null,
-        sortBy: "OCCURRED_AT",
-        sortDirection: SortDirection.Desc,
+        sortBy: DEFAULT_AUDIT_LOG_SORT_BY,
+        sortDirection: DEFAULT_AUDIT_LOG_SORT_DIRECTION,
         cursor: null,
         pagingDirection: undefined,
         pageSize: 20,

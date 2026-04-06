@@ -33,6 +33,5 @@ public class AuditLogQuery
         string? actor = null)
         => context.AuditLogs
             .AsNoTracking()
-            .ApplyActorSearch(actor)
-            .OrderByDescending(log => log.OccurredAt);
+            .ApplyActorSearch(actor);
 }

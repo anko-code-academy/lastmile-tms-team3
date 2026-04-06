@@ -13,6 +13,10 @@ import type {
   SearchAuditLogsResult,
   AuditUserContext,
 } from "@/lib/types/auditLog";
+import {
+  DEFAULT_AUDIT_LOG_SORT_BY,
+  DEFAULT_AUDIT_LOG_SORT_DIRECTION,
+} from "@/lib/types/auditLog";
 
 interface AuditLogsResponse {
   auditLogs: {
@@ -89,6 +93,8 @@ export async function searchAuditLogsAction(
 ): Promise<SearchAuditLogsResult> {
   const pageSize = Math.min(Math.max(1, input.pageSize), 100);
   const isBackward = input.pagingDirection === "backward";
+  const sortBy = input.sortBy ?? DEFAULT_AUDIT_LOG_SORT_BY;
+  const sortDirection = input.sortDirection ?? DEFAULT_AUDIT_LOG_SORT_DIRECTION;
   const normalizedResourceId = normalizeString(input.resourceId);
   const from = toUtcIsoString(input.from);
   const to = toUtcIsoString(input.to);
@@ -103,7 +109,7 @@ export async function searchAuditLogsAction(
       from,
       to,
     ),
-    order: buildAuditLogOrder(input.sortBy, input.sortDirection),
+    order: buildAuditLogOrder(sortBy, sortDirection),
     first: isBackward ? null : pageSize,
     last: isBackward ? pageSize : null,
     after: !isBackward && input.cursor ? input.cursor : null,

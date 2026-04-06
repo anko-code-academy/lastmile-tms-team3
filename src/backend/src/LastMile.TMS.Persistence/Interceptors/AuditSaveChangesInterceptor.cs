@@ -230,8 +230,8 @@ public sealed class AuditSaveChangesInterceptor(IHttpContextAccessor httpContext
         }
         else
         {
-            beforeValues = CreateModifiedValues(entry, useOriginalValues: true, actionType);
-            afterValues = CreateModifiedValues(entry, useOriginalValues: false, actionType);
+            beforeValues = CreateModifiedValues(entry, useOriginalValues: true);
+            afterValues = CreateModifiedValues(entry, useOriginalValues: false);
         }
 
         return (SerializeValues(beforeValues), SerializeValues(afterValues));
@@ -256,7 +256,7 @@ public sealed class AuditSaveChangesInterceptor(IHttpContextAccessor httpContext
         return values;
     }
 
-    private static Dictionary<string, object?> CreateModifiedValues(EntityEntry entry, bool useOriginalValues, AuditActionType actionType)
+    private static Dictionary<string, object?> CreateModifiedValues(EntityEntry entry, bool useOriginalValues)
     {
         var values = new Dictionary<string, object?>
         {

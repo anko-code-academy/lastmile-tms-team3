@@ -7,6 +7,8 @@ import { useSearchAuditLogs } from "@/lib/hooks/useAuditLogs";
 import {
   AuditActionType,
   AuditResourceType,
+  DEFAULT_AUDIT_LOG_SORT_BY,
+  DEFAULT_AUDIT_LOG_SORT_DIRECTION,
   type AuditLogSortBy,
 } from "@/lib/types/auditLog";
 import { SortDirection } from "@/lib/types/parcel";
@@ -84,9 +86,9 @@ export default function AuditLogsPage() {
   const [resourceType, setResourceType] = useState<AuditResourceType | null>(
     null,
   );
-  const [sortBy, setSortBy] = useState<SortField>("OCCURRED_AT");
+  const [sortBy, setSortBy] = useState<SortField>(DEFAULT_AUDIT_LOG_SORT_BY);
   const [sortDirection, setSortDirection] = useState<SortDirection>(
-    SortDirection.Desc,
+    DEFAULT_AUDIT_LOG_SORT_DIRECTION,
   );
   const [cursor, setCursor] = useState<string | null>(null);
   const [pagingDirection, setPagingDirection] = useState<
@@ -143,8 +145,8 @@ export default function AuditLogsPage() {
     setResourceType(null);
     setCursor(null);
     setPagingDirection(undefined);
-    setSortBy("OCCURRED_AT");
-    setSortDirection(SortDirection.Desc);
+    setSortBy(DEFAULT_AUDIT_LOG_SORT_BY);
+    setSortDirection(DEFAULT_AUDIT_LOG_SORT_DIRECTION);
   }
 
   async function handleExport() {
