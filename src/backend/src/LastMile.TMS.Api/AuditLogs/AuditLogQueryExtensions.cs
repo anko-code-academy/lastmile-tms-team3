@@ -41,6 +41,12 @@ public static class AuditLogQueryExtensions
             query = query.Where(log => log.ResourceId == resourceId);
         }
 
+        if (!string.IsNullOrWhiteSpace(parameters.CorrelationId))
+        {
+            var correlationId = parameters.CorrelationId.Trim();
+            query = query.Where(log => log.CorrelationId == correlationId);
+        }
+
         if (parameters.From.HasValue)
             query = query.Where(log => log.OccurredAt >= parameters.From.Value);
 

@@ -99,6 +99,7 @@ export async function searchAuditLogsAction(
       input.actionType,
       input.resourceType,
       normalizedResourceId,
+      normalizeString(input.correlationId),
       from,
       to,
     ),
@@ -180,6 +181,7 @@ function buildAuditLogWhere(
   actionType: SearchAuditLogsInput["actionType"],
   resourceType: SearchAuditLogsInput["resourceType"],
   resourceId: string | null,
+  correlationId: string | null,
   from: string | null,
   to: string | null,
 ) {
@@ -195,6 +197,10 @@ function buildAuditLogWhere(
 
   if (resourceId) {
     where.resourceId = { eq: resourceId };
+  }
+
+  if (correlationId) {
+    where.correlationId = { eq: correlationId };
   }
 
   if (from || to) {
@@ -239,20 +245,14 @@ async function getResourceDetails(
   switch (resourceType) {
     case AuditResourceType.Parcel:
       return {
-        title: resourceId,
-        subtitle: "Parcel record",
         href: `/parcels/${resourceId}`,
       };
     case AuditResourceType.Vehicle:
       return {
-        title: resourceId,
-        subtitle: "Vehicle record",
         href: `/admin/vehicles/${resourceId}`,
       };
     case AuditResourceType.Driver:
       return {
-        title: resourceId,
-        subtitle: "Driver record",
         href: `/admin/drivers/${resourceId}`,
       };
     case AuditResourceType.Depot:
@@ -283,7 +283,6 @@ async function getDepotDetails(
 
   return {
     title: data.depot.name,
-    subtitle: data.depot.isActive ? "Active depot" : "Inactive depot",
     href: "/admin/depots",
   };
 }
@@ -305,11 +304,6 @@ async function getZoneDetails(
 
   return {
     title: data.zone.name,
-    subtitle: data.zone.depot?.name
-      ? `${data.zone.isActive ? "Active" : "Inactive"} zone in ${data.zone.depot.name}`
-      : data.zone.isActive
-        ? "Active zone"
-        : "Inactive zone",
     href: "/admin/zones",
   };
 }
@@ -331,7 +325,6 @@ async function getUserResourceDetails(
 
   return {
     title: fullName || data.user.email,
-    subtitle: `${data.user.email} · ${data.user.role}`,
     href: "/admin/users",
   };
 }

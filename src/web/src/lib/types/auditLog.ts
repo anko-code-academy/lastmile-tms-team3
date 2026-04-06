@@ -59,8 +59,7 @@ export interface AuditUserContext {
 }
 
 export interface AuditResourceContext {
-  title: string;
-  subtitle?: string;
+  title?: string;
   href?: string;
 }
 
@@ -71,6 +70,7 @@ export interface SearchAuditLogsInput {
   actionType: AuditActionType | null;
   resourceType: AuditResourceType | null;
   resourceId: string | null;
+  correlationId: string | null;
   from: string | null;
   to: string | null;
   sortBy: AuditLogSortBy;

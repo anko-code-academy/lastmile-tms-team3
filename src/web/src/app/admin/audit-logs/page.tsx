@@ -98,6 +98,7 @@ export default function AuditLogsPage() {
     actionType,
     resourceType,
     resourceId,
+    correlationId: null,
     from,
     to,
     sortBy,

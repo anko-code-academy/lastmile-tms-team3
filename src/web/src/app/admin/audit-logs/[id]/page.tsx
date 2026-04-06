@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import TmNavbar from "@/components/TmNavbar";
-import { useAuditLog } from "@/lib/hooks/useAuditLogs";
+import { useAuditLog, useRelatedAuditLogs } from "@/lib/hooks/useAuditLogs";
 import { AuditResourceType, type AuditLogDetail } from "@/lib/types/auditLog";
 
 const S = {
@@ -18,6 +19,8 @@ const S = {
   mono: "var(--font-geist-mono, monospace)" as const,
 };
 
+const EMPTY_VALUE = "—";
+
 type DiffStatus = "added" | "removed" | "changed" | "unchanged";
 
 interface DiffRow {
@@ -26,6 +29,8 @@ interface DiffRow {
   after: string | null;
   status: DiffStatus;
 }
+
+type PayloadSide = "before" | "after";
 
 function formatOccurredAt(value: string) {
   return new Intl.DateTimeFormat("en-US", {
@@ -107,29 +112,31 @@ function buildDiffRows(log: AuditLogDetail): DiffRow[] {
     new Set([...Object.keys(beforeValues), ...Object.keys(afterValues)]),
   ).sort((left, right) => left.localeCompare(right));
 
-  return fields.map((field) => {
-    const before = beforeValues[field] ?? null;
-    const after = afterValues[field] ?? null;
-    const status: DiffStatus =
-      before === after
-        ? "unchanged"
-        : before === null
-          ? "added"
-          : after === null
-            ? "removed"
-            : "changed";
+  return fields
+    .map((field) => {
+      const before = beforeValues[field] ?? null;
+      const after = afterValues[field] ?? null;
+      const status: DiffStatus =
+        before === after
+          ? "unchanged"
+          : before === null
+            ? "added"
+            : after === null
+              ? "removed"
+              : "changed";
 
-    return {
-      field,
-      before,
-      after,
-      status,
-    };
-  });
+      return {
+        field,
+        before,
+        after,
+        status,
+      };
+    })
+    .filter((row) => row.status !== "unchanged");
 }
 
 function formatDiffValue(value: string | null) {
-  return value === null ? "Not captured" : value;
+  return value === null ? EMPTY_VALUE : value;
 }
 
 function formatLabel(value: string) {
@@ -139,10 +146,44 @@ function formatLabel(value: string) {
     .replace(/\./g, " / ");
 }
 
+function formatPayloadValue(value: unknown) {
+  if (value === null) {
+    return "null";
+  }
+
+  if (typeof value === "string") {
+    return JSON.stringify(value);
+  }
+
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+
+  return EMPTY_VALUE;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function hasNestedChange(path: string, changedPaths: Set<string>) {
+  if (!path) {
+    return changedPaths.size > 0;
+  }
+
+  const nestedPrefix = `${path}.`;
+  return Array.from(changedPaths).some((candidate) =>
+    candidate.startsWith(nestedPrefix),
+  );
+}
+
 export default function AuditLogDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const [shouldLoadRelated, setShouldLoadRelated] = useState(false);
   const { data: auditLog, isLoading } = useAuditLog(id);
+  const { data: relatedLogsData, isLoading: isRelatedLogsLoading } =
+    useRelatedAuditLogs(auditLog?.correlationId, shouldLoadRelated);
 
   if (isLoading) {
     return (
@@ -196,6 +237,18 @@ export default function AuditLogDetailPage() {
 
   const resourceHref = getResourceHref(auditLog);
   const diffRows = buildDiffRows(auditLog);
+  const relatedLogs = (relatedLogsData?.items ?? []).filter(
+    (item) => item.id !== auditLog.id,
+  );
+  const beforeSnapshot = parseJsonValue(auditLog.beforeValuesJson);
+  const afterSnapshot = parseJsonValue(auditLog.afterValuesJson);
+  const changedPathMap = new Map(
+    diffRows.map((row) => [row.field, row.status] as const),
+  );
+  const changedPaths = new Set(changedPathMap.keys());
+  const resourceTitle = auditLog.resourceDetails?.title?.trim();
+  const showResourceTitle =
+    Boolean(resourceTitle) && resourceTitle !== auditLog.resourceId;
 
   return (
     <div
@@ -275,6 +328,17 @@ export default function AuditLogDetailPage() {
             >
               {formatOccurredAt(auditLog.occurredAt)}
             </p>
+            <p
+              style={{
+                fontFamily: S.mono,
+                fontSize: ".78rem",
+                color: S.dim,
+                marginTop: ".4rem",
+                wordBreak: "break-word",
+              }}
+            >
+              Log ID: {auditLog.id}
+            </p>
           </div>
 
           <div
@@ -285,7 +349,25 @@ export default function AuditLogDetailPage() {
               marginBottom: "1rem",
             }}
           >
-            <section style={panelStyle}>
+            <section style={detailCardStyle}>
+              <SectionTitle>Resource</SectionTitle>
+              <MetaRow
+                label="Action"
+                value={auditLog.actionType.replaceAll("_", " ")}
+              />
+              <MetaRow
+                label="Type"
+                value={auditLog.resourceType.replaceAll("_", " ")}
+              />
+              {showResourceTitle ? (
+                <MetaRow label="Name" value={resourceTitle ?? ""} />
+              ) : null}
+              <MetaRow label="Resource ID" value={auditLog.resourceId} mono />
+              {resourceHref ? (
+                <ContextLink href={resourceHref}>Open Resource</ContextLink>
+              ) : null}
+            </section>
+            <section style={detailCardStyle}>
               <SectionTitle>Actor</SectionTitle>
               <MetaRow
                 label="Name"
@@ -295,7 +377,10 @@ export default function AuditLogDetailPage() {
                   "System"
                 }
               />
-              <MetaRow label="User ID" value={auditLog.actorUserId ?? "—"} />
+              <MetaRow
+                label="User ID"
+                value={auditLog.actorUserId ?? EMPTY_VALUE}
+              />
               {auditLog.actorDetails ? (
                 <>
                   <MetaRow label="Email" value={auditLog.actorDetails.email} />
@@ -308,64 +393,13 @@ export default function AuditLogDetailPage() {
                   />
                 </>
               ) : null}
-              <MetaRow
-                label="Correlation ID"
-                value={auditLog.correlationId ?? "—"}
-                mono
-              />
               {auditLog.actorDetails?.href ? (
                 <ContextLink href={auditLog.actorDetails.href}>
                   Open users directory
                 </ContextLink>
               ) : null}
             </section>
-            <section style={panelStyle}>
-              <SectionTitle>Resource</SectionTitle>
-              <MetaRow
-                label="Action"
-                value={auditLog.actionType.replaceAll("_", " ")}
-              />
-              <MetaRow
-                label="Type"
-                value={auditLog.resourceType.replaceAll("_", " ")}
-              />
-              {auditLog.resourceDetails ? (
-                <>
-                  <MetaRow
-                    label="Title"
-                    value={auditLog.resourceDetails.title}
-                  />
-                  {auditLog.resourceDetails.subtitle ? (
-                    <MetaRow
-                      label="Context"
-                      value={auditLog.resourceDetails.subtitle}
-                    />
-                  ) : null}
-                </>
-              ) : null}
-              <MetaRow label="Resource ID" value={auditLog.resourceId} mono />
-              {resourceHref ? (
-                <ContextLink href={resourceHref}>
-                  Open related resource
-                </ContextLink>
-              ) : null}
-            </section>
           </div>
-
-          <section style={{ ...panelStyle, marginBottom: "1rem" }}>
-            <SectionTitle>Summary</SectionTitle>
-            <p
-              style={{
-                fontFamily: S.mono,
-                fontSize: ".9rem",
-                color: S.text,
-                lineHeight: 1.6,
-                margin: 0,
-              }}
-            >
-              {auditLog.summary ?? "No summary recorded for this event."}
-            </p>
-          </section>
 
           <div
             style={{
@@ -375,6 +409,96 @@ export default function AuditLogDetailPage() {
             <SectionTitle>Field Changes</SectionTitle>
             <DiffTable rows={diffRows} />
           </div>
+
+          <section style={{ ...panelStyle, marginTop: "1rem" }}>
+            <SectionTitle>Recorded Payloads</SectionTitle>
+            <p
+              style={{
+                margin: "0 0 1rem",
+                fontFamily: S.mono,
+                fontSize: ".78rem",
+                color: S.muted,
+                lineHeight: 1.6,
+              }}
+            >
+              These payloads show the values recorded at the time of the audit
+              event. Nested related data is not included here. If you need the
+              full current resource, open the resource page.
+            </p>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                gap: "1rem",
+              }}
+            >
+              <SnapshotPanel
+                label="Before"
+                value={beforeSnapshot}
+                side="before"
+                changedPathMap={changedPathMap}
+                changedPaths={changedPaths}
+              />
+              <SnapshotPanel
+                label="After"
+                value={afterSnapshot}
+                side="after"
+                changedPathMap={changedPathMap}
+                changedPaths={changedPaths}
+              />
+            </div>
+          </section>
+
+          <section style={{ ...panelStyle, marginTop: "1rem" }}>
+            <SectionTitle>Correlation</SectionTitle>
+            <MetaRow
+              label="Correlation ID"
+              value={auditLog.correlationId ?? EMPTY_VALUE}
+              mono
+            />
+            {auditLog.correlationId ? (
+              <div style={{ marginTop: ".9rem" }}>
+                <button
+                  onClick={() => setShouldLoadRelated(true)}
+                  disabled={shouldLoadRelated && isRelatedLogsLoading}
+                  style={{
+                    fontFamily: S.mono,
+                    fontSize: "11px",
+                    letterSpacing: ".1em",
+                    textTransform: "uppercase",
+                    padding: ".45rem .9rem",
+                    borderRadius: 6,
+                    cursor:
+                      shouldLoadRelated && isRelatedLogsLoading
+                        ? "wait"
+                        : "pointer",
+                    opacity:
+                      shouldLoadRelated && isRelatedLogsLoading ? 0.7 : 1,
+                    background: "rgba(245,158,11,.12)",
+                    border: "1px solid rgba(245,158,11,.35)",
+                    color: S.accent,
+                  }}
+                >
+                  {shouldLoadRelated
+                    ? isRelatedLogsLoading
+                      ? "Loading Related Logs..."
+                      : "Reload Related Logs"
+                    : "Load Related Logs"}
+                </button>
+              </div>
+            ) : null}
+            {shouldLoadRelated ? (
+              <div style={{ marginTop: "1rem" }}>
+                <RelatedLogsTable
+                  rows={relatedLogs}
+                  isLoading={isRelatedLogsLoading}
+                  onOpen={(auditLogId) =>
+                    router.push(`/admin/audit-logs/${auditLogId}`)
+                  }
+                />
+              </div>
+            ) : null}
+          </section>
         </div>
       </div>
     </div>
@@ -406,7 +530,7 @@ function ContextLink({
   children: ReactNode;
 }) {
   return (
-    <div style={{ marginTop: ".75rem" }}>
+    <div style={{ marginTop: "auto", paddingTop: ".75rem" }}>
       <Link
         href={href}
         style={{
@@ -478,7 +602,7 @@ function DiffTable({ rows }: { rows: DiffRow[] }) {
           margin: 0,
         }}
       >
-        No field-level values were captured for this event.
+        No changed fields were captured for this event.
       </p>
     );
   }
@@ -533,6 +657,349 @@ function DiffTable({ rows }: { rows: DiffRow[] }) {
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+function SnapshotPanel({
+  label,
+  value,
+  side,
+  changedPathMap,
+  changedPaths,
+}: {
+  label: string;
+  value: unknown;
+  side: PayloadSide;
+  changedPathMap: ReadonlyMap<string, DiffStatus>;
+  changedPaths: Set<string>;
+}) {
+  return (
+    <div
+      style={{
+        border: `1px solid ${S.border}`,
+        borderRadius: 8,
+        background: "rgba(3,8,15,.65)",
+        overflow: "hidden",
+      }}
+    >
+      <div
+        style={{
+          padding: ".8rem 1rem",
+          borderBottom: `1px solid ${S.border}`,
+        }}
+      >
+        <p
+          style={{
+            margin: 0,
+            fontFamily: S.mono,
+            fontSize: "10px",
+            letterSpacing: ".14em",
+            textTransform: "uppercase",
+            color: S.muted,
+          }}
+        >
+          {label}
+        </p>
+      </div>
+      <div
+        style={{
+          padding: ".65rem .8rem",
+          fontFamily: S.mono,
+          fontSize: ".73rem",
+          lineHeight: 1.45,
+          color: S.text,
+          maxHeight: "260px",
+          overflow: "auto",
+        }}
+      >
+        <PayloadTree
+          value={value}
+          side={side}
+          path=""
+          depth={0}
+          changedPathMap={changedPathMap}
+          changedPaths={changedPaths}
+        />
+      </div>
+    </div>
+  );
+}
+
+function PayloadTree({
+  value,
+  side,
+  path,
+  depth,
+  changedPathMap,
+  changedPaths,
+}: {
+  value: unknown;
+  side: PayloadSide;
+  path: string;
+  depth: number;
+  changedPathMap: ReadonlyMap<string, DiffStatus>;
+  changedPaths: Set<string>;
+}) {
+  if (value === null || value === undefined) {
+    return <PayloadLeaf value={EMPTY_VALUE} depth={depth} />;
+  }
+
+  if (Array.isArray(value)) {
+    if (value.length === 0) {
+      return <PayloadLeaf value="[]" depth={depth} />;
+    }
+
+    return (
+      <div>
+        {value.map((item, index) => {
+          const nextPath = path ? `${path}.${index}` : String(index);
+          return (
+            <PayloadEntry
+              key={nextPath}
+              label={`[${index}]`}
+              side={side}
+              path={nextPath}
+              depth={depth}
+              changedPathMap={changedPathMap}
+              changedPaths={changedPaths}
+            >
+              <PayloadTree
+                value={item}
+                side={side}
+                path={nextPath}
+                depth={depth + 1}
+                changedPathMap={changedPathMap}
+                changedPaths={changedPaths}
+              />
+            </PayloadEntry>
+          );
+        })}
+      </div>
+    );
+  }
+
+  if (isRecord(value)) {
+    const entries = Object.entries(value);
+
+    if (entries.length === 0) {
+      return <PayloadLeaf value="{}" depth={depth} />;
+    }
+
+    return (
+      <div>
+        {entries.map(([key, nestedValue]) => {
+          const nextPath = path ? `${path}.${key}` : key;
+          return (
+            <PayloadEntry
+              key={nextPath}
+              label={key}
+              side={side}
+              path={nextPath}
+              depth={depth}
+              changedPathMap={changedPathMap}
+              changedPaths={changedPaths}
+            >
+              <PayloadTree
+                value={nestedValue}
+                side={side}
+                path={nextPath}
+                depth={depth + 1}
+                changedPathMap={changedPathMap}
+                changedPaths={changedPaths}
+              />
+            </PayloadEntry>
+          );
+        })}
+      </div>
+    );
+  }
+
+  return <PayloadLeaf value={formatPayloadValue(value)} depth={depth} />;
+}
+
+function PayloadEntry({
+  label,
+  side,
+  path,
+  depth,
+  children,
+  changedPathMap,
+  changedPaths,
+}: {
+  label: string;
+  side: PayloadSide;
+  path: string;
+  depth: number;
+  children: ReactNode;
+  changedPathMap: ReadonlyMap<string, DiffStatus>;
+  changedPaths: Set<string>;
+}) {
+  const status = changedPathMap.get(path);
+  const hasNestedChanges = hasNestedChange(path, changedPaths);
+  const isChanged = Boolean(status || hasNestedChanges);
+  const accentColor =
+    status === "added"
+      ? "#22c55e"
+      : status === "removed"
+        ? "#ef4444"
+        : status === "changed"
+          ? "#f59e0b"
+          : "rgba(245,158,11,.35)";
+  const backgroundColor = isChanged
+    ? side === "before"
+      ? "rgba(239,68,68,.08)"
+      : "rgba(34,197,94,.08)"
+    : "transparent";
+
+  return (
+    <div
+      style={{
+        marginLeft: depth * 12,
+        borderLeft: `2px solid ${isChanged ? accentColor : "transparent"}`,
+        background: backgroundColor,
+        borderRadius: 4,
+        padding: "1px 0 1px .5rem",
+      }}
+    >
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "minmax(96px, max-content) 1fr",
+          gap: ".6rem",
+          alignItems: "start",
+        }}
+      >
+        <span
+          style={{
+            color: isChanged ? S.text : S.muted,
+            wordBreak: "break-word",
+          }}
+        >
+          {label}
+        </span>
+        <div>{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function PayloadLeaf({ value, depth }: { value: string; depth: number }) {
+  return (
+    <div
+      style={{
+        marginLeft: depth === 0 ? 0 : 2,
+        color: S.dim,
+        wordBreak: "break-word",
+        whiteSpace: "pre-wrap",
+      }}
+    >
+      {value}
+    </div>
+  );
+}
+
+function RelatedLogsTable({
+  rows,
+  isLoading,
+  onOpen,
+}: {
+  rows: Array<{
+    id: string;
+    occurredAt: string;
+    actorUserId?: string;
+    actorUserName?: string;
+    actionType: string;
+    resourceType: string;
+    summary?: string;
+  }>;
+  isLoading: boolean;
+  onOpen: (auditLogId: string) => void;
+}) {
+  if (isLoading) {
+    return (
+      <p
+        style={{
+          fontFamily: S.mono,
+          fontSize: ".85rem",
+          color: S.muted,
+          margin: 0,
+        }}
+      >
+        Loading related audit logs...
+      </p>
+    );
+  }
+
+  if (rows.length === 0) {
+    return (
+      <p
+        style={{
+          fontFamily: S.mono,
+          fontSize: ".85rem",
+          color: S.muted,
+          margin: 0,
+        }}
+      >
+        No other audit logs share this correlation ID.
+      </p>
+    );
+  }
+
+  return (
+    <div style={{ overflowX: "auto" }}>
+      <table
+        style={{
+          width: "100%",
+          borderCollapse: "collapse",
+          fontFamily: S.mono,
+          fontSize: ".82rem",
+        }}
+      >
+        <thead>
+          <tr
+            style={{
+              borderBottom: `1px solid ${S.border}`,
+              color: S.muted,
+              textTransform: "uppercase",
+              fontSize: "10px",
+              letterSpacing: ".14em",
+            }}
+          >
+            <th style={relatedHeaderCellStyle}>When</th>
+            <th style={relatedHeaderCellStyle}>Actor</th>
+            <th style={relatedHeaderCellStyle}>Action</th>
+            <th style={relatedHeaderCellStyle}>Resource</th>
+            <th style={relatedHeaderCellStyle}>Summary</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr
+              key={row.id}
+              onClick={() => onOpen(row.id)}
+              style={{
+                borderBottom: `1px solid ${S.border}`,
+                cursor: "pointer",
+              }}
+            >
+              <td style={relatedBodyCellStyle}>
+                {formatOccurredAt(row.occurredAt)}
+              </td>
+              <td style={relatedBodyCellStyle}>
+                {row.actorUserName ?? row.actorUserId ?? "System"}
+              </td>
+              <td style={relatedBodyCellStyle}>
+                {row.actionType.replaceAll("_", " ")}
+              </td>
+              <td style={relatedBodyCellStyle}>
+                {row.resourceType.replaceAll("_", " ")}
+              </td>
+              <td style={relatedBodyCellStyle}>{row.summary ?? "—"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -597,4 +1064,21 @@ const panelStyle: CSSProperties = {
   border: `1px solid ${S.border}`,
   borderRadius: 10,
   padding: "1.25rem 1.5rem",
+};
+
+const detailCardStyle: CSSProperties = {
+  ...panelStyle,
+  display: "flex",
+  flexDirection: "column",
+};
+
+const relatedHeaderCellStyle: CSSProperties = {
+  padding: ".85rem 1rem",
+  textAlign: "left",
+};
+
+const relatedBodyCellStyle: CSSProperties = {
+  padding: ".9rem 1rem",
+  color: S.text,
+  verticalAlign: "top",
 };

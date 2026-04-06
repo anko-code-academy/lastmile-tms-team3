@@ -32,13 +32,14 @@ public class AuditLogsController(
         [FromQuery] AuditActionType? actionType = null,
         [FromQuery] AuditResourceType? resourceType = null,
         [FromQuery] string? resourceId = null,
+        [FromQuery] string? correlationId = null,
         [FromQuery] DateTimeOffset? from = null,
         [FromQuery] DateTimeOffset? to = null,
         CancellationToken cancellationToken = default)
     {
         await using var context = await dbContextFactory.CreateDbContextAsync(cancellationToken);
 
-        var parameters = new AuditLogQueryParameters(actor, actionType, resourceType, resourceId, from, to);
+        var parameters = new AuditLogQueryParameters(actor, actionType, resourceType, resourceId, correlationId, from, to);
         var rows = await context.AuditLogs
             .AsNoTracking()
             .ApplyAuditFilters(parameters)

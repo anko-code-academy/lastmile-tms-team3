@@ -3,12 +3,38 @@ import {
   getAuditLogAction,
   searchAuditLogsAction,
 } from "@/lib/actions/auditLogs";
+import { SortDirection } from "@/lib/types/parcel";
 import type { SearchAuditLogsInput } from "@/lib/types/auditLog";
 
 export function useSearchAuditLogs(input: SearchAuditLogsInput) {
   return useQuery({
     queryKey: ["auditLogs", "search", input],
     queryFn: () => searchAuditLogsAction(input),
+  });
+}
+
+export function useRelatedAuditLogs(
+  correlationId: string | null | undefined,
+  enabled: boolean,
+) {
+  return useQuery({
+    queryKey: ["auditLogs", "related", correlationId],
+    queryFn: () =>
+      searchAuditLogsAction({
+        actor: null,
+        actionType: null,
+        resourceType: null,
+        resourceId: null,
+        correlationId: correlationId ?? null,
+        from: null,
+        to: null,
+        sortBy: "OCCURRED_AT",
+        sortDirection: SortDirection.Desc,
+        cursor: null,
+        pagingDirection: undefined,
+        pageSize: 20,
+      }),
+    enabled: enabled && Boolean(correlationId),
   });
 }
 

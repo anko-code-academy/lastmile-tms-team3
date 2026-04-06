@@ -194,7 +194,7 @@ public class AuditLogIntegrationTests(ApiWebApplicationFactory factory)
     public async Task UpdateDriverStatus_Deactivate_Creates_Searchable_Audit_Log()
     {
         var adminToken = await GraphQLRequestHelper.GetAdminTokenAsync(_client);
-        var driverId = await InsertDriverAsync();
+        var (driverId, driverEmail) = await InsertDriverAsync();
 
         var mutation = @"
             mutation UpdateDriverStatus($input: UpdateDriverStatusDtoInput!) {
@@ -239,6 +239,8 @@ public class AuditLogIntegrationTests(ApiWebApplicationFactory factory)
         auditNode.GetProperty("summary").GetString().Should().Contain("deactivated");
         auditNode.GetProperty("beforeValuesJson").GetString().Should().Contain("true");
         auditNode.GetProperty("afterValuesJson").GetString().Should().Contain("false");
+        auditNode.GetProperty("beforeValuesJson").GetString().Should().Contain(driverEmail);
+        auditNode.GetProperty("afterValuesJson").GetString().Should().Contain(driverEmail);
     }
 
     [Fact]
@@ -262,6 +264,70 @@ public class AuditLogIntegrationTests(ApiWebApplicationFactory factory)
             .EnumerateArray()
             .Any(entry => entry.GetProperty("afterValuesJson").GetString()!.Contains(markerEmail, StringComparison.Ordinal))
             .Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task AuditLogs_Can_Be_Filtered_By_CorrelationId()
+    {
+        var adminToken = await GraphQLRequestHelper.GetAdminTokenAsync(_client);
+        var correlationId = $"corr-{Guid.NewGuid():N}";
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var occurredAt = DateTimeOffset.UtcNow;
+
+            db.AuditLogs.AddRange(
+                new AuditLog
+                {
+                    Id = Guid.NewGuid(),
+                    OccurredAt = occurredAt,
+                    ActorUserId = "admin",
+                    ActorUserName = "admin@lastmile.local",
+                    ActionType = AuditActionType.Create,
+                    ResourceType = AuditResourceType.User,
+                    ResourceId = Guid.NewGuid().ToString(),
+                    CorrelationId = correlationId,
+                    Summary = "Correlation test create"
+                },
+                new AuditLog
+                {
+                    Id = Guid.NewGuid(),
+                    OccurredAt = occurredAt.AddSeconds(1),
+                    ActorUserId = "admin",
+                    ActorUserName = "admin@lastmile.local",
+                    ActionType = AuditActionType.Update,
+                    ResourceType = AuditResourceType.Vehicle,
+                    ResourceId = Guid.NewGuid().ToString(),
+                    CorrelationId = correlationId,
+                    Summary = "Correlation test update"
+                },
+                new AuditLog
+                {
+                    Id = Guid.NewGuid(),
+                    OccurredAt = occurredAt.AddSeconds(2),
+                    ActorUserId = "admin",
+                    ActorUserName = "admin@lastmile.local",
+                    ActionType = AuditActionType.Delete,
+                    ResourceType = AuditResourceType.Driver,
+                    ResourceId = Guid.NewGuid().ToString(),
+                    CorrelationId = $"other-{Guid.NewGuid():N}",
+                    Summary = "Different correlation"
+                });
+
+            await db.SaveChangesAsync();
+        }
+
+        var auditBody = await QueryAuditLogsAsync(
+            token: adminToken,
+            correlationId: correlationId);
+
+        var nodes = auditBody.GetProperty("data").GetProperty("auditLogs").GetProperty("nodes")
+            .EnumerateArray()
+            .ToArray();
+
+        nodes.Should().HaveCount(2);
+        nodes.Should().OnlyContain(entry => entry.GetProperty("correlationId").GetString() == correlationId);
     }
 
     [Fact]
@@ -324,6 +390,70 @@ public class AuditLogIntegrationTests(ApiWebApplicationFactory factory)
         body.Should().Contain(",Create,User,");
         body.Should().Contain(userId);
         body.Should().Contain(email);
+    }
+
+    [Fact]
+    public async Task AuditLog_Export_Can_Be_Filtered_By_CorrelationId()
+    {
+        var adminToken = await GraphQLRequestHelper.GetAdminTokenAsync(_client);
+        var correlationId = $"export-corr-{Guid.NewGuid():N}";
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var occurredAt = DateTimeOffset.UtcNow;
+
+            db.AuditLogs.AddRange(
+                new AuditLog
+                {
+                    Id = Guid.NewGuid(),
+                    OccurredAt = occurredAt,
+                    ActorUserId = "admin",
+                    ActorUserName = "admin@lastmile.local",
+                    ActionType = AuditActionType.Create,
+                    ResourceType = AuditResourceType.User,
+                    ResourceId = Guid.NewGuid().ToString(),
+                    CorrelationId = correlationId,
+                    Summary = "Export correlation create"
+                },
+                new AuditLog
+                {
+                    Id = Guid.NewGuid(),
+                    OccurredAt = occurredAt.AddSeconds(1),
+                    ActorUserId = "admin",
+                    ActorUserName = "admin@lastmile.local",
+                    ActionType = AuditActionType.Update,
+                    ResourceType = AuditResourceType.Vehicle,
+                    ResourceId = Guid.NewGuid().ToString(),
+                    CorrelationId = correlationId,
+                    Summary = "Export correlation update"
+                },
+                new AuditLog
+                {
+                    Id = Guid.NewGuid(),
+                    OccurredAt = occurredAt.AddSeconds(2),
+                    ActorUserId = "admin",
+                    ActorUserName = "admin@lastmile.local",
+                    ActionType = AuditActionType.Delete,
+                    ResourceType = AuditResourceType.Driver,
+                    ResourceId = Guid.NewGuid().ToString(),
+                    CorrelationId = $"other-{Guid.NewGuid():N}",
+                    Summary = "Export different correlation"
+                });
+
+            await db.SaveChangesAsync();
+        }
+
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+
+        var response = await _client.GetAsync($"/api/audit-logs/export?correlationId={correlationId}");
+        var body = await response.Content.ReadAsStringAsync();
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        body.Should().Contain(correlationId);
+        body.Should().Contain("Export correlation create");
+        body.Should().Contain("Export correlation update");
+        body.Should().NotContain("Export different correlation");
     }
 
     [Fact]
@@ -436,6 +566,7 @@ public class AuditLogIntegrationTests(ApiWebApplicationFactory factory)
         string? resourceId = null,
         string? actionType = null,
         string? actor = null,
+        string? correlationId = null,
         string? from = null,
         string? to = null)
     {
@@ -458,6 +589,7 @@ public class AuditLogIntegrationTests(ApiWebApplicationFactory factory)
                         actionType
                         resourceType
                         resourceId
+                        correlationId
                         summary
                         beforeValuesJson
                         afterValuesJson
@@ -468,7 +600,7 @@ public class AuditLogIntegrationTests(ApiWebApplicationFactory factory)
         var response = await GraphQLRequestHelper.QueryAsync(
             _client,
             query,
-            BuildAuditLogQueryVariables(actor, actionType, resourceType, resourceId, from, to),
+            BuildAuditLogQueryVariables(actor, actionType, resourceType, resourceId, correlationId, from, to),
             token);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -480,6 +612,7 @@ public class AuditLogIntegrationTests(ApiWebApplicationFactory factory)
         string? actionType,
         string? resourceType,
         string? resourceId,
+        string? correlationId,
         string? from,
         string? to)
     {
@@ -493,6 +626,9 @@ public class AuditLogIntegrationTests(ApiWebApplicationFactory factory)
 
         if (!string.IsNullOrWhiteSpace(resourceId))
             where["resourceId"] = new Dictionary<string, object?> { ["eq"] = resourceId };
+
+        if (!string.IsNullOrWhiteSpace(correlationId))
+            where["correlationId"] = new Dictionary<string, object?> { ["eq"] = correlationId };
 
         var occurredAt = new Dictionary<string, object?>();
 
@@ -540,23 +676,25 @@ public class AuditLogIntegrationTests(ApiWebApplicationFactory factory)
         return body.GetProperty("data").GetProperty("createUser").GetString()!;
     }
 
-    private async Task<string> InsertDriverAsync()
+    private async Task<(string DriverId, string Email)> InsertDriverAsync()
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var email = $"audit.driver.{Guid.NewGuid():N}@example.com";
 
         var driver = Driver.Create(
             firstName: "Audit",
             lastName: $"Driver{Guid.NewGuid():N}"[..12],
             phone: "+16155550199",
-            email: $"audit.driver.{Guid.NewGuid():N}@example.com",
+            email: email,
             licenseNumber: $"TN-DL-{Guid.NewGuid():N}"[..14],
             licenseExpiryDate: DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)));
 
         db.Drivers.Add(driver);
         await db.SaveChangesAsync();
 
-        return driver.Id.ToString();
+        return (driver.Id.ToString(), email);
     }
 
     private async Task InsertParcelAsync(Guid parcelId, string trackingNumber, ParcelStatus status)

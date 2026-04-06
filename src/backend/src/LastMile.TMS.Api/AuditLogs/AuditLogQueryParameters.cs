@@ -7,5 +7,6 @@ public sealed record AuditLogQueryParameters(
     AuditActionType? ActionType = null,
     AuditResourceType? ResourceType = null,
     string? ResourceId = null,
+    string? CorrelationId = null,
     DateTimeOffset? From = null,
     DateTimeOffset? To = null);

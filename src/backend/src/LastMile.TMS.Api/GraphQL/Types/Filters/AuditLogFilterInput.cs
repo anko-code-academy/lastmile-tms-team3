@@ -12,6 +12,7 @@ public sealed class AuditLogFilterInput : FilterInputType<AuditLog>
         descriptor.Field(x => x.ActionType);
         descriptor.Field(x => x.ResourceType);
         descriptor.Field(x => x.ResourceId);
+        descriptor.Field(x => x.CorrelationId);
         descriptor.Field(x => x.OccurredAt);
     }
 }

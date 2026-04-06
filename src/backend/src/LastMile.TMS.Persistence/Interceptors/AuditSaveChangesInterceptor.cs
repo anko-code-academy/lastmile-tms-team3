@@ -268,22 +268,8 @@ public sealed class AuditSaveChangesInterceptor(IHttpContextAccessor httpContext
             if (ShouldIgnoreProperty(property.Metadata.Name))
                 continue;
 
-            if (!property.IsModified)
-                continue;
-
-            if (Equals(property.OriginalValue, property.CurrentValue))
-                continue;
-
             values[property.Metadata.Name] = NormalizeAuditValue(
                 useOriginalValues ? property.OriginalValue : property.CurrentValue);
-        }
-
-        if ((actionType == AuditActionType.Deactivate || actionType == AuditActionType.Activate) &&
-            entry.Properties.Any(property => property.Metadata.Name == IsActivePropertyName))
-        {
-            values[IsActivePropertyName] = NormalizeAuditValue(useOriginalValues
-                ? entry.Property(IsActivePropertyName).OriginalValue
-                : entry.Property(IsActivePropertyName).CurrentValue);
         }
 
         return values;
