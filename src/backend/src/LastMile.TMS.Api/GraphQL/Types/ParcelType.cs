@@ -38,7 +38,7 @@ public class ParcelType : ObjectType<Parcel>
             .Resolve(async context =>
             {
                 var parcel = context.Parent<Parcel>();
-                var loader = context.DataLoader<ParcelContentItemsCountByParcelIdDataLoader>();
+                var loader = context.DataLoader<ParcelContentItemsCountDataLoader>();
 
                 return await loader.LoadAsync(parcel.Id, context.RequestAborted);
             });

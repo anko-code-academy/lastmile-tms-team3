@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LastMile.TMS.Api.GraphQL.DataLoaders;
 
-public sealed class ParcelContentItemsCountByParcelIdDataLoader(
+public sealed class ParcelContentItemsCountDataLoader(
     IDbContextFactory<AppDbContext> dbContextFactory,
     IBatchScheduler batchScheduler,
     DataLoaderOptions? options = null)

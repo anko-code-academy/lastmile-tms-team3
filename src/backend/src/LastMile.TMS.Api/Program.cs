@@ -29,7 +29,7 @@ try
     builder.Services
         .AddApplication()
         .AddInfrastructure(builder.Configuration)
-        .AddPersistence(builder.Configuration);
+        .AddPersistence(builder.Configuration, builder.Environment);
 
     builder.Services.AddAuthentication(options =>
     {
@@ -105,7 +105,7 @@ try
         .AddFiltering()
         .AddSorting()
         .AddPagingArguments()
-        .AddDataLoader<ParcelContentItemsCountByParcelIdDataLoader>()
+        .AddDataLoader<ParcelContentItemsCountDataLoader>()
         .RegisterDbContextFactory<AppDbContext>()
         .AddQueryType<Query>()
         .AddMutationType<Mutation>()
