@@ -47,6 +47,21 @@ public class MarkParcelDeliveredValidator : AbstractValidator<MarkParcelDelivere
     }
 }
 
+public class SortParcelValidator : AbstractValidator<SortParcel.Command>
+{
+    public SortParcelValidator()
+    {
+        RuleFor(x => x.Dto.TrackingNumber)
+            .NotEmpty().WithMessage("Tracking number is required")
+            .MaximumLength(50);
+
+        RuleFor(x => x.Dto.LocationCountryCode)
+            .Matches(@"^[A-Z]{2}$")
+            .When(x => !string.IsNullOrEmpty(x.Dto.LocationCountryCode))
+            .WithMessage("Country code must be a two-letter ISO code");
+    }
+}
+
 public class SearchParcelDtoValidator : AbstractValidator<SearchParcelDto>
 {
     public SearchParcelDtoValidator()

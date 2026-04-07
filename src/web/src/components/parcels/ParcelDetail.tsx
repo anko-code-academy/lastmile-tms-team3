@@ -3,268 +3,217 @@
 import type { Parcel } from "@/lib/types/parcel";
 import { ParcelStatusBadge } from "@/components/parcels/ParcelStatusBadge";
 
-function AddressBlock({ title, address }: { title: string; address: Parcel["recipientAddress"] }) {
+const S = {
+  panel:  "rgba(255,255,255,.025)" as const,
+  border: "rgba(255,255,255,.07)"  as const,
+  text:   "#e2e8f0"                as const,
+  muted:  "#4a5f7a"                as const,
+  dim:    "#3a526e"                as const,
+  accent: "#f59e0b"                as const,
+  mono:   "var(--font-geist-mono, monospace)" as const,
+};
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
-      <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-3">
+    <div style={{ background: S.panel, border: `1px solid ${S.border}`, borderRadius: 10, padding: "1.25rem 1.5rem" }}>
+      <p style={{ fontFamily: S.mono, fontSize: "9px", letterSpacing: ".18em", color: S.muted, textTransform: "uppercase", marginBottom: "1rem" }}>
         {title}
       </p>
-      <div className="space-y-1 text-sm">
-        <p className="font-medium">
-          {address.contactName ?? address.companyName ?? "—"}
-        </p>
-        {address.companyName && address.contactName && (
-          <p className="text-muted-foreground">{address.companyName}</p>
-        )}
-        <p>{address.street1}</p>
-        {address.street2 && <p>{address.street2}</p>}
-        <p>
-          {address.city}, {address.state} {address.postalCode}
-        </p>
-        <p>{address.countryCode}</p>
-        {address.phone && <p className="text-muted-foreground">{address.phone}</p>}
-        {address.email && <p className="text-muted-foreground">{address.email}</p>}
-      </div>
+      {children}
     </div>
   );
 }
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="flex justify-between border-b border-border/50 py-2 text-sm last:border-0">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="font-medium">{value ?? "—"}</span>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", borderBottom: `1px solid rgba(255,255,255,.04)`, padding: ".5rem 0" }}>
+      <span style={{ fontFamily: S.mono, fontSize: "10px", color: S.muted, letterSpacing: ".08em" }}>{label}</span>
+      <span style={{ fontFamily: S.mono, fontSize: ".8rem", color: S.text, fontWeight: 600 }}>{value ?? "—"}</span>
+    </div>
+  );
+}
+
+function AddressBlock({ title, address }: { title: string; address: Parcel["recipientAddress"] }) {
+  return (
+    <div style={{ background: S.panel, border: `1px solid ${S.border}`, borderRadius: 10, padding: "1.25rem 1.5rem" }}>
+      <p style={{ fontFamily: S.mono, fontSize: "9px", letterSpacing: ".18em", color: S.muted, textTransform: "uppercase", marginBottom: ".75rem" }}>
+        {title}
+      </p>
+      <p style={{ fontFamily: S.mono, fontSize: ".875rem", fontWeight: 700, color: S.text, marginBottom: ".25rem" }}>
+        {address.contactName ?? address.companyName ?? "—"}
+      </p>
+      {address.companyName && address.contactName && (
+        <p style={{ fontSize: ".8rem", color: S.muted, marginBottom: ".25rem" }}>{address.companyName}</p>
+      )}
+      <p style={{ fontSize: ".875rem", color: S.muted }}>{address.street1}</p>
+      {address.street2 && <p style={{ fontSize: ".875rem", color: S.muted }}>{address.street2}</p>}
+      <p style={{ fontSize: ".875rem", color: S.muted }}>
+        {address.city}, {address.state} {address.postalCode}
+      </p>
+      <p style={{ fontFamily: S.mono, fontSize: ".8rem", color: S.dim }}>{address.countryCode}</p>
+      {address.phone && <p style={{ fontSize: ".8rem", color: S.dim, marginTop: ".25rem" }}>{address.phone}</p>}
+      {address.email && <p style={{ fontSize: ".8rem", color: S.dim }}>{address.email}</p>}
     </div>
   );
 }
 
 export function ParcelDetail({ parcel }: { parcel: Parcel }) {
   return (
-    <div className="space-y-6">
+    <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div>
-          <p className="font-mono text-xs uppercase tracking-widest text-amber-400 mb-1">
+          <p style={{ fontFamily: S.mono, fontSize: "10px", letterSpacing: ".2em", color: S.accent, textTransform: "uppercase", marginBottom: ".375rem" }}>
             Parcel
           </p>
-          <h1 className="text-2xl font-bold font-mono tracking-tight">
+          <h1 style={{ fontFamily: S.mono, fontSize: "1.5rem", fontWeight: 800, color: S.text, letterSpacing: "-.02em", lineHeight: 1 }}>
             {parcel.trackingNumber}
           </h1>
           {parcel.description && (
-            <p className="text-muted-foreground mt-1">{parcel.description}</p>
+            <p style={{ fontSize: ".875rem", color: S.muted, marginTop: ".375rem" }}>{parcel.description}</p>
           )}
         </div>
-        <div className="flex items-center gap-3">
+        <div style={{ display: "flex", alignItems: "center", gap: ".75rem" }}>
           <ParcelStatusBadge status={parcel.status} />
-          <span className="text-sm text-muted-foreground">
+          <span style={{ fontFamily: S.mono, fontSize: ".8rem", color: S.dim }}>
             {parcel.serviceType.charAt(0) + parcel.serviceType.slice(1).toLowerCase()}
           </span>
         </div>
       </div>
 
       {/* Addresses */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
         <AddressBlock title="Recipient" address={parcel.recipientAddress} />
-        <AddressBlock title="Shipper" address={parcel.shipperAddress} />
+        <AddressBlock title="Shipper"   address={parcel.shipperAddress}   />
       </div>
 
-      {/* Physical & Value Info */}
-      <div className="rounded-xl border border-border bg-card p-4">
-        <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-3">
-          Physical Details
-        </p>
-        <div className="grid grid-cols-2 gap-x-8 gap-y-1">
-          <InfoRow
-            label="Weight"
-            value={`${parcel.weight} ${parcel.weightUnit.toLowerCase()}`}
-          />
-          <InfoRow
-            label="Dimensions"
-            value={`${parcel.length}×${parcel.width}×${parcel.height} ${parcel.dimensionUnit.toLowerCase()}`}
-          />
-          <InfoRow
-            label="Declared Value"
-            value={`${parcel.currency} ${parcel.declaredValue}`}
-          />
-          <InfoRow label="Parcel Type" value={parcel.parcelType} />
-          <InfoRow
-            label="Est. Delivery"
-            value={
-              parcel.estimatedDeliveryDate
-                ? new Date(parcel.estimatedDeliveryDate).toLocaleDateString()
-                : "—"
-            }
-          />
-          <InfoRow
-            label="Actual Delivery"
-            value={
-              parcel.actualDeliveryDate
-                ? new Date(parcel.actualDeliveryDate).toLocaleDateString()
-                : "—"
-            }
-          />
+      {/* Physical details */}
+      <Section title="Physical Details">
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", columnGap: "2rem" }}>
+          <InfoRow label="Weight"           value={`${parcel.weight} ${parcel.weightUnit.toLowerCase()}`} />
+          <InfoRow label="Dimensions"       value={`${parcel.length}×${parcel.width}×${parcel.height} ${parcel.dimensionUnit.toLowerCase()}`} />
+          <InfoRow label="Declared Value"   value={`${parcel.currency} ${parcel.declaredValue}`} />
+          <InfoRow label="Parcel Type"      value={parcel.parcelType} />
+          <InfoRow label="Est. Delivery"    value={parcel.estimatedDeliveryDate ? new Date(parcel.estimatedDeliveryDate).toLocaleDateString() : null} />
+          <InfoRow label="Actual Delivery"  value={parcel.actualDeliveryDate    ? new Date(parcel.actualDeliveryDate).toLocaleDateString()    : null} />
           <InfoRow label="Delivery Attempts" value={parcel.deliveryAttempts} />
-          <InfoRow label="Zone" value={parcel.zone?.name} />
+          <InfoRow label="Zone"             value={parcel.zone?.name} />
         </div>
-      </div>
+      </Section>
 
-      {/* Tracking Timeline */}
+      {/* Tracking timeline */}
       {parcel.trackingEvents.length > 0 && (
-        <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-4">
-            Tracking History
-          </p>
-          <div className="relative space-y-0">
+        <Section title="Tracking History">
+          <div>
             {parcel.trackingEvents.map((event, i) => (
-              <div key={event.id} className="flex gap-4 pb-4 last:pb-0">
-                {/* timeline dot + line */}
-                <div className="flex flex-col items-center">
-                  <div className="mt-1.5 h-2 w-2 rounded-full bg-amber-400" />
+              <div key={event.id} style={{ display: "flex", gap: "1rem", paddingBottom: i < parcel.trackingEvents.length - 1 ? "1rem" : 0 }}>
+                {/* Dot + line */}
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                  <div style={{ marginTop: 4, width: 8, height: 8, borderRadius: "50%", background: S.accent, flexShrink: 0 }} />
                   {i < parcel.trackingEvents.length - 1 && (
-                    <div className="mt-1 w-px flex-1 bg-border" />
+                    <div style={{ flex: 1, width: 1, background: `rgba(255,255,255,.08)`, marginTop: 4 }} />
                   )}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <p className="text-sm font-medium">
+                {/* Content */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: ".5rem" }}>
+                    <p style={{ fontFamily: S.mono, fontSize: ".8rem", fontWeight: 700, color: S.text }}>
                       {event.eventType.replace(/_/g, " ").charAt(0).toUpperCase() +
                         event.eventType.replace(/_/g, " ").slice(1).toLowerCase()}
                     </p>
-                    <span className="text-xs text-muted-foreground shrink-0">
+                    <span style={{ fontFamily: S.mono, fontSize: "9px", color: S.dim, flexShrink: 0 }}>
                       {new Date(event.timestamp).toLocaleString()}
                     </span>
                   </div>
                   {event.description && (
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {event.description}
-                    </p>
+                    <p style={{ fontSize: ".8rem", color: S.muted, marginTop: 2 }}>{event.description}</p>
                   )}
-                  <div className="flex gap-2 text-xs text-muted-foreground mt-0.5">
-                    {[event.locationCity, event.locationState, event.locationCountryCode]
-                      .filter(Boolean)
-                      .join(", ")}
-                    {event.operator && <span>· {event.operator}</span>}
-                  </div>
+                  <p style={{ fontFamily: S.mono, fontSize: "9px", color: S.dim, marginTop: 2 }}>
+                    {[event.locationCity, event.locationState, event.locationCountryCode].filter(Boolean).join(", ")}
+                    {event.operator ? ` · ${event.operator}` : ""}
+                  </p>
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        </Section>
       )}
 
-      {/* Content Items */}
+      {/* Content items */}
       {parcel.contentItems.length > 0 && (
-        <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-3">
-            Contents ({parcel.contentItems.length})
-          </p>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+        <Section title={`Contents (${parcel.contentItems.length})`}>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
-                <tr className="border-b border-border text-left text-xs text-muted-foreground uppercase tracking-wider">
-                  <th className="pb-2 pr-4 font-medium">HS Code</th>
-                  <th className="pb-2 pr-4 font-medium">Description</th>
-                  <th className="pb-2 pr-4 font-medium text-right">Qty</th>
-                  <th className="pb-2 pr-4 font-medium text-right">Unit Value</th>
-                  <th className="pb-2 font-medium text-right">Weight</th>
+                <tr style={{ borderBottom: `1px solid ${S.border}` }}>
+                  {["HS Code", "Description", "Qty", "Unit Value", "Weight"].map((h) => (
+                    <th key={h} style={{ padding: ".5rem 1rem .5rem 0", fontFamily: S.mono, fontSize: "9px", letterSpacing: ".12em", color: S.muted, textTransform: "uppercase", textAlign: h === "Qty" || h === "Unit Value" || h === "Weight" ? "right" : "left", fontWeight: 600 }}>
+                      {h}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
                 {parcel.contentItems.map((item) => (
-                  <tr key={item.id} className="border-b border-border/50 last:border-0">
-                    <td className="py-2 pr-4 font-mono text-xs">{item.hsCode}</td>
-                    <td className="py-2 pr-4">{item.description}</td>
-                    <td className="py-2 pr-4 text-right">{item.quantity}</td>
-                    <td className="py-2 pr-4 text-right">
-                      {item.currency} {item.unitValue}
-                    </td>
-                    <td className="py-2 text-right">
-                      {item.weight} {item.weightUnit.toLowerCase()}
-                    </td>
+                  <tr key={item.id} style={{ borderBottom: `1px solid rgba(255,255,255,.04)` }}>
+                    <td style={{ padding: ".5rem 1rem .5rem 0", fontFamily: S.mono, fontSize: ".8rem", color: S.dim }}>{item.hsCode}</td>
+                    <td style={{ padding: ".5rem 1rem .5rem 0", fontSize: ".875rem", color: S.muted }}>{item.description}</td>
+                    <td style={{ padding: ".5rem 0", fontFamily: S.mono, fontSize: ".8rem", color: S.text, textAlign: "right" }}>{item.quantity}</td>
+                    <td style={{ padding: ".5rem 1rem", fontFamily: S.mono, fontSize: ".8rem", color: S.text, textAlign: "right" }}>{item.currency} {item.unitValue}</td>
+                    <td style={{ padding: ".5rem 0", fontFamily: S.mono, fontSize: ".8rem", color: S.text, textAlign: "right" }}>{item.weight} {item.weightUnit.toLowerCase()}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </div>
+        </Section>
       )}
 
       {/* Proof of Delivery */}
       {parcel.deliveryConfirmation && (
-        <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-3">
-            Proof of Delivery
-          </p>
-          <div className="grid grid-cols-2 gap-x-8 gap-y-1">
-            <InfoRow
-              label="Received By"
-              value={parcel.deliveryConfirmation.receivedBy}
-            />
-            <InfoRow
-              label="Delivered At"
-              value={new Date(parcel.deliveryConfirmation.deliveredAt).toLocaleString()}
-            />
-            <InfoRow
-              label="Location"
-              value={parcel.deliveryConfirmation.location}
-            />
-            {parcel.deliveryConfirmation.latitude &&
-              parcel.deliveryConfirmation.longitude && (
-                <InfoRow
-                  label="Coordinates"
-                  value={`${parcel.deliveryConfirmation.latitude}, ${parcel.deliveryConfirmation.longitude}`}
-                />
-              )}
+        <Section title="Proof of Delivery">
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", columnGap: "2rem" }}>
+            <InfoRow label="Received By"  value={parcel.deliveryConfirmation.receivedBy} />
+            <InfoRow label="Delivered At" value={new Date(parcel.deliveryConfirmation.deliveredAt).toLocaleString()} />
+            <InfoRow label="Location"     value={parcel.deliveryConfirmation.location} />
+            {parcel.deliveryConfirmation.latitude && parcel.deliveryConfirmation.longitude && (
+              <InfoRow label="Coordinates" value={`${parcel.deliveryConfirmation.latitude}, ${parcel.deliveryConfirmation.longitude}`} />
+            )}
           </div>
           {parcel.deliveryConfirmation.signatureImage && (
-            <div className="mt-4">
-              <p className="text-xs text-muted-foreground mb-2">Signature</p>
+            <div style={{ marginTop: "1rem" }}>
+              <p style={{ fontFamily: S.mono, fontSize: "9px", color: S.dim, marginBottom: ".5rem" }}>Signature</p>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={`data:image/png;base64,${parcel.deliveryConfirmation.signatureImage}`}
-                alt="Signature"
-                className="h-16 bg-white rounded border border-border"
-              />
+              <img src={`data:image/png;base64,${parcel.deliveryConfirmation.signatureImage}`} alt="Signature" style={{ height: 64, background: "#fff", borderRadius: 4, border: `1px solid ${S.border}` }} />
             </div>
           )}
           {parcel.deliveryConfirmation.photo && (
-            <div className="mt-4">
-              <p className="text-xs text-muted-foreground mb-2">Photo</p>
+            <div style={{ marginTop: "1rem" }}>
+              <p style={{ fontFamily: S.mono, fontSize: "9px", color: S.dim, marginBottom: ".5rem" }}>Photo</p>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={`data:image/jpeg;base64,${parcel.deliveryConfirmation.photo}`}
-                alt="Delivery photo"
-                className="h-32 rounded border border-border object-cover"
-              />
+              <img src={`data:image/jpeg;base64,${parcel.deliveryConfirmation.photo}`} alt="Delivery photo" style={{ height: 128, borderRadius: 4, border: `1px solid ${S.border}`, objectFit: "cover" }} />
             </div>
           )}
-        </div>
+        </Section>
       )}
 
       {/* Watchers */}
       {parcel.watchers.length > 0 && (
-        <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-3">
-            Tracking Watchers
-          </p>
-          <ul className="space-y-1">
-            {parcel.watchers.map((w) => (
-              <li key={w.id} className="text-sm">
-                <span className="text-muted-foreground">{w.name ?? w.email}</span>
-                {w.name && <span className="text-muted-foreground ml-2">({w.email})</span>}
-              </li>
-            ))}
-          </ul>
-        </div>
+        <Section title="Tracking Watchers">
+          {parcel.watchers.map((w) => (
+            <p key={w.id} style={{ fontFamily: S.mono, fontSize: ".8rem", color: S.muted, marginBottom: ".25rem" }}>
+              {w.name ?? w.email}{w.name && <span style={{ color: S.dim }}> ({w.email})</span>}
+            </p>
+          ))}
+        </Section>
       )}
 
       {/* Meta */}
-      <div className="text-xs text-muted-foreground font-mono">
+      <p style={{ fontFamily: S.mono, fontSize: "9px", color: S.dim, letterSpacing: ".06em" }}>
         Created {new Date(parcel.createdAt).toLocaleString()}
-        {parcel.lastModifiedAt && (
-          <> · Last modified {new Date(parcel.lastModifiedAt).toLocaleString()}</>
-        )}
-      </div>
+        {parcel.lastModifiedAt && <> · Modified {new Date(parcel.lastModifiedAt).toLocaleString()}</>}
+      </p>
     </div>
   );
 }

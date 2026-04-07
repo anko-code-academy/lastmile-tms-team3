@@ -2,31 +2,39 @@
 
 import { ParcelStatus } from "@/lib/types/parcel";
 
-const STATUS_CONFIG: Record<ParcelStatus, { label: string; color: string }> = {
-  [ParcelStatus.Registered]:         { label: "Registered",        color: "bg-slate-500/20 text-slate-400 border-slate-500/30" },
-  [ParcelStatus.ReceivedAtDepot]:    { label: "Received",         color: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
-  [ParcelStatus.Sorted]:              { label: "Sorted",           color: "bg-indigo-500/20 text-indigo-400 border-indigo-500/30" },
-  [ParcelStatus.Staged]:              { label: "Staged",           color: "bg-violet-500/20 text-violet-400 border-violet-500/30" },
-  [ParcelStatus.Loaded]:              { label: "Loaded",           color: "bg-purple-500/20 text-purple-400 border-purple-500/30" },
-  [ParcelStatus.OutForDelivery]:      { label: "Out for Delivery", color: "bg-amber-500/20 text-amber-400 border-amber-500/30" },
-  [ParcelStatus.Delivered]:           { label: "Delivered",        color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" },
-  [ParcelStatus.FailedAttempt]:       { label: "Failed Attempt",   color: "bg-orange-500/20 text-orange-400 border-orange-500/30" },
-  [ParcelStatus.ReturnedToDepot]:     { label: "Returned",         color: "bg-rose-500/20 text-rose-400 border-rose-500/30" },
-  [ParcelStatus.Cancelled]:           { label: "Cancelled",        color: "bg-red-500/20 text-red-400 border-red-500/30" },
-  [ParcelStatus.Exception]:           { label: "Exception",        color: "bg-pink-500/20 text-pink-400 border-pink-500/30" },
+const STATUS_CONFIG: Record<ParcelStatus, { label: string; color: string; bg: string; border: string }> = {
+  [ParcelStatus.Registered]:      { label: "Registered",       color: "#94a3b8", bg: "rgba(148,163,184,.1)", border: "rgba(148,163,184,.25)" },
+  [ParcelStatus.ReceivedAtDepot]: { label: "Received",         color: "#60a5fa", bg: "rgba(96,165,250,.1)",  border: "rgba(96,165,250,.25)"  },
+  [ParcelStatus.Sorted]:          { label: "Sorted",           color: "#818cf8", bg: "rgba(129,140,248,.1)", border: "rgba(129,140,248,.25)" },
+  [ParcelStatus.Staged]:          { label: "Staged",           color: "#a78bfa", bg: "rgba(167,139,250,.1)", border: "rgba(167,139,250,.25)" },
+  [ParcelStatus.Loaded]:          { label: "Loaded",           color: "#c084fc", bg: "rgba(192,132,252,.1)", border: "rgba(192,132,252,.25)" },
+  [ParcelStatus.OutForDelivery]:  { label: "Out for Delivery", color: "#f59e0b", bg: "rgba(245,158,11,.1)",  border: "rgba(245,158,11,.25)"  },
+  [ParcelStatus.Delivered]:       { label: "Delivered",        color: "#22c55e", bg: "rgba(34,197,94,.1)",   border: "rgba(34,197,94,.25)"   },
+  [ParcelStatus.FailedAttempt]:   { label: "Failed Attempt",   color: "#fb923c", bg: "rgba(251,146,60,.1)",  border: "rgba(251,146,60,.25)"  },
+  [ParcelStatus.ReturnedToDepot]: { label: "Returned",         color: "#f43f5e", bg: "rgba(244,63,94,.1)",   border: "rgba(244,63,94,.25)"   },
+  [ParcelStatus.Cancelled]:       { label: "Cancelled",        color: "#ef4444", bg: "rgba(239,68,68,.1)",   border: "rgba(239,68,68,.25)"   },
+  [ParcelStatus.Exception]:       { label: "Exception",        color: "#ec4899", bg: "rgba(236,72,153,.1)",  border: "rgba(236,72,153,.25)"  },
 };
 
-interface ParcelStatusBadgeProps {
-  status: ParcelStatus;
-}
+const MONO = "var(--font-geist-mono, monospace)";
 
-export function ParcelStatusBadge({ status }: ParcelStatusBadgeProps) {
-  const config = STATUS_CONFIG[status] ?? { label: status, color: "bg-muted text-muted-foreground" };
+export function ParcelStatusBadge({ status }: { status: ParcelStatus }) {
+  const cfg = STATUS_CONFIG[status] ?? { label: status, color: "#94a3b8", bg: "rgba(148,163,184,.1)", border: "rgba(148,163,184,.25)" };
   return (
-    <span
-      className={`inline-flex items-center rounded border px-2 py-0.5 text-xs font-medium ${config.color}`}
-    >
-      {config.label}
+    <span style={{
+      display: "inline-block",
+      fontFamily: MONO,
+      fontSize: "9px",
+      letterSpacing: ".1em",
+      textTransform: "uppercase",
+      padding: ".2rem .5rem",
+      borderRadius: 4,
+      border: `1px solid ${cfg.border}`,
+      background: cfg.bg,
+      color: cfg.color,
+      whiteSpace: "nowrap",
+    }}>
+      {cfg.label}
     </span>
   );
 }
