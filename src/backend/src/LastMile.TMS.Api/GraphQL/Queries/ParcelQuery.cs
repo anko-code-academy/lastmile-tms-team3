@@ -12,7 +12,7 @@ namespace LastMile.TMS.Api.GraphQL.Queries;
 [ExtendObjectType(OperationTypeNames.Query)]
 public class ParcelQuery
 {
-    [Authorize(Policy = "Authenticated")]
+    [Authorize(Policy = "AdminOrOperationsManager")]
     [UseFirstOrDefault]
     [UseProjection]
     public IQueryable<Parcel> GetParcel(
@@ -22,7 +22,7 @@ public class ParcelQuery
             .AsNoTracking()
             .Where(p => p.Id == id);
 
-    [Authorize(Policy = "Authenticated")]
+    [Authorize(Policy = "AdminOrOperationsManager")]
     [UsePaging(IncludeTotalCount = true, MaxPageSize = 100)]
     [UseProjection]
     [UseFiltering(typeof(ParcelFilterInput))]

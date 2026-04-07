@@ -9,6 +9,53 @@ import { createParcelSchema } from "@/lib/types/parcel";
 import type { CreateParcelInput, ServiceType as ServiceTypeEnum, WeightUnit as WeightUnitEnum, DimensionUnit as DimensionUnitEnum } from "@/lib/types/parcel";
 import { ServiceType, WeightUnit, DimensionUnit } from "@/lib/types/parcel";
 
+const CURRENCIES = [
+  { code: "USD", name: "US Dollar" },
+  { code: "EUR", name: "Euro" },
+  { code: "GBP", name: "British Pound" },
+  { code: "CAD", name: "Canadian Dollar" },
+  { code: "AUD", name: "Australian Dollar" },
+  { code: "JPY", name: "Japanese Yen" },
+  { code: "CHF", name: "Swiss Franc" },
+  { code: "CNY", name: "Chinese Yuan" },
+  { code: "INR", name: "Indian Rupee" },
+  { code: "MXN", name: "Mexican Peso" },
+  { code: "BRL", name: "Brazilian Real" },
+  { code: "KRW", name: "South Korean Won" },
+];
+
+const COUNTRIES = [
+  { code: "US", name: "United States" },
+  { code: "CA", name: "Canada" },
+  { code: "GB", name: "United Kingdom" },
+  { code: "AU", name: "Australia" },
+  { code: "DE", name: "Germany" },
+  { code: "FR", name: "France" },
+  { code: "JP", name: "Japan" },
+  { code: "CN", name: "China" },
+  { code: "IN", name: "India" },
+  { code: "MX", name: "Mexico" },
+  { code: "BR", name: "Brazil" },
+  { code: "KR", name: "South Korea" },
+  { code: "ES", name: "Spain" },
+  { code: "IT", name: "Italy" },
+  { code: "NL", name: "Netherlands" },
+  { code: "SE", name: "Sweden" },
+  { code: "NO", name: "Norway" },
+  { code: "DK", name: "Denmark" },
+  { code: "PL", name: "Poland" },
+  { code: "UA", name: "Ukraine" },
+  { code: "RU", name: "Russia" },
+  { code: "CN", name: "China" },
+  { code: "HK", name: "Hong Kong" },
+  { code: "SG", name: "Singapore" },
+  { code: "AE", name: "United Arab Emirates" },
+  { code: "SA", name: "Saudi Arabia" },
+  { code: "IL", name: "Israel" },
+  { code: "NZ", name: "New Zealand" },
+  { code: "ZA", name: "South Africa" },
+];
+
 const S = {
   bg: "#080c14" as const,
   panel: "rgba(255,255,255,.025)" as const,
@@ -87,8 +134,9 @@ export default function NewParcelPage() {
   const [description, setDescription] = useState("");
 
   function setAddr(key: keyof AddressFormData, who: "recipient" | "shipper") {
-    return (e: React.ChangeEvent<HTMLInputElement>) => {
-      const val = e.target.type === "checkbox" ? (e.target as HTMLInputElement).checked : e.target.value;
+    return (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+      const target = e.target as HTMLInputElement | HTMLSelectElement;
+      const val = target.type === "checkbox" ? (target as HTMLInputElement).checked : target.value;
       if (who === "recipient") setRecipient(r => ({ ...r, [key]: val }));
       else setShipper(s => ({ ...s, [key]: val }));
     };
@@ -158,10 +206,6 @@ export default function NewParcelPage() {
     }
   }
 
-  function copyShipperToRecipient() {
-    setRecipient({ ...shipper });
-  }
-
   const field = (key: keyof AddressFormData, label: string, placeholder: string, who: "recipient" | "shipper", type = "text") => (
     <div>
       <TmLabel htmlFor={`${who}-${key}`}>{label}</TmLabel>
@@ -224,10 +268,10 @@ export default function NewParcelPage() {
                     <div>
                       <TmLabel htmlFor="serviceType">Service Type *</TmLabel>
                       <select id="serviceType" className="tm-select" value={serviceType} onChange={e => setServiceType(e.target.value as ServiceTypeEnum)}>
-                        <option value={ServiceType.Economy}>Economy</option>
-                        <option value={ServiceType.Standard}>Standard</option>
-                        <option value={ServiceType.Express}>Express</option>
-                        <option value={ServiceType.Overnight}>Overnight</option>
+                        <option value={ServiceType.Economy}>Economy — 5–7 business days</option>
+                        <option value={ServiceType.Standard}>Standard — 3–5 business days</option>
+                        <option value={ServiceType.Express}>Express — 1–2 business days</option>
+                        <option value={ServiceType.Overnight}>Overnight — next business day</option>
                       </select>
                     </div>
                     <div>
@@ -246,19 +290,23 @@ export default function NewParcelPage() {
                     </div>
                     <div>
                       <TmLabel htmlFor="description">Description</TmLabel>
-                      <input id="description" className="tm-input" value={description} onChange={e => setDescription(e.target.value)} placeholder="Optional description" style={inputStyle} />
+                      <textarea
+                        id="description"
+                        className="tm-textarea"
+                        value={description}
+                        onChange={e => setDescription(e.target.value)}
+                        placeholder="Optional description"
+                        maxLength={500}
+                        rows={3}
+                        style={{ ...inputStyle, resize: "vertical", minHeight: "80px" }}
+                      />
                     </div>
                   </div>
                 </div>
 
                 {/* Recipient Address */}
                 <div style={{ background: S.panel, border: `1px solid ${S.border}`, borderRadius: 10, padding: "1.5rem" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem", paddingBottom: ".75rem", borderBottom: `1px solid ${S.border}` }}>
-                    <p style={{ fontFamily: S.mono, fontSize: "10px", letterSpacing: ".2em", color: S.accent, textTransform: "uppercase", margin: 0 }}>Recipient Address *</p>
-                    <button type="button" onClick={copyShipperToRecipient} style={{ background: "none", border: "none", color: S.muted, fontFamily: S.mono, fontSize: "10px", cursor: "pointer", textTransform: "uppercase", letterSpacing: ".1em" }}>
-                      Copy from Sender
-                    </button>
-                  </div>
+                  <p style={{ fontFamily: S.mono, fontSize: "10px", letterSpacing: ".2em", color: S.accent, textTransform: "uppercase", margin: "0 0 1.25rem 0", paddingBottom: ".75rem", borderBottom: `1px solid ${S.border}` }}>Recipient Address *</p>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
                     {field("contactName", "Contact Name", "Jane Doe", "recipient")}
                     {field("companyName", "Company", "Acme Corp", "recipient")}
@@ -271,7 +319,9 @@ export default function NewParcelPage() {
                     {field("postalCode", "Postal Code *", "10001", "recipient")}
                     <div>
                       <TmLabel htmlFor="recipient-countryCode">Country Code *</TmLabel>
-                      <input id="recipient-countryCode" className="tm-input" value={recipient.countryCode} onChange={setAddr("countryCode", "recipient")} maxLength={2} placeholder="US" style={{ ...inputStyle, textTransform: "uppercase" }} />
+                      <select id="recipient-countryCode" className="tm-select" value={recipient.countryCode} onChange={setAddr("countryCode", "recipient")}>
+                        {COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.code} — {c.name}</option>)}
+                      </select>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", paddingTop: "1.4rem" }}>
                       <input id="recipient-isResidential" type="checkbox" className="tm-checkbox" checked={recipient.isResidential} onChange={setAddr("isResidential", "recipient")} />
@@ -295,7 +345,9 @@ export default function NewParcelPage() {
                     {field("postalCode", "Postal Code *", "90001", "shipper")}
                     <div>
                       <TmLabel htmlFor="shipper-countryCode">Country Code *</TmLabel>
-                      <input id="shipper-countryCode" className="tm-input" value={shipper.countryCode} onChange={setAddr("countryCode", "shipper")} maxLength={2} placeholder="US" style={{ ...inputStyle, textTransform: "uppercase" }} />
+                      <select id="shipper-countryCode" className="tm-select" value={shipper.countryCode} onChange={setAddr("countryCode", "shipper")}>
+                        {COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.code} — {c.name}</option>)}
+                      </select>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", paddingTop: "1.4rem" }}>
                       <input id="shipper-isResidential" type="checkbox" className="tm-checkbox" checked={shipper.isResidential} onChange={setAddr("isResidential", "shipper")} />
@@ -325,7 +377,9 @@ export default function NewParcelPage() {
                     </div>
                     <div>
                       <TmLabel htmlFor="currency">Currency</TmLabel>
-                      <input id="currency" className="tm-input" value={currency} onChange={e => setCurrency(e.target.value.toUpperCase())} maxLength={3} placeholder="USD" style={{ ...inputStyle, textTransform: "uppercase" }} />
+                      <select id="currency" className="tm-select" value={currency} onChange={e => setCurrency(e.target.value)}>
+                        {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.code} — {c.name}</option>)}
+                      </select>
                     </div>
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "1rem" }}>

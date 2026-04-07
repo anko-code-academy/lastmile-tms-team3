@@ -34,8 +34,8 @@ public static class CreateParcel
 
             var now = DateTimeOffset.UtcNow;
 
-            // Geocode recipient address if coordinates not provided
-            var (recipientLat, recipientLon) = await ResolveCoordinatesAsync(
+            // Geocode both addresses in parallel
+            var recipientTask = ResolveCoordinatesAsync(
                 request.Dto.RecipientAddress.Street1,
                 request.Dto.RecipientAddress.City,
                 request.Dto.RecipientAddress.State,
@@ -45,10 +45,7 @@ public static class CreateParcel
                 request.Dto.RecipientAddress.Longitude,
                 cancellationToken);
 
-            var recipientGeoLocation = CreatePoint(recipientLat, recipientLon);
-
-            // Geocode shipper address if coordinates not provided
-            var (shipperLat, shipperLon) = await ResolveCoordinatesAsync(
+            var shipperTask = ResolveCoordinatesAsync(
                 request.Dto.ShipperAddress.Street1,
                 request.Dto.ShipperAddress.City,
                 request.Dto.ShipperAddress.State,
@@ -58,6 +55,12 @@ public static class CreateParcel
                 request.Dto.ShipperAddress.Longitude,
                 cancellationToken);
 
+            await Task.WhenAll(recipientTask, shipperTask);
+
+            var (recipientLat, recipientLon) = recipientTask.Result;
+            var (shipperLat, shipperLon) = shipperTask.Result;
+
+            var recipientGeoLocation = CreatePoint(recipientLat, recipientLon);
             var shipperGeoLocation = CreatePoint(shipperLat, shipperLon);
 
             var recipientAddress = new Address
