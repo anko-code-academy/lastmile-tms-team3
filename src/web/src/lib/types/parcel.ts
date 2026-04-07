@@ -106,6 +106,18 @@ export interface ParcelWatcher {
   name?: string;
 }
 
+export interface ParcelLabel {
+  id: string;
+  trackingNumber: string;
+  barcodeData: string;
+  recipientName: string | null;
+  recipientAddress: string;
+  zoneName: string | null;
+  parcelType: string | null;
+  serviceType: string;
+  pdfBase64: string;
+}
+
 export interface DeliveryConfirmation {
   id: string;
   receivedBy?: string;

@@ -1,7 +1,10 @@
 "use client";
 
+import { useState } from "react";
+import { Printer } from "lucide-react";
 import type { Parcel } from "@/lib/types/parcel";
 import { ParcelStatusBadge } from "@/components/parcels/ParcelStatusBadge";
+import { downloadParcelLabelPdf, downloadParcelLabelZpl } from "@/lib/actions/labels";
 
 function AddressBlock({ title, address }: { title: string; address: Parcel["recipientAddress"] }) {
   return (
@@ -59,6 +62,7 @@ export function ParcelDetail({ parcel }: { parcel: Parcel }) {
           <span className="text-sm text-muted-foreground">
             {parcel.serviceType.charAt(0) + parcel.serviceType.slice(1).toLowerCase()}
           </span>
+          <PrintLabelMenu parcelId={parcel.id} trackingNumber={parcel.trackingNumber} />
         </div>
       </div>
 
@@ -265,6 +269,66 @@ export function ParcelDetail({ parcel }: { parcel: Parcel }) {
           <> · Last modified {new Date(parcel.lastModifiedAt).toLocaleString()}</>
         )}
       </div>
+    </div>
+  );
+}
+
+function PrintLabelMenu({ parcelId, trackingNumber }: { parcelId: string; trackingNumber: string }) {
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState<string | null>(null);
+
+  async function handlePrint(format: "pdf" | "zpl") {
+    setLoading(format);
+    setOpen(false);
+    try {
+      if (format === "pdf") {
+        await downloadParcelLabelPdf(parcelId, trackingNumber);
+      } else {
+        await downloadParcelLabelZpl(parcelId, trackingNumber);
+      }
+    } catch (err) {
+      console.error("Failed to download label:", err);
+    } finally {
+      setLoading(null);
+    }
+  }
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-medium hover:bg-accent transition-colors"
+        disabled={loading !== null}
+      >
+        {loading ? (
+          <span className="text-xs">Downloading...</span>
+        ) : (
+          <>
+            <Printer className="h-4 w-4" />
+            Print Label
+          </>
+        )}
+      </button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-full mt-1 z-20 w-48 rounded-lg border border-border bg-card shadow-lg py-1">
+            <button
+              onClick={() => handlePrint("pdf")}
+              className="w-full px-3 py-2 text-left text-sm hover:bg-accent transition-colors"
+            >
+              A4 PDF
+            </button>
+            <button
+              onClick={() => handlePrint("zpl")}
+              className="w-full px-3 py-2 text-left text-sm hover:bg-accent transition-colors"
+            >
+              4x6 Thermal (ZPL)
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
