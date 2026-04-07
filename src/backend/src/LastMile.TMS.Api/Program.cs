@@ -29,7 +29,7 @@ try
     builder.Services
         .AddApplication()
         .AddInfrastructure(builder.Configuration)
-        .AddPersistence(builder.Configuration);
+        .AddPersistence(builder.Configuration, builder.Environment);
 
     builder.Services.AddAuthentication(options =>
     {
@@ -105,7 +105,7 @@ try
         .AddFiltering()
         .AddSorting()
         .AddPagingArguments()
-        .AddDataLoader<ParcelContentItemsCountByParcelIdDataLoader>()
+        .AddDataLoader<ParcelContentItemsCountDataLoader>()
         .RegisterDbContextFactory<AppDbContext>()
         .AddQueryType<Query>()
         .AddMutationType<Mutation>()
@@ -121,12 +121,14 @@ try
         .AddType<DriverMutation>()
         .AddType<UserQuery>()
         .AddType<UserMutation>()
+        .AddType<AuditLogQuery>()
         .AddType<AddressType>()
         .AddType<DepotType>()
         .AddType<VehicleType>()
         .AddType<ZoneType>()
         .AddType<DriverType>()
         .AddType<UserType>()
+        .AddType<AuditLogType>()
         .AddType<OperatingHoursType>()
         .AddType<DailyAvailabilityType>()
         .AddType<DayOffType>()
@@ -136,7 +138,7 @@ try
         .AddType<ParcelContentItemType>()
         .AddType<ParcelWatcherType>()
         .AddErrorFilter<ValidationErrorFilter>()
-        .ModifyCostOptions(options => 
+        .ModifyCostOptions(options =>
         {
             options.EnforceCostLimits = false;
 

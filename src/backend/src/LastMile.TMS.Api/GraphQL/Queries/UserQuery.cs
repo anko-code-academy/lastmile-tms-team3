@@ -34,4 +34,14 @@ public class UserQuery
 
         return query.OrderBy(u => u.LastName).ThenBy(u => u.FirstName);
     }
+
+    [Authorize(Policy = "Admin")]
+    [UseFirstOrDefault]
+    [UseProjection]
+    public IQueryable<AppUser> GetUser(
+        AppDbContext context,
+        Guid id)
+        => context.Users
+            .AsNoTracking()
+            .Where(u => u.Id == id);
 }

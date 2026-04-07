@@ -26,10 +26,11 @@ public class ParcelQueriesIntegrationTests(ApiWebApplicationFactory factory)
     {
         await InsertTestParcelsAsync();
         var token = await GraphQLRequestHelper.GetOpsManagerTokenAsync(_client);
+        var trackingNumber = $"PKG-TEST-{_parcelId.ToString().Substring(0, 8).ToUpper()}";
 
         var query = @"
-            query {
-                parcels(first: 10, order: [{ createdAt: DESC }]) {
+            query GetParcels($search: String!) {
+                parcels(first: 10, search: $search, order: [{ createdAt: DESC }]) {
                     totalCount
                     nodes {
                         id
@@ -46,7 +47,7 @@ public class ParcelQueriesIntegrationTests(ApiWebApplicationFactory factory)
                 }
             }";
 
-        var response = await GraphQLRequestHelper.QueryAsync(_client, query, null, token);
+        var response = await GraphQLRequestHelper.QueryAsync(_client, query, new { search = trackingNumber }, token);
         var body = await GraphQLRequestHelper.ReadGraphQLResponseAsync(response);
 
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);

@@ -156,7 +156,9 @@ export const GET_PARCEL = `
       parcelType
       notes
       zoneId
-      zoneName
+      zone {
+        name
+      }
       createdAt
       lastModifiedAt
       trackingEvents {

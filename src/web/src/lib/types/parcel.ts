@@ -50,7 +50,6 @@ export enum DimensionUnit {
 export enum ParcelSortBy {
   CreatedAt = "CREATED_AT",
   TrackingNumber = "TRACKING_NUMBER",
-  RecipientName = "RECIPIENT_NAME",
   Status = "STATUS",
 }
 
@@ -161,7 +160,7 @@ export interface Parcel {
   parcelType?: string;
   notes?: string;
   zoneId?: string;
-  zoneName?: string;
+  zone?: { name?: string };
   createdAt: string;
   lastModifiedAt?: string;
   trackingEvents: TrackingEvent[];

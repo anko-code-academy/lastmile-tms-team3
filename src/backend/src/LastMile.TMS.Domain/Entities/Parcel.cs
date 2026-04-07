@@ -7,7 +7,7 @@ using NetTopologySuite.Geometries;
 
 namespace LastMile.TMS.Domain.Entities;
 
-public class Parcel : BaseAuditableEntity
+public class Parcel : BaseAuditableEntity, IAuditTracked
 {
     [Required]
     [MaxLength(50)]
@@ -68,7 +68,12 @@ public class Parcel : BaseAuditableEntity
     public ICollection<ParcelWatcher> Watchers { get; set; } = new List<ParcelWatcher>();
 
     // Domain methods
-    public void TransitionToStatus(ParcelStatus newStatus, string? operatorName = null)
+    public void TransitionToStatus(
+        ParcelStatus newStatus,
+        string? operatorName = null,
+        string? locationCity = null,
+        string? locationState = null,
+        string? locationCountryCode = null)
     {
         if (ParcelStatusRules.IsTerminal(Status))
             throw new ParcelInTerminalStateException(Status);
@@ -82,11 +87,13 @@ public class Parcel : BaseAuditableEntity
         // Record tracking event for status change
         var trackingEvent = new TrackingEvent
         {
-            Id = Guid.NewGuid(),
             ParcelId = Id,
             Timestamp = DateTimeOffset.UtcNow,
             EventType = MapStatusToEventType(newStatus),
             Description = $"Status changed from {previousStatus} to {newStatus}",
+            LocationCity = locationCity,
+            LocationState = locationState,
+            LocationCountryCode = locationCountryCode,
             Operator = operatorName,
             CreatedAt = DateTimeOffset.UtcNow
         };
@@ -106,16 +113,24 @@ public class Parcel : BaseAuditableEntity
         DeliveryAttempts++;
     }
 
-    public void MarkAsDelivered(string receivedBy, string? deliveryLocation, string? signatureImage, string? photo, Point? deliveryGeoLocation, string? operatorName = null)
+    public void MarkAsDelivered(
+        string receivedBy,
+        string? deliveryLocation,
+        string? signatureImage,
+        string? photo,
+        Point? deliveryGeoLocation,
+        string? operatorName = null,
+        string? locationCity = null,
+        string? locationState = null,
+        string? locationCountryCode = null)
     {
         if (Status != ParcelStatus.OutForDelivery && Status != ParcelStatus.FailedAttempt)
             throw new InvalidStatusTransitionException(Status, ParcelStatus.Delivered);
 
-        TransitionToStatus(ParcelStatus.Delivered, operatorName);
+        TransitionToStatus(ParcelStatus.Delivered, operatorName, locationCity, locationState, locationCountryCode);
 
         DeliveryConfirmation = new DeliveryConfirmation
         {
-            Id = Guid.NewGuid(),
             ParcelId = Id,
             ReceivedBy = receivedBy,
             DeliveryLocation = deliveryLocation,

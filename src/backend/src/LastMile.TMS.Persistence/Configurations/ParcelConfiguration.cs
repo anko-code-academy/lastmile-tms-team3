@@ -18,6 +18,10 @@ public class ParcelConfiguration : IEntityTypeConfiguration<Parcel>
         builder.HasIndex(p => p.TrackingNumber)
             .IsUnique();
 
+        builder.HasIndex([nameof(Parcel.TrackingNumber)], "IX_Parcels_TrackingNumber_Trgm")
+            .HasMethod("GIN")
+            .HasOperators("gin_trgm_ops");
+
         builder.Property(p => p.BarcodeData)
             .HasMaxLength(200);
 
@@ -99,6 +103,7 @@ public class ParcelConfiguration : IEntityTypeConfiguration<Parcel>
         builder.HasIndex(p => p.Status);
         builder.HasIndex(p => p.CreatedAt);
         builder.HasIndex(p => p.EstimatedDeliveryDate);
+        builder.HasIndex(p => p.ParcelType);
         builder.HasIndex(p => p.ZoneId);
     }
 }

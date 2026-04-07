@@ -5,7 +5,7 @@ using LastMile.TMS.Domain.Enums;
 
 namespace LastMile.TMS.Domain.Entities;
 
-public class Vehicle : BaseAuditableEntity
+public class Vehicle : BaseAuditableEntity, IAuditTracked
 {
     [Required]
     [MaxLength(20)]

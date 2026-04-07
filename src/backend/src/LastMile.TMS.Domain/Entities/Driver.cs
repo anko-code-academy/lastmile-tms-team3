@@ -3,7 +3,7 @@ using LastMile.TMS.Domain.Common;
 namespace LastMile.TMS.Domain.Entities;
 
 
-public class Driver : BaseAuditableEntity
+public class Driver : BaseAuditableEntity, IAuditTracked
 {
     public string FirstName { get; private set; } = string.Empty;
     public string LastName { get; private set; } = string.Empty;

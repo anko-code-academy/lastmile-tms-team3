@@ -104,7 +104,7 @@ export function ParcelDetail({ parcel }: { parcel: Parcel }) {
             }
           />
           <InfoRow label="Delivery Attempts" value={parcel.deliveryAttempts} />
-          <InfoRow label="Zone" value={parcel.zoneName} />
+          <InfoRow label="Zone" value={parcel.zone?.name} />
         </div>
       </div>
 
