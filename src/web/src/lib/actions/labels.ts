@@ -1,27 +1,17 @@
 "use server";
 
+import { auth } from "@/auth";
 import type { ParcelLabel } from "@/lib/types/parcel";
 
-interface ParcelLabelResponse {
-  id: string;
-  trackingNumber: string;
-  barcodeData: string;
-  recipientName: string | null;
-  recipientAddress: string;
-  zoneName: string | null;
-  parcelType: string | null;
-  serviceType: string;
-  pdfBase64: string;
-}
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
 
 export async function getParcelLabelAction(
   parcelId: string
 ): Promise<ParcelLabel | null> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "";
-  const token = process.env.API_TOKEN;
+  const token = (await auth())?.accessToken;
 
   if (!token) {
-    throw new Error("API token not configured");
+    throw new Error("Not authenticated");
   }
 
   const query = `
@@ -40,7 +30,7 @@ export async function getParcelLabelAction(
     }
   `;
 
-  const response = await fetch(`${baseUrl}/graphql`, {
+  const response = await fetch(`${API_URL}/graphql`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -65,15 +55,14 @@ export async function getParcelLabelAction(
   return data.data?.parcelLabel ?? null;
 }
 
-export async function downloadParcelLabelPdf(parcelId: string, trackingNumber: string) {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "";
-  const token = process.env.API_TOKEN;
+export async function downloadParcelLabelPdf(parcelId: string, _trackingNumber: string) {
+  const token = (await auth())?.accessToken;
 
   if (!token) {
-    throw new Error("API token not configured");
+    throw new Error("Not authenticated");
   }
 
-  const response = await fetch(`${baseUrl}/api/labels/${parcelId}/pdf`, {
+  const response = await fetch(`${API_URL}/api/labels/${parcelId}/pdf`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -83,26 +72,17 @@ export async function downloadParcelLabelPdf(parcelId: string, trackingNumber: s
     throw new Error(`Failed to download PDF: ${response.statusText}`);
   }
 
-  const blob = await response.blob();
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `label-${trackingNumber}.pdf`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  return response.blob();
 }
 
-export async function downloadParcelLabelZpl(parcelId: string, trackingNumber: string) {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "";
-  const token = process.env.API_TOKEN;
+export async function downloadParcelLabelZpl(parcelId: string, _trackingNumber: string) {
+  const token = (await auth())?.accessToken;
 
   if (!token) {
-    throw new Error("API token not configured");
+    throw new Error("Not authenticated");
   }
 
-  const response = await fetch(`${baseUrl}/api/labels/${parcelId}/zpl`, {
+  const response = await fetch(`${API_URL}/api/labels/${parcelId}/zpl`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -112,30 +92,20 @@ export async function downloadParcelLabelZpl(parcelId: string, trackingNumber: s
     throw new Error(`Failed to download ZPL: ${response.statusText}`);
   }
 
-  const text = await response.text();
-  const blob = new Blob([text], { type: "application/octet-stream" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `label-${trackingNumber}.zpl`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  return response.text();
 }
 
 export async function downloadBulkParcelLabelsPdf(parcelIds: string[]) {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "";
-  const token = process.env.API_TOKEN;
+  const token = (await auth())?.accessToken;
 
   if (!token) {
-    throw new Error("API token not configured");
+    throw new Error("Not authenticated");
   }
 
   const params = new URLSearchParams();
   parcelIds.forEach((id) => params.append("ids", id));
 
-  const response = await fetch(`${baseUrl}/api/labels/bulk/pdf?${params}`, {
+  const response = await fetch(`${API_URL}/api/labels/bulk/pdf?${params}`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -145,13 +115,5 @@ export async function downloadBulkParcelLabelsPdf(parcelIds: string[]) {
     throw new Error(`Failed to download bulk PDF: ${response.statusText}`);
   }
 
-  const blob = await response.blob();
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `labels-${new Date().toISOString().slice(0, 10)}.pdf`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  return response.blob();
 }

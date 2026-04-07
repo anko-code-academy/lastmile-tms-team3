@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Printer } from "lucide-react";
 import type { Parcel } from "@/lib/types/parcel";
 import { ParcelStatusBadge } from "@/components/parcels/ParcelStatusBadge";
@@ -53,6 +53,7 @@ export function ParcelDetail({ parcel }: { parcel: Parcel }) {
           <h1 className="text-2xl font-bold font-mono tracking-tight">
             {parcel.trackingNumber}
           </h1>
+          <BarcodeSVG trackingNumber={parcel.trackingNumber} />
           {parcel.description && (
             <p className="text-muted-foreground mt-1">{parcel.description}</p>
           )}
@@ -273,6 +274,28 @@ export function ParcelDetail({ parcel }: { parcel: Parcel }) {
   );
 }
 
+function BarcodeSVG({ trackingNumber }: { trackingNumber: string }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    if (!canvasRef.current) return;
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    import("jsbarcode").then(({ default: JsBarcode }) => {
+      JsBarcode(canvasRef.current!, trackingNumber, {
+        format: "CODE128",
+        displayValue: false,
+        height: 50,
+        width: 2,
+        margin: 0,
+      });
+    }).catch(() => {});
+  }, [trackingNumber]);
+
+  return (
+    <canvas ref={canvasRef} className="mt-2 max-w-sm" />
+  );
+}
+
 function PrintLabelMenu({ parcelId, trackingNumber }: { parcelId: string; trackingNumber: string }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState<string | null>(null);
@@ -282,9 +305,26 @@ function PrintLabelMenu({ parcelId, trackingNumber }: { parcelId: string; tracki
     setOpen(false);
     try {
       if (format === "pdf") {
-        await downloadParcelLabelPdf(parcelId, trackingNumber);
+        const blob = await downloadParcelLabelPdf(parcelId, trackingNumber);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `label-${trackingNumber}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
       } else {
-        await downloadParcelLabelZpl(parcelId, trackingNumber);
+        const text = await downloadParcelLabelZpl(parcelId, trackingNumber);
+        const blob = new Blob([text], { type: "application/octet-stream" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `label-${trackingNumber}.zpl`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
       }
     } catch (err) {
       console.error("Failed to download label:", err);

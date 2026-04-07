@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using SkiaSharp;
 
 namespace LastMile.TMS.Infrastructure.Services;
 
@@ -200,24 +201,23 @@ public class LabelService : ILabelService
     {
         var width = matrix.Width;
         var height = matrix.Height;
-        var bytes = new byte[width * height * 4];
-        var white = (byte)255;
-        var black = (byte)0;
+        using var bitmap = new SKBitmap(width, height);
+        using var canvas = new SKCanvas(bitmap);
+
+        var white = new SKColor(255, 255, 255, 255);
+        var black = new SKColor(0, 0, 0, 255);
 
         for (var y = 0; y < height; y++)
         {
             for (var x = 0; x < width; x++)
             {
-                var idx = (y * width + x) * 4;
                 var bit = matrix[y, x];
                 var color = bit ? black : white;
-                bytes[idx] = color;       // B
-                bytes[idx + 1] = color;   // G
-                bytes[idx + 2] = color;   // R
-                bytes[idx + 3] = 255;     // A
+                canvas.DrawPoint(x, y, color);
             }
         }
 
-        return bytes;
+        using var image = bitmap.Encode(SKEncodedImageFormat.Png, 100);
+        return image.ToArray();
     }
 }
