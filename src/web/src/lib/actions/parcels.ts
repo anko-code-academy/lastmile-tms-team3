@@ -1,7 +1,7 @@
 "use server";
 
 import { gqlFetch } from "@/lib/graphql/fetch";
-import { SEARCH_PARCELS, GET_PARCEL } from "@/lib/graphql/queries/parcels";
+import { SEARCH_PARCELS, GET_PARCEL, CREATE_PARCEL } from "@/lib/graphql/queries/parcels";
 import { parseWktPoint } from "@/lib/graphql/utils";
 import type {
   Parcel,
@@ -11,6 +11,7 @@ import type {
   PagedResult,
   SearchParcelInput,
   SortDirection,
+  CreateParcelInput,
 } from "@/lib/types/parcel";
 
 interface SearchParcelsResponse {
@@ -19,6 +20,10 @@ interface SearchParcelsResponse {
 
 interface GetParcelResponse {
   parcel: Parcel;
+}
+
+interface CreateParcelResponse {
+  createParcel: Parcel;
 }
 
 interface ParcelConnection {
@@ -195,4 +200,15 @@ export async function getParcelAction(id: string): Promise<Parcel> {
   }
 
   return parcel;
+}
+
+export async function createParcelAction(
+  input: CreateParcelInput
+): Promise<{ parcel?: Parcel; error?: string }> {
+  try {
+    const data = await gqlFetch<CreateParcelResponse>(CREATE_PARCEL, { input });
+    return { parcel: data.createParcel };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to create parcel" };
+  }
 }

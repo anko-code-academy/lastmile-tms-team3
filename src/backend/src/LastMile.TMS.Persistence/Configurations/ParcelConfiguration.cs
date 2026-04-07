@@ -22,6 +22,9 @@ public class ParcelConfiguration : IEntityTypeConfiguration<Parcel>
             .HasMethod("GIN")
             .HasOperators("gin_trgm_ops");
 
+        builder.Property(p => p.BarcodeData)
+            .HasMaxLength(200);
+
         builder.Property(p => p.Description)
             .HasMaxLength(500);
 
@@ -46,20 +49,12 @@ public class ParcelConfiguration : IEntityTypeConfiguration<Parcel>
             .OnDelete(DeleteBehavior.Restrict)
             .IsRequired();
 
-        
         // Zone relationship (optional)
-
         builder.HasOne(p => p.Zone)
-
             .WithMany()
-
             .HasForeignKey(p => p.ZoneId)
-
             .OnDelete(DeleteBehavior.Restrict)
-
             .IsRequired(false);
-
-
 
         // Physical properties
         builder.Property(p => p.Weight)
@@ -99,6 +94,10 @@ public class ParcelConfiguration : IEntityTypeConfiguration<Parcel>
         // ParcelType
         builder.Property(p => p.ParcelType)
             .HasMaxLength(100);
+
+        // Notes
+        builder.Property(p => p.Notes)
+            .HasMaxLength(500);
 
         // Indexes
         builder.HasIndex(p => p.Status);

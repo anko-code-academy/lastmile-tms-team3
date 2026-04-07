@@ -1,3 +1,57 @@
+export const CREATE_PARCEL = `
+  mutation CreateParcel($input: CreateParcelDtoInput!) {
+    createParcel(input: $input) {
+      id
+      trackingNumber
+      barcodeData
+      description
+      serviceType
+      status
+      recipientAddress {
+        street1
+        street2
+        city
+        state
+        postalCode
+        countryCode
+        isResidential
+        contactName
+        companyName
+        phone
+        email
+        geoLocation
+      }
+      shipperAddress {
+        street1
+        street2
+        city
+        state
+        postalCode
+        countryCode
+        isResidential
+        contactName
+        companyName
+        phone
+        email
+        geoLocation
+      }
+      weight
+      weightUnit
+      length
+      width
+      height
+      dimensionUnit
+      declaredValue
+      currency
+      parcelType
+      notes
+      zoneId
+      zoneName
+      createdAt
+    }
+  }
+`;
+
 export const SEARCH_PARCELS = `
   query SearchParcels(
     $first: Int
@@ -56,6 +110,7 @@ export const GET_PARCEL = `
     parcel(id: $id) {
       id
       trackingNumber
+      barcodeData
       description
       serviceType
       status
@@ -99,6 +154,7 @@ export const GET_PARCEL = `
       actualDeliveryDate
       deliveryAttempts
       parcelType
+      notes
       zoneId
       zone {
         name

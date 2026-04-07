@@ -20,12 +20,12 @@ public static class DependencyInjection
 
         services.AddPooledDbContextFactory<AppDbContext>((serviceProvider, options) =>
             options.UseNpgsql(
-                    configuration.GetConnectionString("DefaultConnection"),
-                    npgsql =>
-                    {
-                        npgsql.UseNetTopologySuite();
-                        npgsql.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName);
-                    })
+                configuration.GetConnectionString("DefaultConnection"),
+                npgsql =>
+                {
+                    npgsql.UseNetTopologySuite();
+                    npgsql.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName);
+                })
                 .AddInterceptors(serviceProvider.GetRequiredService<AuditSaveChangesInterceptor>())
                 .LogTo(Console.WriteLine, LogLevel.Information)
                 .EnableSensitiveDataLogging(environment.IsDevelopment()));

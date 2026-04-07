@@ -6,6 +6,7 @@ namespace LastMile.TMS.Application.Features.Parcels.DTOs;
 public record ParcelDto(
     Guid Id,
     string TrackingNumber,
+    string BarcodeData,
     string? Description,
     ServiceType ServiceType,
     ParcelStatus Status,
@@ -23,6 +24,7 @@ public record ParcelDto(
     DateTimeOffset? ActualDeliveryDate,
     int DeliveryAttempts,
     string? ParcelType,
+    string? Notes,
     Guid? ZoneId,
     string? ZoneName,
     DateTimeOffset CreatedAt,

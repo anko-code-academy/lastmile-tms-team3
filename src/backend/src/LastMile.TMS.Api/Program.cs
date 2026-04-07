@@ -138,7 +138,7 @@ try
         .AddType<ParcelContentItemType>()
         .AddType<ParcelWatcherType>()
         .AddErrorFilter<ValidationErrorFilter>()
-        .ModifyCostOptions(options => 
+        .ModifyCostOptions(options =>
         {
             options.EnforceCostLimits = false;
 

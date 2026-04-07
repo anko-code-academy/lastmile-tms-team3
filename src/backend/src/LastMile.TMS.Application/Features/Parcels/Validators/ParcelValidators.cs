@@ -8,10 +8,6 @@ public class CreateParcelValidator : AbstractValidator<CreateParcel.Command>
 {
     public CreateParcelValidator()
     {
-        RuleFor(x => x.Dto.TrackingNumber)
-            .NotEmpty().WithMessage("Tracking number is required")
-            .MaximumLength(50);
-
         RuleFor(x => x.Dto.RecipientAddress)
             .NotNull().WithMessage("Recipient address is required");
 
@@ -32,23 +28,9 @@ public class CreateParcelValidator : AbstractValidator<CreateParcel.Command>
 
         RuleFor(x => x.Dto.DeclaredValue)
             .GreaterThanOrEqualTo(0).WithMessage("Declared value cannot be negative");
-    }
-}
 
-public class TransitionParcelStatusValidator : AbstractValidator<TransitionParcelStatus.Command>
-{
-    public TransitionParcelStatusValidator()
-    {
-        RuleFor(x => x.Dto.ParcelId)
-            .NotEmpty().WithMessage("Parcel ID is required");
-
-        RuleFor(x => x.Dto.NewStatus)
-            .IsInEnum().WithMessage("Invalid parcel status");
-
-        RuleFor(x => x.Dto.LocationCountryCode)
-            .Matches(@"^[A-Z]{2}$")
-            .When(x => !string.IsNullOrEmpty(x.Dto.LocationCountryCode))
-            .WithMessage("Country code must be a two-letter ISO code");
+        RuleFor(x => x.Dto.Notes)
+            .MaximumLength(500).WithMessage("Notes cannot exceed 500 characters");
     }
 }
 

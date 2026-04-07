@@ -3,6 +3,7 @@ using System;
 using LastMile.TMS.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NetTopologySuite.Geometries;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -13,9 +14,11 @@ using NpgsqlTypes;
 namespace LastMile.TMS.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260405201549_AddParcelBarcodeDataAndNotes")]
+    partial class AddParcelBarcodeDataAndNotes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -120,72 +123,6 @@ namespace LastMile.TMS.Persistence.Migrations
                     NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex(new[] { "City" }, "IX_Addresses_City_Trgm"), new[] { "gin_trgm_ops" });
 
                     b.ToTable("Addresses");
-                });
-
-            modelBuilder.Entity("LastMile.TMS.Domain.Entities.AuditLog", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("ActionType")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("ActorUserId")
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
-
-                    b.Property<string>("ActorUserName")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
-
-                    b.Property<string>("AfterValuesJson")
-                        .HasColumnType("jsonb");
-
-                    b.Property<string>("BeforeValuesJson")
-                        .HasColumnType("jsonb");
-
-                    b.Property<string>("CorrelationId")
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
-
-                    b.Property<DateTimeOffset>("OccurredAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("ResourceId")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
-
-                    b.Property<string>("ResourceType")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Summary")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ActionType");
-
-                    b.HasIndex("ActorUserId");
-
-                    b.HasIndex("ActorUserName");
-
-                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("ActorUserName"), "GIN");
-                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("ActorUserName"), new[] { "gin_trgm_ops" });
-
-                    b.HasIndex("CorrelationId");
-
-                    b.HasIndex("OccurredAt");
-
-                    b.HasIndex("ResourceType");
-
-                    b.HasIndex("ResourceType", "ResourceId");
-
-                    b.ToTable("AuditLogs");
                 });
 
             modelBuilder.Entity("LastMile.TMS.Domain.Entities.DeliveryConfirmation", b =>
@@ -486,8 +423,6 @@ namespace LastMile.TMS.Persistence.Migrations
 
                     b.HasIndex("EstimatedDeliveryDate");
 
-                    b.HasIndex("ParcelType");
-
                     b.HasIndex("RecipientAddressId");
 
                     b.HasIndex("ShipperAddressId");
@@ -498,11 +433,6 @@ namespace LastMile.TMS.Persistence.Migrations
                         .IsUnique();
 
                     b.HasIndex("ZoneId");
-
-                    b.HasIndex(new[] { "TrackingNumber" }, "IX_Parcels_TrackingNumber_Trgm");
-
-                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex(new[] { "TrackingNumber" }, "IX_Parcels_TrackingNumber_Trgm"), "GIN");
-                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex(new[] { "TrackingNumber" }, "IX_Parcels_TrackingNumber_Trgm"), new[] { "gin_trgm_ops" });
 
                     b.ToTable("Parcels");
                 });

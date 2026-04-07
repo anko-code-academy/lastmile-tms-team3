@@ -140,6 +140,7 @@ export interface ParcelListItem {
 export interface Parcel {
   id: string;
   trackingNumber: string;
+  barcodeData: string;
   description?: string;
   serviceType: ServiceType;
   status: ParcelStatus;
@@ -157,6 +158,7 @@ export interface Parcel {
   actualDeliveryDate?: string;
   deliveryAttempts: number;
   parcelType?: string;
+  notes?: string;
   zoneId?: string;
   zone?: { name?: string };
   createdAt: string;
@@ -191,3 +193,70 @@ export interface SearchParcelInput {
   pagingDirection?: PagingDirection;
   pageSize: number;
 }
+
+export interface CreateAddressInput {
+  street1: string;
+  street2?: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  countryCode: string;
+  isResidential?: boolean;
+  contactName?: string;
+  companyName?: string;
+  phone?: string;
+  email?: string;
+  latitude?: number;
+  longitude?: number;
+}
+
+export interface CreateParcelInput {
+  description?: string;
+  serviceType: ServiceType;
+  recipientAddress: CreateAddressInput;
+  shipperAddress: CreateAddressInput;
+  weight: number;
+  weightUnit: WeightUnit;
+  length: number;
+  width: number;
+  height: number;
+  dimensionUnit: DimensionUnit;
+  declaredValue: number;
+  currency?: string;
+  parcelType?: string;
+  notes?: string;
+}
+
+// Zod schemas
+import { z } from "zod";
+
+export const createAddressSchema = z.object({
+  street1: z.string().min(1, "Street address is required"),
+  street2: z.string().optional(),
+  city: z.string().min(1, "City is required"),
+  state: z.string().min(1, "State is required"),
+  postalCode: z.string().min(1, "Postal code is required"),
+  countryCode: z.string().length(2, "Use ISO 3166-1 alpha-2 country code"),
+  isResidential: z.boolean().default(false),
+  contactName: z.string().optional(),
+  companyName: z.string().optional(),
+  phone: z.string().optional(),
+  email: z.string().email("Invalid email address").optional().or(z.literal("")),
+});
+
+export const createParcelSchema = z.object({
+  description: z.string().max(500).optional(),
+  serviceType: z.nativeEnum(ServiceType),
+  recipientAddress: createAddressSchema,
+  shipperAddress: createAddressSchema,
+  weight: z.number().positive("Weight must be greater than 0"),
+  weightUnit: z.nativeEnum(WeightUnit),
+  length: z.number().positive("Length must be greater than 0"),
+  width: z.number().positive("Width must be greater than 0"),
+  height: z.number().positive("Height must be greater than 0"),
+  dimensionUnit: z.nativeEnum(DimensionUnit),
+  declaredValue: z.number().nonnegative("Declared value cannot be negative"),
+  currency: z.string().max(3).default("USD"),
+  parcelType: z.string().max(100).optional(),
+  notes: z.string().max(500).optional(),
+});

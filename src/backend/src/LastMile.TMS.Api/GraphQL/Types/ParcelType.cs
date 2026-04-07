@@ -12,6 +12,7 @@ public class ParcelType : ObjectType<Parcel>
 
         descriptor.Field(x => x.Id);
         descriptor.Field(x => x.TrackingNumber);
+        descriptor.Field(x => x.BarcodeData);
         descriptor.Field(x => x.Description);
         descriptor.Field(x => x.ServiceType);
         descriptor.Field(x => x.Status);
@@ -29,7 +30,11 @@ public class ParcelType : ObjectType<Parcel>
         descriptor.Field(x => x.ActualDeliveryDate);
         descriptor.Field(x => x.DeliveryAttempts);
         descriptor.Field(x => x.ParcelType);
+        descriptor.Field(x => x.Notes);
         descriptor.Field(x => x.ZoneId);
+        descriptor.Field("zoneName")
+            .Type<StringType>()
+            .Resolve(ctx => ctx.Parent<Parcel>().Zone?.Name);
         descriptor.Field(x => x.Zone).Type<ZoneType>();
         descriptor.Field(x => x.CreatedAt);
         descriptor.Field(x => x.LastModifiedAt);
