@@ -215,6 +215,27 @@ public class VehicleMutationsIntegrationTests(ApiWebApplicationFactory factory)
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
+        // Clean up all leftover test vehicles first to avoid plate collisions
+        var leftoverVehicles = db.Vehicles
+            .Where(v => v.RegistrationPlate.StartsWith("TEST_VEH_") || v.RegistrationPlate.StartsWith("VEH_"))
+            .ToList();
+        foreach (var v in leftoverVehicles) db.Vehicles.Remove(v);
+
+        // Clean up any existing test data first to avoid duplicate key violations
+        var existingDepot = await db.Depots.FindAsync(_depotId);
+        if (existingDepot != null)
+        {
+            db.Depots.Remove(existingDepot);
+        }
+
+        var existingAddress = await db.Addresses.FindAsync(_addressId);
+        if (existingAddress != null)
+        {
+            db.Addresses.Remove(existingAddress);
+        }
+
+        await db.SaveChangesAsync();
+
         var address = new Address
         {
             Id = _addressId,
@@ -273,6 +294,12 @@ public class VehicleMutationsIntegrationTests(ApiWebApplicationFactory factory)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        // Clean up any leftover test vehicles from previous failed runs
+        var leftoverVehicles = db.Vehicles
+            .Where(v => v.RegistrationPlate.StartsWith("TEST_VEH_") || v.RegistrationPlate.StartsWith("VEH_"))
+            .ToList();
+        foreach (var v in leftoverVehicles) db.Vehicles.Remove(v);
 
         foreach (var vehicleId in _createdVehicleIds)
         {

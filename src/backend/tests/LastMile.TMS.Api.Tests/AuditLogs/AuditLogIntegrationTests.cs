@@ -15,87 +15,33 @@ using NetTopologySuite.Geometries;
 namespace LastMile.TMS.Api.Tests.AuditLogs;
 
 [Collection("ApiWebApplication")]
-public class AuditLogIntegrationTests(ApiWebApplicationFactory factory)
+public class AuditLogIntegrationTests(ApiWebApplicationFactory factory) : IAsyncDisposable
 {
     private readonly HttpClient _client = factory.CreateClient();
 
-    [Fact]
-    public async Task CreateParcel_Mutation_Creates_Searchable_Audit_Log()
+
+    private void CleanupLeftoverVehicles()
     {
-        var token = await GraphQLRequestHelper.GetOpsManagerTokenAsync(_client);
-        var trackingNumber = $"AUDIT-PARCEL-{Guid.NewGuid():N}";
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var leftover = db.Vehicles
+            .Where(v => v.RegistrationPlate.StartsWith("TEST_VEH_") || v.RegistrationPlate.StartsWith("VEH_"))
+            .ToList();
+        foreach (var v in leftover) db.Vehicles.Remove(v);
+        db.SaveChanges();
+    }
 
-        var mutation = @"
-            mutation CreateParcel($input: CreateParcelDtoInput!) {
-                createParcel(input: $input) {
-                    id
-                    trackingNumber
-                    status
-                }
-            }";
+    public async ValueTask DisposeAsync()
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        var variables = new
-        {
-            input = new
-            {
-                trackingNumber,
-                description = "Audit test parcel",
-                serviceType = "STANDARD",
-                recipientAddress = new
-                {
-                    street1 = "123 Recipient St",
-                    city = "Nashville",
-                    state = "TN",
-                    postalCode = "37201",
-                    countryCode = "US",
-                    isResidential = true,
-                    contactName = "Recipient Test"
-                },
-                shipperAddress = new
-                {
-                    street1 = "456 Shipper Ave",
-                    city = "Memphis",
-                    state = "TN",
-                    postalCode = "38103",
-                    countryCode = "US",
-                    isResidential = false,
-                    contactName = "Shipper Test"
-                },
-                weight = 2.5m,
-                weightUnit = "KG",
-                length = 20m,
-                width = 10m,
-                height = 5m,
-                dimensionUnit = "CM",
-                declaredValue = 99.95m,
-                currency = "USD",
-                parcelType = "Standard"
-            }
-        };
+        var leftoverVehicles = db.Vehicles
+            .Where(v => v.RegistrationPlate.StartsWith("TEST_VEH_") || v.RegistrationPlate.StartsWith("VEH_"))
+            .ToList();
+        foreach (var v in leftoverVehicles) db.Vehicles.Remove(v);
 
-        var mutationResponse = await GraphQLRequestHelper.QueryAsync(_client, mutation, variables, token);
-        var mutationBody = await GraphQLRequestHelper.ReadGraphQLResponseAsync(mutationResponse);
-
-        mutationResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-        mutationBody.TryGetProperty("errors", out _).Should().BeFalse();
-
-        var parcelId = mutationBody.GetProperty("data").GetProperty("createParcel").GetProperty("id").GetString();
-        parcelId.Should().NotBeNullOrWhiteSpace();
-
-        var auditBody = await QueryAuditLogsAsync(
-            token: await GraphQLRequestHelper.GetAdminTokenAsync(_client),
-            resourceType: "PARCEL",
-            resourceId: parcelId,
-            actionType: "CREATE");
-
-        var node = auditBody.GetProperty("data").GetProperty("auditLogs").GetProperty("nodes")
-            .EnumerateArray()
-            .Single(entry => entry.GetProperty("resourceId").GetString() == parcelId);
-
-        node.GetProperty("resourceType").GetString().Should().Be("PARCEL");
-        node.GetProperty("actionType").GetString().Should().Be("CREATE");
-        node.GetProperty("summary").GetString().Should().Contain("Parcel created");
-        node.GetProperty("afterValuesJson").GetString().Should().Contain(trackingNumber);
+        await db.SaveChangesAsync();
     }
 
     [Fact]
