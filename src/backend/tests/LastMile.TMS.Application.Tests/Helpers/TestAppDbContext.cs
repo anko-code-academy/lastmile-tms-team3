@@ -33,6 +33,7 @@ public class TestAppDbContext : DbContext, IAppDbContext, IAppDbContextFactory
     public DbSet<ParcelContentItem> ParcelContentItems => Set<ParcelContentItem>();
     public DbSet<ParcelWatcher> ParcelWatchers => Set<ParcelWatcher>();
     public DbSet<DeliveryConfirmation> DeliveryConfirmations => Set<DeliveryConfirmation>();
+    public DbSet<ParcelImportHistory> ParcelImportHistories => Set<ParcelImportHistory>();
 
     public new Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
