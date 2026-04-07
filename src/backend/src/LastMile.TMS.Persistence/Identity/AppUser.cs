@@ -1,9 +1,10 @@
+using LastMile.TMS.Domain.Common;
 using LastMile.TMS.Domain.Enums;
 using Microsoft.AspNetCore.Identity;
 
 namespace LastMile.TMS.Persistence.Identity;
 
-public class AppUser : IdentityUser<Guid>
+public class AppUser : IdentityUser<Guid>, IAuditTracked
 {
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;

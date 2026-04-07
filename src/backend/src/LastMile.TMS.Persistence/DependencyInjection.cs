@@ -1,4 +1,5 @@
 using LastMile.TMS.Application.Common.Interfaces;
+using LastMile.TMS.Persistence.Interceptors;
 using LastMile.TMS.Persistence.Identity;
 using LastMile.TMS.Persistence.Seeding;
 using LastMile.TMS.Persistence.Services;
@@ -15,14 +16,17 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddPersistence(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
     {
-        services.AddPooledDbContextFactory<AppDbContext>(options =>
+        services.AddSingleton<AuditSaveChangesInterceptor>();
+
+        services.AddPooledDbContextFactory<AppDbContext>((serviceProvider, options) =>
             options.UseNpgsql(
-                configuration.GetConnectionString("DefaultConnection"),
-                npgsql =>
-                {
-                    npgsql.UseNetTopologySuite();
-                    npgsql.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName);
-                })
+                    configuration.GetConnectionString("DefaultConnection"),
+                    npgsql =>
+                    {
+                        npgsql.UseNetTopologySuite();
+                        npgsql.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName);
+                    })
+                .AddInterceptors(serviceProvider.GetRequiredService<AuditSaveChangesInterceptor>())
                 .LogTo(Console.WriteLine, LogLevel.Information)
                 .EnableSensitiveDataLogging(environment.IsDevelopment()));
 

@@ -2,7 +2,7 @@ using LastMile.TMS.Domain.Common;
 
 namespace LastMile.TMS.Domain.Entities;
 
-public class Depot : BaseAuditableEntity
+public class Depot : BaseAuditableEntity, IAuditTracked
 {
     public string Name { get; set; } = string.Empty;
     public Guid AddressId { get; set; }

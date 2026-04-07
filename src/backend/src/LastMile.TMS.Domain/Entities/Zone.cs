@@ -3,7 +3,7 @@ using NetTopologySuite.Geometries;
 
 namespace LastMile.TMS.Domain.Entities;
 
-public class Zone : BaseAuditableEntity
+public class Zone : BaseAuditableEntity, IAuditTracked
 {
     public string Name { get; set; } = string.Empty;
     public Geometry? Boundary { get; set; }

@@ -12,6 +12,16 @@ namespace LastMile.TMS.Api.GraphQL.Queries;
 public class UserQuery
 {
     [Authorize(Policy = "Admin")]
+    [UseFirstOrDefault]
+    [UseProjection]
+    public IQueryable<AppUser> GetUser(
+        AppDbContext context,
+        Guid id)
+        => context.Users
+            .AsNoTracking()
+            .Where(u => u.Id == id);
+
+    [Authorize(Policy = "Admin")]
     [UseProjection]
     public IQueryable<AppUser> GetUsers(
         AppDbContext context,

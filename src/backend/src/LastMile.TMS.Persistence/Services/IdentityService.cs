@@ -22,6 +22,7 @@ public class IdentityService(UserManager<AppUser> userManager) : IIdentityServic
     {
         var user = new AppUser
         {
+            Id = Guid.NewGuid(),
             UserName = email,
             Email = email,
             FirstName = firstName,
