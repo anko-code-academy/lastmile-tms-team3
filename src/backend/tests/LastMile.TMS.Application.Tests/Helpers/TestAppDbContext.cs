@@ -216,8 +216,16 @@ public class TestAppDbContext : DbContext, IAppDbContext, IAppDbContextFactory
 
 public class FakeCurrentUserService : ICurrentUserService
 {
+    private readonly HashSet<string> _roles;
+
+    public FakeCurrentUserService(Guid? assignedDepotId = null, IEnumerable<string>? roles = null)
+    {
+        AssignedDepotId = assignedDepotId;
+        _roles = new HashSet<string>(roles ?? new[] { "Admin" }, StringComparer.Ordinal);
+    }
+
     public string? UserId => "test-user-id";
     public string? UserName => "testuser";
-    public Guid? AssignedDepotId => null;
-    public bool IsInRole(string role) => string.Equals(role, "Admin", StringComparison.Ordinal);
+    public Guid? AssignedDepotId { get; }
+    public bool IsInRole(string role) => _roles.Contains(role);
 }

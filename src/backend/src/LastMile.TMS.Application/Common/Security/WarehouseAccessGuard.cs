@@ -1,12 +1,12 @@
 using LastMile.TMS.Application.Common.Interfaces;
 
-namespace LastMile.TMS.Application.Features.Aisles.Commands;
+namespace LastMile.TMS.Application.Common.Security;
 
 internal static class WarehouseAccessGuard
 {
     public static void EnsureDepotAccess(ICurrentUserService currentUser, Guid depotId)
     {
-        if (currentUser.IsInRole("Admin") || currentUser.IsInRole("OperationsManager"))
+        if (currentUser.IsInRole("Admin"))
             return;
 
         if (!currentUser.IsInRole("WarehouseManager") || currentUser.AssignedDepotId != depotId)

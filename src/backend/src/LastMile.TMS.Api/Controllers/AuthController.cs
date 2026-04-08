@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Security.Claims;
+using LastMile.TMS.Application.Common.Security;
 using LastMile.TMS.Persistence.Identity;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Authentication;
@@ -73,8 +74,8 @@ public class AuthController(
         identity.SetClaim(Claims.Name, user.UserName);
         identity.SetClaim(Claims.GivenName, user.FirstName);
         identity.SetClaim(Claims.FamilyName, user.LastName);
-        identity.SetClaim("assigned_depot_id", user.AssignedDepotId?.ToString());
-        identity.SetClaim("assigned_zone_id", user.AssignedZoneId?.ToString());
+        identity.SetClaim(CustomClaims.AssignedDepotId, user.AssignedDepotId?.ToString());
+        identity.SetClaim(CustomClaims.AssignedZoneId, user.AssignedZoneId?.ToString());
 
         var roles = await userManager.GetRolesAsync(user);
         identity.SetClaims(Claims.Role, roles.ToImmutableArray());
@@ -122,8 +123,8 @@ public class AuthController(
         identity.SetClaim(Claims.Name, user.UserName);
         identity.SetClaim(Claims.GivenName, user.FirstName);
         identity.SetClaim(Claims.FamilyName, user.LastName);
-        identity.SetClaim("assigned_depot_id", user.AssignedDepotId?.ToString());
-        identity.SetClaim("assigned_zone_id", user.AssignedZoneId?.ToString());
+        identity.SetClaim(CustomClaims.AssignedDepotId, user.AssignedDepotId?.ToString());
+        identity.SetClaim(CustomClaims.AssignedZoneId, user.AssignedZoneId?.ToString());
 
         var roles = await userManager.GetRolesAsync(user);
         identity.SetClaims(Claims.Role, roles.ToImmutableArray());
@@ -137,7 +138,7 @@ public class AuthController(
     {
         return claim.Type switch
         {
-            Claims.Name or Claims.Email or Claims.GivenName or Claims.FamilyName or "assigned_depot_id" or "assigned_zone_id" =>
+            Claims.Name or Claims.Email or Claims.GivenName or Claims.FamilyName or CustomClaims.AssignedDepotId or CustomClaims.AssignedZoneId =>
                 [Destinations.AccessToken, Destinations.IdentityToken],
             Claims.Role =>
                 [Destinations.AccessToken, Destinations.IdentityToken],

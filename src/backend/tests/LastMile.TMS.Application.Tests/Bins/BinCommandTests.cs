@@ -109,6 +109,20 @@ public class BinCommandTests : IDisposable
     }
 
     [Fact]
+    public async Task CreateBin_ThrowsUnauthorizedAccessException_ForOperationsManager()
+    {
+        var currentUser = new FakeCurrentUserService(_depotId, new[] { "OperationsManager" });
+        var codeGenerator = new WarehouseCodeGenerator(_context);
+        var handler = new CreateBin.Handler(_context, currentUser, codeGenerator);
+
+        var act = async () => await handler.Handle(
+            new CreateBin.Command(new CreateBinDto(_aisleId, "Bin A-02", "A-02", 90, true)),
+            CancellationToken.None);
+
+        await act.Should().ThrowAsync<UnauthorizedAccessException>();
+    }
+
+    [Fact]
     public async Task UpdateBin_WithValidInput_UpdatesBin()
     {
         var command = new UpdateBin.Command(

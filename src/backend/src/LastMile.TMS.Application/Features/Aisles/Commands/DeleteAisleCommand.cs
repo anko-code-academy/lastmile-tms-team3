@@ -1,4 +1,5 @@
 using LastMile.TMS.Application.Common.Interfaces;
+using LastMile.TMS.Application.Common.Security;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 

@@ -95,6 +95,20 @@ public class AisleCommandTests : IDisposable
     }
 
     [Fact]
+    public async Task CreateAisle_ThrowsUnauthorizedAccessException_ForOperationsManager()
+    {
+        var currentUser = new FakeCurrentUserService(_depotId, new[] { "OperationsManager" });
+        var codeGenerator = new WarehouseCodeGenerator(_context);
+        var handler = new CreateAisle.Handler(_context, currentUser, codeGenerator);
+
+        var act = async () => await handler.Handle(
+            new CreateAisle.Command(new CreateAisleDto(_zoneId, "Aisle B", "B", true)),
+            CancellationToken.None);
+
+        await act.Should().ThrowAsync<UnauthorizedAccessException>();
+    }
+
+    [Fact]
     public async Task UpdateAisle_WithValidInput_UpdatesAisle()
     {
         var command = new UpdateAisle.Command(

@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using LastMile.TMS.Application.Common.Interfaces;
+using LastMile.TMS.Application.Common.Security;
 using Microsoft.AspNetCore.Http;
 
 namespace LastMile.TMS.Infrastructure.Services;
@@ -20,7 +21,7 @@ public class CurrentUserService(IHttpContextAccessor httpContextAccessor) : ICur
     {
         get
         {
-            var claimValue = User?.FindFirstValue("assigned_depot_id");
+            var claimValue = User?.FindFirstValue(CustomClaims.AssignedDepotId);
             return Guid.TryParse(claimValue, out var depotId) ? depotId : null;
         }
     }

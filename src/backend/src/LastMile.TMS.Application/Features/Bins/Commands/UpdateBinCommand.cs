@@ -1,5 +1,5 @@
 using LastMile.TMS.Application.Common.Interfaces;
-using LastMile.TMS.Application.Features.Aisles.Commands;
+using LastMile.TMS.Application.Common.Security;
 using LastMile.TMS.Application.Features.Bins.DTOs;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
