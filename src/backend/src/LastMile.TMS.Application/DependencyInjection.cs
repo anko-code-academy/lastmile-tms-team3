@@ -16,6 +16,7 @@ public static class DependencyInjection
         services.AddValidatorsFromAssembly(assembly);
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
         services.AddScoped<IZoneMatchingService, ZoneMatchingService>();
+        services.AddScoped<IWarehouseCodeGenerator, WarehouseCodeGenerator>();
 
         return services;
     }

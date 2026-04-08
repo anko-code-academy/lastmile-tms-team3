@@ -8,6 +8,8 @@ public record SortParcelResultDto(
     ParcelStatus Status,
     Guid? ZoneId,
     string? ZoneName,
+    Guid? BinId,
+    string? BinCode,
     bool IsMissort,
     bool IsUnsortable,
     IReadOnlyList<TrackingEventDto> TrackingEvents

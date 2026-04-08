@@ -417,10 +417,12 @@ function ResultCard({
       }}>
         <div>
           <p style={{ fontSize: "10px", color: "#475569", textTransform: "uppercase", letterSpacing: ".12em", marginBottom: ".25rem" }}>
-            Place in Zone
+            {result.binCode ? "Place in Bin" : "Place in Zone"}
           </p>
           <p style={{ fontSize: "28px", fontWeight: 900, color: "#e2e8f0", letterSpacing: "-.02em" }}>
-            {result.zoneName ?? "—"}
+            {result.binCode
+              ? `${result.zoneName ?? "—"} → ${result.binCode}`
+              : (result.zoneName ?? "—")}
           </p>
         </div>
       </div>

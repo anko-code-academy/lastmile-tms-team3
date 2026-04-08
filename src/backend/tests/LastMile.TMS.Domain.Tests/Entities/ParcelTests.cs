@@ -209,4 +209,42 @@ public class ParcelTests
         _parcel.ZoneId.Should().BeNull();
         _parcel.Zone.Should().BeNull();
     }
+
+    [Fact]
+    public void AssignToBin_Should_Set_CurrentBinId_And_CurrentBin()
+    {
+        var bin = new Bin
+        {
+            Id = Guid.NewGuid(),
+            Name = "Bin N-A3",
+            Code = "N-A3",
+            CapacityParcelCount = 10,
+            IsActive = true
+        };
+
+        _parcel.AssignToBin(bin);
+
+        _parcel.CurrentBinId.Should().Be(bin.Id);
+        _parcel.CurrentBin.Should().BeSameAs(bin);
+    }
+
+    [Fact]
+    public void ClearBinAssignment_Should_Remove_Current_Bin_Association()
+    {
+        var bin = new Bin
+        {
+            Id = Guid.NewGuid(),
+            Name = "Bin N-A3",
+            Code = "N-A3",
+            CapacityParcelCount = 10,
+            IsActive = true
+        };
+
+        _parcel.AssignToBin(bin);
+
+        _parcel.ClearBinAssignment();
+
+        _parcel.CurrentBinId.Should().BeNull();
+        _parcel.CurrentBin.Should().BeNull();
+    }
 }

@@ -1,5 +1,6 @@
 using LastMile.TMS.Application.Common.Interfaces;
 using LastMile.TMS.Application.Features.Parcels.DTOs;
+using LastMile.TMS.Domain.Entities;
 using LastMile.TMS.Domain.Enums;
 using LastMile.TMS.Domain.Exceptions;
 using MediatR;
@@ -47,14 +48,37 @@ public static class SortParcel
 
                 await context.SaveChangesAsync(cancellationToken);
 
-                return BuildResult(parcel, isMissort: false, isUnsortable: true);
+                return BuildResult(parcel, bin: null, isMissort: false, isUnsortable: true);
             }
 
             // Mis-sort: operator scanned a different zone bin
             if (request.Dto.ScannedZoneId.HasValue && request.Dto.ScannedZoneId.Value != parcel.ZoneId.Value)
             {
-                return BuildResult(parcel, isMissort: true, isUnsortable: false);
+                return BuildResult(parcel, bin: null, isMissort: true, isUnsortable: false);
             }
+
+            // Find an available bin in the parcel's zone (two-step to support EF InMemory in tests)
+            var aisleIdsInZone = await context.Aisles
+                .Where(a => a.IsActive && a.ZoneId == parcel.ZoneId.Value)
+                .Select(a => a.Id)
+                .ToListAsync(cancellationToken);
+
+            var binsInZone = await context.Bins
+                .Where(b => b.IsActive && aisleIdsInZone.Contains(b.AisleId))
+                .OrderBy(b => b.Code)
+                .ToListAsync(cancellationToken);
+
+            var occupiedCounts = await context.Parcels
+                .Where(p => p.CurrentBinId != null)
+                .GroupBy(p => p.CurrentBinId!.Value)
+                .Select(g => new { BinId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(g => g.BinId, g => g.Count, cancellationToken);
+
+            var bin = binsInZone.FirstOrDefault(b =>
+                occupiedCounts.GetValueOrDefault(b.Id, 0) < b.CapacityParcelCount);
+
+            if (bin is not null)
+                parcel.AssignToBin(bin);
 
             // Happy path: transition to Sorted
             parcel.TransitionToStatus(
@@ -66,11 +90,12 @@ public static class SortParcel
 
             await context.SaveChangesAsync(cancellationToken);
 
-            return BuildResult(parcel, isMissort: false, isUnsortable: false);
+            return BuildResult(parcel, bin, isMissort: false, isUnsortable: false);
         }
 
         private static SortParcelResultDto BuildResult(
-            Domain.Entities.Parcel parcel,
+            Parcel parcel,
+            Bin? bin,
             bool isMissort,
             bool isUnsortable)
         {
@@ -95,6 +120,8 @@ public static class SortParcel
                 Status: parcel.Status,
                 ZoneId: parcel.ZoneId,
                 ZoneName: parcel.Zone?.Name,
+                BinId: bin?.Id,
+                BinCode: bin?.Code,
                 IsMissort: isMissort,
                 IsUnsortable: isUnsortable,
                 TrackingEvents: trackingEvents);

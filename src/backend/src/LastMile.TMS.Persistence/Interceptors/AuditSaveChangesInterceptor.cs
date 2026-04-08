@@ -178,6 +178,8 @@ public sealed class AuditSaveChangesInterceptor(IHttpContextAccessor httpContext
             Depot => AuditResourceType.Depot,
             Zone => AuditResourceType.Zone,
             Driver => AuditResourceType.Driver,
+            Aisle => AuditResourceType.Aisle,
+            Bin => AuditResourceType.Bin,
             _ => throw new InvalidOperationException($"Unsupported audited entity type: {entity.GetType().Name}")
         };
     }
@@ -330,6 +332,14 @@ public sealed class AuditSaveChangesInterceptor(IHttpContextAccessor httpContext
             (AuditResourceType.Driver, AuditActionType.Update) => "Driver updated",
             (AuditResourceType.Driver, AuditActionType.Activate) => "Driver activated",
             (AuditResourceType.Driver, AuditActionType.Deactivate) => "Driver deactivated",
+            (AuditResourceType.Aisle, AuditActionType.Create) => "Aisle created",
+            (AuditResourceType.Aisle, AuditActionType.Update) => "Aisle updated",
+            (AuditResourceType.Aisle, AuditActionType.Activate) => "Aisle activated",
+            (AuditResourceType.Aisle, AuditActionType.Deactivate) => "Aisle deactivated",
+            (AuditResourceType.Bin, AuditActionType.Create) => "Bin created",
+            (AuditResourceType.Bin, AuditActionType.Update) => "Bin updated",
+            (AuditResourceType.Bin, AuditActionType.Activate) => "Bin activated",
+            (AuditResourceType.Bin, AuditActionType.Deactivate) => "Bin deactivated",
             _ => $"{resourceType} {actionType}"
         };
     }

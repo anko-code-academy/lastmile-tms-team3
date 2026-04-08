@@ -21,8 +21,10 @@ public class ApplicationDbSeeder(
     [
         nameof(UserRole.Admin),
         nameof(UserRole.OperationsManager),
+        nameof(UserRole.WarehouseManager),
         nameof(UserRole.Dispatcher),
         nameof(UserRole.WarehouseOperator),
+        nameof(UserRole.DepotOperator),
         nameof(UserRole.Driver)
     ];
 
@@ -30,10 +32,12 @@ public class ApplicationDbSeeder(
     {
         await SeedRolesAsync();
         await SeedAdminUserAsync();
-        await SeedOperationsManagerUserAsync();
         await SeedDepotsAsync(cancellationToken);
+        await SeedOperationsManagerUserAsync();
+        await SeedWarehouseManagerUsersAsync(cancellationToken);
         await SeedVehiclesAsync(cancellationToken);
         await SeedZonesAsync(cancellationToken);
+        await SeedAislesAndBinsAsync(cancellationToken);
         await SeedParcelsAsync(cancellationToken);
         await SeedDriversAsync(cancellationToken);
     }
@@ -422,6 +426,77 @@ public class ApplicationDbSeeder(
                 string.Join(", ", roleResult.Errors.Select(e => e.Description)));
     }
 
+    private async Task SeedWarehouseManagerUsersAsync(CancellationToken cancellationToken)
+    {
+        var depots = await dbContext.Depots
+            .OrderBy(d => d.Name)
+            .Select(d => new { d.Id, d.Name })
+            .ToListAsync(cancellationToken);
+
+        if (depots.Count == 0)
+            return;
+
+        var warehouseManagers = new[]
+        {
+            new
+            {
+                Email = configuration["Seeding:WarehouseManagerEmail"] ?? "warehouse.manager@lastmile.local",
+                Password = configuration["Seeding:WarehouseManagerPassword"] ?? "Warehouse@123456",
+                FirstName = configuration["Seeding:WarehouseManagerFirstName"] ?? "Warehouse",
+                LastName = configuration["Seeding:WarehouseManagerLastName"] ?? "Manager",
+                AssignedDepotId = depots[0].Id,
+                DepotName = depots[0].Name,
+            },
+            new
+            {
+                Email = configuration["Seeding:WarehouseManager2Email"] ?? "warehouse.manager2@lastmile.local",
+                Password = configuration["Seeding:WarehouseManager2Password"] ?? "Warehouse2@123456",
+                FirstName = configuration["Seeding:WarehouseManager2FirstName"] ?? "Warehouse",
+                LastName = configuration["Seeding:WarehouseManager2LastName"] ?? "Manager Two",
+                AssignedDepotId = depots.Count > 1 ? depots[1].Id : depots[0].Id,
+                DepotName = depots.Count > 1 ? depots[1].Name : depots[0].Name,
+            }
+        };
+
+        foreach (var warehouseManager in warehouseManagers)
+        {
+            var existing = await userManager.FindByEmailAsync(warehouseManager.Email);
+            if (existing != null)
+                continue;
+
+            var user = new AppUser
+            {
+                Id = Guid.NewGuid(),
+                UserName = warehouseManager.Email,
+                Email = warehouseManager.Email,
+                EmailConfirmed = true,
+                FirstName = warehouseManager.FirstName,
+                LastName = warehouseManager.LastName,
+                Role = UserRole.WarehouseManager,
+                AssignedDepotId = warehouseManager.AssignedDepotId,
+                IsActive = true,
+                CreatedAt = DateTimeOffset.UtcNow
+            };
+
+            var createResult = await userManager.CreateAsync(user, warehouseManager.Password);
+            if (!createResult.Succeeded)
+            {
+                logger.LogError("Failed to create warehouse manager user {Email}: {Errors}",
+                    warehouseManager.Email,
+                    string.Join(", ", createResult.Errors.Select(e => e.Description)));
+                continue;
+            }
+
+            var roleResult = await userManager.AddToRoleAsync(user, nameof(UserRole.WarehouseManager));
+            if (roleResult.Succeeded)
+                logger.LogInformation("Warehouse Manager user seeded: {Email} for depot {DepotName}", warehouseManager.Email, warehouseManager.DepotName);
+            else
+                logger.LogError("Failed to assign WarehouseManager role to {Email}: {Errors}",
+                    warehouseManager.Email,
+                    string.Join(", ", roleResult.Errors.Select(e => e.Description)));
+        }
+    }
+
     private async Task SeedZonesAsync(CancellationToken cancellationToken)
     {
         if (await dbContext.Zones.AnyAsync(cancellationToken))
@@ -486,6 +561,64 @@ public class ApplicationDbSeeder(
         logger.LogInformation("Seeded {Count} zone records", zones.Count);
     }
 
+    private async Task SeedAislesAndBinsAsync(CancellationToken cancellationToken)
+    {
+        if (await dbContext.Aisles.AnyAsync(cancellationToken) || await dbContext.Bins.AnyAsync(cancellationToken))
+            return;
+
+        var zones = await dbContext.Zones
+            .OrderBy(z => z.Name)
+            .ToListAsync(cancellationToken);
+
+        if (zones.Count == 0)
+            return;
+
+        var aisles = new List<Aisle>();
+        var bins = new List<Bin>();
+
+        foreach (var zone in zones)
+        {
+            var zoneLabelSegment = zone.Id.ToString("N")[..6].ToUpperInvariant();
+
+            foreach (var (aisleCode, sortOrder) in new[] { ("A", 1), ("B", 2) })
+            {
+                var aisle = new Aisle
+                {
+                    Id = Guid.NewGuid(),
+                    ZoneId = zone.Id,
+                    Name = $"Aisle {aisleCode}",
+                    Code = aisleCode,
+                    SortOrder = sortOrder,
+                    IsActive = true,
+                    CreatedAt = DateTimeOffset.UtcNow,
+                };
+
+                aisles.Add(aisle);
+
+                for (var index = 1; index <= 6; index++)
+                {
+                    bins.Add(new Bin
+                    {
+                        Id = Guid.NewGuid(),
+                        AisleId = aisle.Id,
+                        Name = $"Bin {aisleCode}-{index:00}",
+                        Code = $"{aisleCode}-{index:00}",
+                        LabelCode = $"BIN-{zoneLabelSegment}-{aisleCode}{index:00}",
+                        CapacityParcelCount = 60 + (index * 10),
+                        IsActive = true,
+                        CreatedAt = DateTimeOffset.UtcNow,
+                    });
+                }
+            }
+        }
+
+        await dbContext.Aisles.AddRangeAsync(aisles, cancellationToken);
+        await dbContext.Bins.AddRangeAsync(bins, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation("Seeded {AisleCount} aisles and {BinCount} bins", aisles.Count, bins.Count);
+    }
+
     private async Task SeedParcelsAsync(CancellationToken cancellationToken)
     {
         if (await dbContext.Parcels.AnyAsync(cancellationToken))
@@ -493,6 +626,16 @@ public class ApplicationDbSeeder(
 
         var depots = await dbContext.Depots.ToListAsync(cancellationToken);
         var zones = await dbContext.Zones.ToListAsync(cancellationToken);
+        var binsByZone = await dbContext.Bins
+            .AsNoTracking()
+            .Include(b => b.Aisle)
+            .Where(b =>
+                b.IsActive &&
+                b.Aisle.IsActive &&
+                b.Aisle.Zone.IsActive &&
+                b.Aisle.Zone.Depot.IsActive)
+            .GroupBy(b => b.Aisle.ZoneId)
+            .ToDictionaryAsync(g => g.Key, g => g.OrderBy(b => b.Code).ToList(), cancellationToken);
         if (depots.Count == 0) return;
 
         var geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
@@ -512,15 +655,15 @@ public class ApplicationDbSeeder(
 
         var statuses = new[]
         {
-            (ParcelStatus.Registered, 15),
-            (ParcelStatus.ReceivedAtDepot, 8),
-            (ParcelStatus.Sorted, 5),
+            (ParcelStatus.Registered, 6),
+            (ParcelStatus.ReceivedAtDepot, 5),
+            (ParcelStatus.Sorted, 25),
             (ParcelStatus.Staged, 4),
-            (ParcelStatus.Loaded, 3),
-            (ParcelStatus.OutForDelivery, 6),
-            (ParcelStatus.Delivered, 5),
-            (ParcelStatus.FailedAttempt, 2),
-            (ParcelStatus.Exception, 2),
+            (ParcelStatus.Loaded, 2),
+            (ParcelStatus.OutForDelivery, 4),
+            (ParcelStatus.Delivered, 2),
+            (ParcelStatus.FailedAttempt, 1),
+            (ParcelStatus.Exception, 1),
         };
 
         var serviceTypes = Enum.GetValues<ServiceType>();
@@ -619,6 +762,11 @@ public class ApplicationDbSeeder(
 
                 var shipper = shipperAddresses[random.Next(shipperAddresses.Count)];
                 var zone = zones.Count > 0 && random.Next(3) > 0 ? zones[random.Next(zones.Count)] : null;
+                Bin? currentBin = null;
+                if (zone is not null && (status == ParcelStatus.Sorted || status == ParcelStatus.Staged) && binsByZone.TryGetValue(zone.Id, out var zoneBins) && zoneBins.Count > 0)
+                {
+                    currentBin = zoneBins[random.Next(zoneBins.Count)];
+                }
                 var serviceType = serviceTypes[random.Next(serviceTypes.Length)];
                 var parcelType = parcelTypes[random.Next(parcelTypes.Length)];
                 var createdAt = DateTimeOffset.UtcNow.AddHours(-random.Next(1, 720));
@@ -694,6 +842,7 @@ public class ApplicationDbSeeder(
                     DeliveryAttempts = status == ParcelStatus.FailedAttempt ? random.Next(1, 3) : 0,
                     ParcelType = parcelType,
                     ZoneId = zone?.Id,
+                    CurrentBinId = currentBin?.Id,
                     CreatedAt = createdAt,
                     LastModifiedAt = createdAt.AddHours(random.Next(1, 48)),
                 };

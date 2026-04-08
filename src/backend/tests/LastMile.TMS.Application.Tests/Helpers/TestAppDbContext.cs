@@ -23,6 +23,8 @@ public class TestAppDbContext : DbContext, IAppDbContext, IAppDbContextFactory
 
     public DbSet<Depot> Depots => Set<Depot>();
     public DbSet<Zone> Zones => Set<Zone>();
+    public DbSet<Aisle> Aisles => Set<Aisle>();
+    public DbSet<Bin> Bins => Set<Bin>();
     public DbSet<Address> Addresses => Set<Address>();
     public DbSet<Parcel> Parcels => Set<Parcel>();
     public DbSet<Driver> Drivers => Set<Driver>();
@@ -85,6 +87,24 @@ public class TestAppDbContext : DbContext, IAppDbContext, IAppDbContextFactory
             entity.Ignore(e => e.Boundary);
         });
 
+        modelBuilder.Entity<Aisle>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.Zone)
+                .WithMany(z => z.Aisles)
+                .HasForeignKey(e => e.ZoneId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<Bin>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.Aisle)
+                .WithMany(a => a.Bins)
+                .HasForeignKey(e => e.AisleId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
         modelBuilder.Entity<Address>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -129,6 +149,7 @@ public class TestAppDbContext : DbContext, IAppDbContext, IAppDbContextFactory
             entity.HasOne(p => p.ShipperAddress).WithMany().HasForeignKey(p => p.ShipperAddressId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(p => p.RecipientAddress).WithMany().HasForeignKey(p => p.RecipientAddressId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(p => p.Zone).WithMany().HasForeignKey(p => p.ZoneId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(p => p.CurrentBin).WithMany(b => b.Parcels).HasForeignKey(p => p.CurrentBinId).OnDelete(DeleteBehavior.SetNull);
             entity.HasMany(p => p.Watchers).WithMany(w => w.Parcels);
         });
 
@@ -195,6 +216,16 @@ public class TestAppDbContext : DbContext, IAppDbContext, IAppDbContextFactory
 
 public class FakeCurrentUserService : ICurrentUserService
 {
+    private readonly HashSet<string> _roles;
+
+    public FakeCurrentUserService(Guid? assignedDepotId = null, IEnumerable<string>? roles = null)
+    {
+        AssignedDepotId = assignedDepotId;
+        _roles = new HashSet<string>(roles ?? new[] { "Admin" }, StringComparer.Ordinal);
+    }
+
     public string? UserId => "test-user-id";
     public string? UserName => "testuser";
+    public Guid? AssignedDepotId { get; }
+    public bool IsInRole(string role) => _roles.Contains(role);
 }

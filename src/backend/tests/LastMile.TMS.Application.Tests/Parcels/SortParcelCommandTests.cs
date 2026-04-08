@@ -5,6 +5,7 @@ using LastMile.TMS.Application.Tests.Helpers;
 using LastMile.TMS.Domain.Entities;
 using LastMile.TMS.Domain.Enums;
 using LastMile.TMS.Domain.Exceptions;
+using Microsoft.EntityFrameworkCore;
 
 namespace LastMile.TMS.Application.Tests.Parcels;
 
@@ -17,6 +18,8 @@ public class SortParcelCommandTests : IDisposable
     private readonly Guid _zoneId = Guid.NewGuid();
     private readonly Guid _otherZoneId = Guid.NewGuid();
     private readonly Guid _depotId = Guid.NewGuid();
+    private readonly Guid _aisleId = Guid.NewGuid();
+    private readonly Guid _binId = Guid.NewGuid();
 
     public SortParcelCommandTests()
     {
@@ -99,8 +102,33 @@ public class SortParcelCommandTests : IDisposable
             CreatedAt = DateTimeOffset.UtcNow
         };
 
+        var aisle = new Aisle
+        {
+            Id = _aisleId,
+            Name = "Aisle A",
+            Code = "A",
+            SortOrder = 1,
+            IsActive = true,
+            ZoneId = _zoneId,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        var bin = new Bin
+        {
+            Id = _binId,
+            Name = "Bin A-01",
+            Code = "N-A1",
+            LabelCode = "BIN-N-A1",
+            CapacityParcelCount = 50,
+            IsActive = true,
+            AisleId = _aisleId,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
         _context.Depots.Add(depot);
         _context.Zones.AddRange(zone, otherZone);
+        _context.Aisles.Add(aisle);
+        _context.Bins.Add(bin);
         _context.Addresses.AddRange(recipientAddress, shipperAddress);
         _context.Parcels.Add(parcel);
         _context.SaveChanges();
@@ -289,6 +317,57 @@ public class SortParcelCommandTests : IDisposable
         var evt = result.TrackingEvents[0];
         evt.Operator.Should().Be("Sorter1");
         evt.LocationCity.Should().Be("Nashville");
+    }
+
+    [Fact]
+    public async Task SortParcel_ValidSort_AssignsAvailableBinInZone()
+    {
+        var dto = new SortParcelDto(TrackingNumber, ScannedZoneId: null, OperatorName: "Op1", LocationCity: null, LocationState: null, LocationCountryCode: null);
+
+        var result = await _handler.Handle(new SortParcel.Command(dto), CancellationToken.None);
+
+        result.Status.Should().Be(ParcelStatus.Sorted);
+        result.BinId.Should().Be(_binId);
+        result.BinCode.Should().Be("N-A1");
+
+        var savedParcel = await _context.Parcels.AsNoTracking().FirstAsync(p => p.TrackingNumber == TrackingNumber);
+        savedParcel.CurrentBinId.Should().Be(_binId);
+    }
+
+    [Fact]
+    public async Task SortParcel_NoBinAvailable_SortsSuccessfullyWithNoBin()
+    {
+        // Fill the bin to capacity
+        for (var i = 0; i < 50; i++)
+        {
+            var addr = new Address { Id = Guid.NewGuid(), Street1 = $"{i} St", City = "C", State = "S", PostalCode = "00000", CountryCode = "US", IsResidential = true, ContactName = "X" };
+            var p = new Parcel
+            {
+                Id = Guid.NewGuid(),
+                TrackingNumber = $"FILL-{i:D3}",
+                ServiceType = ServiceType.Standard,
+                Status = ParcelStatus.Sorted,
+                RecipientAddressId = addr.Id,
+                ShipperAddressId = addr.Id,
+                ZoneId = _zoneId,
+                CurrentBinId = _binId,
+                Weight = 1m, WeightUnit = WeightUnit.Kg,
+                Length = 10, Width = 10, Height = 10, DimensionUnit = DimensionUnit.Cm,
+                DeclaredValue = 10, Currency = "USD", DeliveryAttempts = 0,
+                CreatedAt = DateTimeOffset.UtcNow
+            };
+            _context.Addresses.Add(addr);
+            _context.Parcels.Add(p);
+        }
+        await _context.SaveChangesAsync();
+
+        var dto = new SortParcelDto(TrackingNumber, ScannedZoneId: null, OperatorName: "Op1", LocationCity: null, LocationState: null, LocationCountryCode: null);
+
+        var result = await _handler.Handle(new SortParcel.Command(dto), CancellationToken.None);
+
+        result.Status.Should().Be(ParcelStatus.Sorted);
+        result.BinId.Should().BeNull();
+        result.BinCode.Should().BeNull();
     }
 
     public void Dispose()

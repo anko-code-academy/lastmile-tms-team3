@@ -36,6 +36,8 @@ public class ParcelType : ObjectType<Parcel>
             .Type<StringType>()
             .Resolve(ctx => ctx.Parent<Parcel>().Zone?.Name);
         descriptor.Field(x => x.Zone).Type<ZoneType>();
+        descriptor.Field(x => x.CurrentBinId);
+        descriptor.Field(x => x.CurrentBin).Type<BinType>();
         descriptor.Field(x => x.CreatedAt);
         descriptor.Field(x => x.LastModifiedAt);
         descriptor.Field("contentItemsCount")

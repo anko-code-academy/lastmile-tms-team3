@@ -56,6 +56,11 @@ public class ParcelConfiguration : IEntityTypeConfiguration<Parcel>
             .OnDelete(DeleteBehavior.Restrict)
             .IsRequired(false);
 
+        builder.HasOne(p => p.CurrentBin)
+            .WithMany(b => b.Parcels)
+            .HasForeignKey(p => p.CurrentBinId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
         // Physical properties
         builder.Property(p => p.Weight)
             .HasPrecision(10, 3);
@@ -105,5 +110,6 @@ public class ParcelConfiguration : IEntityTypeConfiguration<Parcel>
         builder.HasIndex(p => p.EstimatedDeliveryDate);
         builder.HasIndex(p => p.ParcelType);
         builder.HasIndex(p => p.ZoneId);
+        builder.HasIndex(p => p.CurrentBinId);
     }
 }

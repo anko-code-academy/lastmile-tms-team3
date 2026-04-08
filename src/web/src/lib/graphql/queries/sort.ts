@@ -6,6 +6,8 @@ export const SORT_PARCEL = `
       status
       zoneId
       zoneName
+      binId
+      binCode
       isMissort
       isUnsortable
       trackingEvents {

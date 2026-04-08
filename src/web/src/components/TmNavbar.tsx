@@ -8,26 +8,31 @@ export default function TmNavbar() {
   const loading = status === "loading";
   const pathname = usePathname();
   const isAdmin = session?.user?.role === "Admin";
+  const isWarehouseManager = session?.user?.role === "WarehouseManager";
   const isAdminOrOm = isAdmin || session?.user?.role === "OperationsManager";
   const isDepotOperator =
     isAdmin ||
     isAdminOrOm ||
     session?.user?.role === "DepotOperator" ||
     session?.user?.role === "WarehouseOperator";
+  const canManageBins = isAdmin || isWarehouseManager;
 
   const navItems = [
     { label: "Dashboard", href: "/" },
     { label: "Parcels", href: "/parcels" },
     { label: "Routes", href: "#" },
-    ...(!loading && isDepotOperator ? [{ label: "Sort", href: "/depot/sort" }] : []),
-    ...(!loading && isAdminOrOm ? [{ label: "Depots", href: "/admin/depots" }] : []),
-    ...(!loading && isAdmin ? [{ label: "Zones", href: "/admin/zones" }] : []),
-    ...(!loading && isAdminOrOm ? [
-      { label: "Drivers", href: "/admin/drivers" },
-      { label: "Vehicles", href: "/admin/vehicles" },
-    ] : []),
-    ...(!loading && isAdmin ? [{ label: "Users", href: "/admin/users" }] : []),
-    ...(!loading && isAdmin ? [{ label: "Audit Logs", href: "/admin/audit-logs" }] : []),
+    ...(isDepotOperator ? [{ label: "Sort", href: "/depot/sort" }] : []),
+    ...(canManageBins ? [{ label: "Warehouse", href: "/warehouse" }] : []),
+    ...(isAdminOrOm ? [{ label: "Depots", href: "/admin/depots" }] : []),
+    ...(isAdmin ? [{ label: "Zones", href: "/admin/zones" }] : []),
+    ...(isAdminOrOm
+      ? [
+          { label: "Drivers", href: "/admin/drivers" },
+          { label: "Vehicles", href: "/admin/vehicles" },
+        ]
+      : []),
+    ...(isAdmin ? [{ label: "Users", href: "/admin/users" }] : []),
+    ...(isAdmin ? [{ label: "Audit Logs", href: "/admin/audit-logs" }] : []),
   ];
 
   const mono = "var(--font-geist-mono, monospace)";

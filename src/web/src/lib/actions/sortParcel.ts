@@ -18,6 +18,8 @@ export interface SortParcelResult {
   status: string;
   zoneId: string | null;
   zoneName: string | null;
+  binId: string | null;
+  binCode: string | null;
   isMissort: boolean;
   isUnsortable: boolean;
   trackingEvents: {

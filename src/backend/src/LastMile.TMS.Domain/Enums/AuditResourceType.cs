@@ -7,5 +7,7 @@ public enum AuditResourceType
     Vehicle = 2,
     Depot = 3,
     Zone = 4,
-    Driver = 5
+    Driver = 5,
+    Aisle = 6,
+    Bin = 7
 }
