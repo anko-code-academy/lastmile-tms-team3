@@ -1,16 +1,30 @@
 using System.Security.Claims;
 using LastMile.TMS.Application.Common.Interfaces;
+using LastMile.TMS.Application.Common.Security;
 using Microsoft.AspNetCore.Http;
 
 namespace LastMile.TMS.Infrastructure.Services;
 
 public class CurrentUserService(IHttpContextAccessor httpContextAccessor) : ICurrentUserService
 {
+    private ClaimsPrincipal? User => httpContextAccessor.HttpContext?.User;
+
     public string? UserId =>
-        httpContextAccessor.HttpContext?.User.FindFirstValue("sub") ??
-        httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        User?.FindFirstValue("sub") ??
+        User?.FindFirstValue(ClaimTypes.NameIdentifier);
 
     public string? UserName =>
-        httpContextAccessor.HttpContext?.User.FindFirstValue("name") ??
-        httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.Name);
+        User?.FindFirstValue("name") ??
+        User?.FindFirstValue(ClaimTypes.Name);
+
+    public Guid? AssignedDepotId
+    {
+        get
+        {
+            var claimValue = User?.FindFirstValue(CustomClaims.AssignedDepotId);
+            return Guid.TryParse(claimValue, out var depotId) ? depotId : null;
+        }
+    }
+
+    public bool IsInRole(string role) => User?.IsInRole(role) == true;
 }

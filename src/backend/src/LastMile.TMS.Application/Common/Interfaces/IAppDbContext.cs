@@ -7,6 +7,8 @@ public interface IAppDbContext : IDisposable
 {
     DbSet<Depot> Depots { get; }
     DbSet<Zone> Zones { get; }
+    DbSet<Aisle> Aisles { get; }
+    DbSet<Bin> Bins { get; }
     DbSet<Address> Addresses { get; }
     DbSet<Parcel> Parcels { get; }
     DbSet<Driver> Drivers { get; }

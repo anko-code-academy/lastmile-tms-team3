@@ -61,6 +61,10 @@ public class Parcel : BaseAuditableEntity, IAuditTracked
     public Guid? ZoneId { get; set; }
     public Zone? Zone { get; set; }
 
+    // Current warehouse placement
+    public Guid? CurrentBinId { get; set; }
+    public Bin? CurrentBin { get; set; }
+
     // Navigation properties
     public ICollection<TrackingEvent> TrackingEvents { get; set; } = new List<TrackingEvent>();
     public ICollection<ParcelContentItem> ContentItems { get; set; } = new List<ParcelContentItem>();
@@ -111,6 +115,20 @@ public class Parcel : BaseAuditableEntity, IAuditTracked
             throw new MaxDeliveryAttemptsReachedException(ParcelStatusRules.MaxDeliveryAttempts);
 
         DeliveryAttempts++;
+    }
+
+    public void AssignToBin(Bin bin)
+    {
+        ArgumentNullException.ThrowIfNull(bin);
+
+        CurrentBinId = bin.Id;
+        CurrentBin = bin;
+    }
+
+    public void ClearBinAssignment()
+    {
+        CurrentBinId = null;
+        CurrentBin = null;
     }
 
     public void MarkAsDelivered(

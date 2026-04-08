@@ -23,6 +23,8 @@ public class ZoneConfiguration : IEntityTypeConfiguration<Zone>
         builder.Property(z => z.Boundary)
             .HasColumnType("geometry (polygon)");
 
+        builder.HasIndex(z => new { z.DepotId, z.IsActive });
+
         builder.HasIndex(z => z.Boundary)
             .HasMethod("GIST");
 

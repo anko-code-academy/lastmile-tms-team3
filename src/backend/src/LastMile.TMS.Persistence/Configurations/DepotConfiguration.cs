@@ -19,6 +19,8 @@ public class DepotConfiguration : IEntityTypeConfiguration<Depot>
         builder.Property(d => d.IsActive)
             .HasDefaultValue(true);
 
+        builder.HasIndex(d => d.IsActive);
+
         builder.HasOne(d => d.Address)
             .WithMany()
             .HasForeignKey(d => d.AddressId)
