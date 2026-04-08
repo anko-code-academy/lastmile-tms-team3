@@ -46,7 +46,6 @@ const COUNTRIES = [
   { code: "PL", name: "Poland" },
   { code: "UA", name: "Ukraine" },
   { code: "RU", name: "Russia" },
-  { code: "CN", name: "China" },
   { code: "HK", name: "Hong Kong" },
   { code: "SG", name: "Singapore" },
   { code: "AE", name: "United Arab Emirates" },

@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.OpenApi;
 using OpenIddict.Server.AspNetCore;
 using OpenIddict.Validation.AspNetCore;
+using QuestPDF.Infrastructure;
 using Serilog;
 
 Log.Logger = new LoggerConfiguration()
@@ -185,6 +186,8 @@ try
     builder.Services.AddHangfireServer();
 
     var app = builder.Build();
+
+    QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
 
     app.UseSerilogRequestLogging();
     app.UseHttpsRedirection();
