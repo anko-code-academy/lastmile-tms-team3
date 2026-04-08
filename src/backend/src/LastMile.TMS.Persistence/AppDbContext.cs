@@ -13,6 +13,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<Depot> Depots => Set<Depot>();
     public DbSet<Zone> Zones => Set<Zone>();
+    public DbSet<Aisle> Aisles => Set<Aisle>();
+    public DbSet<Bin> Bins => Set<Bin>();
     public DbSet<Parcel> Parcels => Set<Parcel>();
     public DbSet<Address> Addresses => Set<Address>();
     public DbSet<DeliveryConfirmation> DeliveryConfirmations => Set<DeliveryConfirmation>();

@@ -91,11 +91,25 @@ try
             policy.RequireRole("OperationsManager");
         });
 
+        options.AddPolicy("WarehouseManager", policy =>
+        {
+            policy.AddAuthenticationSchemes(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme);
+            policy.RequireAuthenticatedUser();
+            policy.RequireRole("WarehouseManager");
+        });
+
         options.AddPolicy("AdminOrOperationsManager", policy =>
         {
             policy.AddAuthenticationSchemes(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme);
             policy.RequireAuthenticatedUser();
             policy.RequireRole("Admin", "OperationsManager");
+        });
+
+        options.AddPolicy("AdminOrWarehouseManager", policy =>
+        {
+            policy.AddAuthenticationSchemes(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme);
+            policy.RequireAuthenticatedUser();
+            policy.RequireRole("Admin", "WarehouseManager");
         });
     });
 
@@ -114,6 +128,10 @@ try
         .AddType<DepotMutation>()
         .AddType<ZoneQuery>()
         .AddType<ZoneMutation>()
+        .AddType<AisleQuery>()
+        .AddType<AisleMutation>()
+        .AddType<BinQuery>()
+        .AddType<BinMutation>()
         .AddType<ParcelQuery>()
         .AddType<ParcelMutation>()
         .AddType<VehicleQuery>()
@@ -127,6 +145,8 @@ try
         .AddType<DepotType>()
         .AddType<VehicleType>()
         .AddType<ZoneType>()
+        .AddType<AisleType>()
+        .AddType<BinType>()
         .AddType<DriverType>()
         .AddType<UserType>()
         .AddType<AuditLogType>()

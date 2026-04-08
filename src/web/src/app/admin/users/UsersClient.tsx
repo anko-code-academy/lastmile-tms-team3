@@ -14,6 +14,7 @@ import { z } from "zod";
 type UserRole =
   | "ADMIN"
   | "OPERATIONS_MANAGER"
+  | "WAREHOUSE_MANAGER"
   | "DISPATCHER"
   | "WAREHOUSE_OPERATOR"
   | "DRIVER";
@@ -34,6 +35,7 @@ interface User {
 const ROLE_LABEL: Record<UserRole, string> = {
   ADMIN: "Admin",
   OPERATIONS_MANAGER: "Ops Manager",
+  WAREHOUSE_MANAGER: "Warehouse Manager",
   DISPATCHER: "Dispatcher",
   WAREHOUSE_OPERATOR: "Warehouse",
   DRIVER: "Driver",
@@ -42,6 +44,7 @@ const ROLE_LABEL: Record<UserRole, string> = {
 const ROLE_COLOR: Record<UserRole, string> = {
   ADMIN: "#f59e0b",
   OPERATIONS_MANAGER: "#3b82f6",
+  WAREHOUSE_MANAGER: "#14b8a6",
   DISPATCHER: "#a855f7",
   WAREHOUSE_OPERATOR: "#22c55e",
   DRIVER: "#f97316",
@@ -50,6 +53,7 @@ const ROLE_COLOR: Record<UserRole, string> = {
 const ROLE_BG: Record<UserRole, string> = {
   ADMIN: "rgba(245,158,11,.12)",
   OPERATIONS_MANAGER: "rgba(59,130,246,.12)",
+  WAREHOUSE_MANAGER: "rgba(20,184,166,.12)",
   DISPATCHER: "rgba(168,85,247,.12)",
   WAREHOUSE_OPERATOR: "rgba(34,197,94,.12)",
   DRIVER: "rgba(249,115,22,.12)",
@@ -58,6 +62,7 @@ const ROLE_BG: Record<UserRole, string> = {
 const ALL_ROLES: UserRole[] = [
   "ADMIN",
   "OPERATIONS_MANAGER",
+  "WAREHOUSE_MANAGER",
   "DISPATCHER",
   "WAREHOUSE_OPERATOR",
   "DRIVER",
@@ -70,7 +75,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
 async function gqlFetch<T>(
   query: string,
   variables: Record<string, unknown>,
-  token: string
+  token: string,
 ): Promise<T> {
   const res = await fetch(`${API_BASE}/graphql`, {
     method: "POST",
@@ -104,6 +109,7 @@ const createSchema = z.object({
   role: z.enum([
     "ADMIN",
     "OPERATIONS_MANAGER",
+    "WAREHOUSE_MANAGER",
     "DISPATCHER",
     "WAREHOUSE_OPERATOR",
     "DRIVER",
@@ -151,7 +157,6 @@ const SEND_RESET = `
   }
 `;
 
-
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function UsersClient() {
@@ -167,10 +172,7 @@ export default function UsersClient() {
 
   // Debounce search input → query param
   useEffect(() => {
-    const t = setTimeout(
-      () => setSearch(searchInput.trim() || undefined),
-      350
-    );
+    const t = setTimeout(() => setSearch(searchInput.trim() || undefined), 350);
     return () => clearTimeout(t);
   }, [searchInput]);
 
@@ -186,7 +188,7 @@ export default function UsersClient() {
       const data = await gqlFetch<{ users: User[] }>(
         GET_USERS,
         { search: search ?? null, role: roleFilter || null },
-        token
+        token,
       );
       return data.users;
     },
@@ -224,7 +226,7 @@ export default function UsersClient() {
             initialPassword: input.initialPassword,
           },
         },
-        token
+        token,
       );
     },
     onSuccess: () => {
@@ -673,9 +675,7 @@ export default function UsersClient() {
               <select
                 className="role-select"
                 value={roleFilter}
-                onChange={(e) =>
-                  setRoleFilter(e.target.value as UserRole | "")
-                }
+                onChange={(e) => setRoleFilter(e.target.value as UserRole | "")}
               >
                 <option value="">All Roles</option>
                 {ALL_ROLES.map((r) => (
@@ -750,7 +750,7 @@ export default function UsersClient() {
                     >
                       {h}
                     </span>
-                  )
+                  ),
                 )}
               </div>
 
@@ -853,7 +853,7 @@ export default function UsersClient() {
                       day: "2-digit",
                       month: "short",
                       year: "numeric",
-                    }
+                    },
                   );
 
                   return (
@@ -882,8 +882,7 @@ export default function UsersClient() {
                         >
                           <span
                             style={{
-                              fontFamily:
-                                "var(--font-geist-mono, monospace)",
+                              fontFamily: "var(--font-geist-mono, monospace)",
                               fontSize: "11px",
                               fontWeight: 700,
                               color: rc,
@@ -991,15 +990,15 @@ export default function UsersClient() {
                         </button>
                         {user.isActive &&
                           user.email !== session?.user?.email && (
-                          <button
-                            className="action-btn danger"
-                            disabled={deactivateMutation.isPending}
-                            onClick={() => setConfirmDeactivate(user)}
-                            title="Deactivate user"
-                          >
-                            Deactivate
-                          </button>
-                        )}
+                            <button
+                              className="action-btn danger"
+                              disabled={deactivateMutation.isPending}
+                              onClick={() => setConfirmDeactivate(user)}
+                              title="Deactivate user"
+                            >
+                              Deactivate
+                            </button>
+                          )}
                       </div>
                     </div>
                   );
@@ -1071,7 +1070,7 @@ export default function UsersClient() {
 
             <form
               onSubmit={form.handleSubmit((data) =>
-                createMutation.mutate(data)
+                createMutation.mutate(data),
               )}
               noValidate
               style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
@@ -1344,13 +1343,9 @@ export default function UsersClient() {
                   transition: "background .15s",
                 }}
                 disabled={deactivateMutation.isPending}
-                onClick={() =>
-                  deactivateMutation.mutate(confirmDeactivate.id)
-                }
+                onClick={() => deactivateMutation.mutate(confirmDeactivate.id)}
               >
-                {deactivateMutation.isPending
-                  ? "DEACTIVATING…"
-                  : "DEACTIVATE"}
+                {deactivateMutation.isPending ? "DEACTIVATING…" : "DEACTIVATE"}
               </button>
             </div>
           </div>

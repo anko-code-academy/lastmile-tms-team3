@@ -1,4 +1,5 @@
 using LastMile.TMS.Application.Common.Interfaces;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -14,7 +15,10 @@ public class DbSeederHostedService(
         using var scope = serviceProvider.CreateScope();
         try
         {
+            var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             var seeder = scope.ServiceProvider.GetRequiredService<IDbSeeder>();
+
+            await dbContext.Database.MigrateAsync(cancellationToken);
             await seeder.SeedAsync(cancellationToken);
         }
         catch (Exception ex)

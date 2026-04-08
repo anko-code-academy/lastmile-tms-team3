@@ -73,6 +73,8 @@ public class AuthController(
         identity.SetClaim(Claims.Name, user.UserName);
         identity.SetClaim(Claims.GivenName, user.FirstName);
         identity.SetClaim(Claims.FamilyName, user.LastName);
+        identity.SetClaim("assigned_depot_id", user.AssignedDepotId?.ToString());
+        identity.SetClaim("assigned_zone_id", user.AssignedZoneId?.ToString());
 
         var roles = await userManager.GetRolesAsync(user);
         identity.SetClaims(Claims.Role, roles.ToImmutableArray());
@@ -120,6 +122,8 @@ public class AuthController(
         identity.SetClaim(Claims.Name, user.UserName);
         identity.SetClaim(Claims.GivenName, user.FirstName);
         identity.SetClaim(Claims.FamilyName, user.LastName);
+        identity.SetClaim("assigned_depot_id", user.AssignedDepotId?.ToString());
+        identity.SetClaim("assigned_zone_id", user.AssignedZoneId?.ToString());
 
         var roles = await userManager.GetRolesAsync(user);
         identity.SetClaims(Claims.Role, roles.ToImmutableArray());
@@ -133,7 +137,7 @@ public class AuthController(
     {
         return claim.Type switch
         {
-            Claims.Name or Claims.Email or Claims.GivenName or Claims.FamilyName =>
+            Claims.Name or Claims.Email or Claims.GivenName or Claims.FamilyName or "assigned_depot_id" or "assigned_zone_id" =>
                 [Destinations.AccessToken, Destinations.IdentityToken],
             Claims.Role =>
                 [Destinations.AccessToken, Destinations.IdentityToken],

@@ -11,4 +11,5 @@ public class Zone : BaseAuditableEntity, IAuditTracked
 
     public Guid DepotId { get; set; }
     public virtual Depot Depot { get; set; } = null!;
+    public virtual ICollection<Aisle> Aisles { get; set; } = new List<Aisle>();
 }
