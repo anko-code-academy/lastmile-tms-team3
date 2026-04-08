@@ -305,7 +305,7 @@ function PrintLabelMenu({ parcelId, trackingNumber }: { parcelId: string; tracki
     setOpen(false);
     try {
       if (format === "pdf") {
-        const blob = await downloadParcelLabelPdf(parcelId, trackingNumber);
+        const blob = await downloadParcelLabelPdf(parcelId);
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
@@ -315,7 +315,7 @@ function PrintLabelMenu({ parcelId, trackingNumber }: { parcelId: string; tracki
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
       } else {
-        const text = await downloadParcelLabelZpl(parcelId, trackingNumber);
+        const text = await downloadParcelLabelZpl(parcelId);
         const blob = new Blob([text], { type: "application/octet-stream" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");

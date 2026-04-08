@@ -1,6 +1,6 @@
 using HotChocolate;
 using LastMile.TMS.Application.Common.Interfaces;
-using LastMile.TMS.Persistence;
+using LastMile.TMS.Application.Features.Parcels.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -13,19 +13,20 @@ namespace LastMile.TMS.Api.Controllers;
 [Authorize(Policy = "AdminOrOperationsManager", AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)]
 public class LabelsController : ControllerBase
 {
-    private readonly AppDbContext _context;
+    private readonly IAppDbContextFactory _contextFactory;
     private readonly ILabelService _labelService;
 
-    public LabelsController(AppDbContext context, ILabelService labelService)
+    public LabelsController(IAppDbContextFactory contextFactory, ILabelService labelService)
     {
-        _context = context;
+        _contextFactory = contextFactory;
         _labelService = labelService;
     }
 
     [HttpGet("{parcelId:guid}/pdf")]
     public async Task<IActionResult> DownloadPdf(Guid parcelId, CancellationToken cancellationToken)
     {
-        var parcel = await _context.Parcels
+        var context = _contextFactory.CreateDbContext();
+        var parcel = await context.Parcels
             .AsNoTracking()
             .Include(p => p.RecipientAddress)
             .Include(p => p.ShipperAddress)
@@ -43,7 +44,8 @@ public class LabelsController : ControllerBase
     [HttpGet("{parcelId:guid}/zpl")]
     public async Task<IActionResult> DownloadZpl(Guid parcelId, CancellationToken cancellationToken)
     {
-        var parcel = await _context.Parcels
+        var context = _contextFactory.CreateDbContext();
+        var parcel = await context.Parcels
             .AsNoTracking()
             .Include(p => p.RecipientAddress)
             .Include(p => p.ShipperAddress)
@@ -64,7 +66,8 @@ public class LabelsController : ControllerBase
         if (ids == null || ids.Length == 0)
             return BadRequest("No parcel IDs provided");
 
-        var parcels = await _context.Parcels
+        var context = _contextFactory.CreateDbContext();
+        var parcels = await context.Parcels
             .AsNoTracking()
             .Include(p => p.RecipientAddress)
             .Include(p => p.ShipperAddress)

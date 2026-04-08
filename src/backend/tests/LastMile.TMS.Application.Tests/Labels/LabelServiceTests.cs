@@ -6,6 +6,7 @@ using LastMile.TMS.Domain.Enums;
 using LastMile.TMS.Infrastructure.Services;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
+using QuestPDF.Infrastructure;
 
 namespace LastMile.TMS.Application.Tests.Labels;
 
@@ -16,6 +17,7 @@ public class LabelServiceTests : IDisposable
 
     public LabelServiceTests()
     {
+        QuestPDF.Settings.License = LicenseType.Community;
         _context = TestAppDbContext.Create<LabelServiceTests>();
         var logger = Substitute.For<ILogger<LabelService>>();
         _labelService = new LabelService(logger);
@@ -227,34 +229,6 @@ public class LabelServiceTests : IDisposable
         pdf.Should().NotBeNullOrEmpty();
         var pdfHeader = System.Text.Encoding.ASCII.GetString(pdf.Take(4).ToArray());
         pdfHeader.Should().Be("%PDF");
-    }
-
-    [Fact]
-    public void GenerateQrCode_WithTrackingData_ReturnsImageBytes()
-    {
-        // Arrange
-        var data = "LMT-20260407-TESTAB";
-
-        // Act
-        var qrBytes = _labelService.GenerateQrCode(data);
-
-        // Assert
-        qrBytes.Should().NotBeNullOrEmpty();
-        qrBytes.Length.Should().Be(200 * 200 * 4); // RGBA bytes for 200x200 image
-    }
-
-    [Fact]
-    public void GenerateQrCode_WithShortData_ReturnsValidBytes()
-    {
-        // Arrange
-        var data = "ABC";
-
-        // Act
-        var qrBytes = _labelService.GenerateQrCode(data);
-
-        // Assert
-        qrBytes.Should().NotBeNullOrEmpty();
-        qrBytes.Length.Should().Be(200 * 200 * 4);
     }
 
     public void Dispose()

@@ -15,7 +15,6 @@ public class LabelService : ILabelService
     public LabelService(ILogger<LabelService> logger)
     {
         _logger = logger;
-        QuestPDF.Settings.License = LicenseType.Community;
     }
 
     public string GenerateZpl(Parcel parcel)
@@ -29,30 +28,30 @@ public class LabelService : ILabelService
         var shipperName = !string.IsNullOrWhiteSpace(shipper.ContactName)
             ? shipper.ContactName
             : shipper.CompanyName ?? "";
-        var recipientAddress = FormatAddress(recipient);
-        var shipperAddress = FormatAddress(shipper);
-        var zoneName = parcel.Zone?.Name ?? "—";
+        var recipientAddress = SanitizeZpl(FormatAddress(recipient));
+        var shipperAddress = SanitizeZpl(FormatAddress(shipper));
+        var zoneName = SanitizeZpl(parcel.Zone?.Name ?? "—");
 
         // ZPL for 4x6 label (203 DPI: 812 dots wide, 1216 dots tall)
         return $@"^XA
 ^FO50,30^BQN,2,8^FDQA,{qrData}^FS
-^FO350,30^A0N,40,40^FD{parcel.TrackingNumber}^FS
+^FO350,30^A0N,40,40^FD{SanitizeZpl(parcel.TrackingNumber)}^FS
 ^FO350,80^A0N,28,28^FD{parcel.ServiceType.ToString().ToUpper()}^FS
 ^FO350,115^GB0,900,3^FS
 ^FO50,140^A0N,28,28^FDTO:^FS
-^FO50,175^A0N,32,32^FD{recipientName}^FS
+^FO50,175^A0N,32,32^FD{SanitizeZpl(recipientName)}^FS
 ^FO50,215^A0N,28,28^FD{recipientAddress}^FS
 ^FO50,280^GB0,550,3^FS
 ^FO50,290^A0N,28,28^FDFROM:^FS
-^FO50,325^A0N,32,32^FD{shipperName}^FS
+^FO50,325^A0N,32,32^FD{SanitizeZpl(shipperName)}^FS
 ^FO50,365^A0N,28,28^FD{shipperAddress}^FS
 ^FO700,290^A0N,28,28^FDZONE:^FS
 ^FO700,325^A0N,40,40^FD{zoneName}^FS
 ^FO700,400^A0N,28,28^FDTYPE:^FS
-^FO700,435^A0N,32,32^FD{parcel.ParcelType ?? "—"}^FS
+^FO700,435^A0N,32,32^FD{SanitizeZpl(parcel.ParcelType ?? "—")}^FS
 ^FO50,840^GB0,300,3^FS
-^FO50,850^A0N,28,28^FD{parcel.ParcelType ?? "—"}^FS
-^FO50,885^BY3^BCN,80,Y,N,N^FD{parcel.TrackingNumber}^FS
+^FO50,850^A0N,28,28^FD{SanitizeZpl(parcel.ParcelType ?? "—")}^FS
+^FO50,885^BY3^BCN,80,Y,N,N^FD{SanitizeZpl(parcel.TrackingNumber)}^FS
 ^XZ";
     }
 
@@ -86,32 +85,6 @@ public class LabelService : ILabelService
         return doc.GeneratePdf();
     }
 
-    public byte[] GenerateQrCode(string data)
-    {
-        // Using ZXing.Net for QR code generation
-        var writer = new ZXing.QrCode.QRCodeWriter();
-        var bitMatrix = writer.encode(data, ZXing.BarcodeFormat.QR_CODE, 200, 200);
-        var bytes = new byte[200 * 200 * 4];
-        var white = (byte)255;
-        var black = (byte)0;
-
-        for (var y = 0; y < 200; y++)
-        {
-            for (var x = 0; x < 200; x++)
-            {
-                var idx = (y * 200 + x) * 4;
-                var bit = bitMatrix[y, x];
-                var color = bit ? black : white;
-                bytes[idx] = color;     // B
-                bytes[idx + 1] = color; // G
-                bytes[idx + 2] = color; // R
-                bytes[idx + 3] = 255;   // A
-            }
-        }
-
-        return bytes;
-    }
-
     private static string FormatAddress(Address address)
     {
         var parts = new List<string> { address.Street1 };
@@ -119,6 +92,19 @@ public class LabelService : ILabelService
         parts.Add($"{address.City}, {address.State} {address.PostalCode}");
         parts.Add(address.CountryCode);
         return string.Join("\n", parts);
+    }
+
+    private static string SanitizeZpl(string? value)
+    {
+        if (string.IsNullOrEmpty(value)) return "";
+        return value
+            .Replace("^", " ")
+            .Replace("~", " ")
+            .Replace("{", "(")
+            .Replace("}", ")")
+            .Replace("\\", " ")
+            .Replace("\n", " ")
+            .Replace("\r", " ");
     }
 
     private void ComposePage(PageDescriptor page, Parcel parcel)

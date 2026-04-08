@@ -7,5 +7,4 @@ public interface ILabelService
     string GenerateZpl(Parcel parcel);
     byte[] GeneratePdf(Parcel parcel);
     byte[] GenerateBulkPdf(IEnumerable<Parcel> parcels);
-    byte[] GenerateQrCode(string data);
 }
