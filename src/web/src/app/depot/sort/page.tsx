@@ -117,16 +117,23 @@ export default function SortScanPage() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #080c14 0%, #0d1526 100%)", color: "#e2e8f0", fontFamily: mono }}>
+    <div style={{ minHeight: "100vh", background: "#080c14", color: "#e2e8f0", position: "relative", overflow: "hidden", fontFamily: mono }}>
+      <div style={{
+        position: "fixed", inset: 0, zIndex: 0,
+        backgroundImage: "linear-gradient(rgba(30,42,66,.45) 1px,transparent 1px),linear-gradient(90deg,rgba(30,42,66,.45) 1px,transparent 1px)",
+        backgroundSize: "52px 52px",
+        pointerEvents: "none",
+      }} />
+      <div style={{ position: "relative", zIndex: 1 }}>
       <TmNavbar />
 
-      <div style={{ padding: "2rem" }}>
+      <div style={{ padding: "2rem", maxWidth: "1400px", margin: "0 auto" }}>
         {/* Header */}
         <div style={{ marginBottom: "2rem" }}>
-          <p style={{ fontSize: "11px", letterSpacing: ".14em", color: "#f59e0b", textTransform: "uppercase", marginBottom: ".25rem" }}>
+          <p style={{ fontFamily: mono, fontSize: "10px", letterSpacing: ".2em", color: "#f59e0b", textTransform: "uppercase", marginBottom: ".375rem" }}>
             Depot Operations
           </p>
-          <h1 style={{ fontSize: "1.5rem", fontWeight: 800, letterSpacing: "-.01em", color: "#f1f5f9" }}>
+          <h1 style={{ fontFamily: mono, fontSize: "1.5rem", fontWeight: 800, color: "#e2e8f0", letterSpacing: "-.02em", lineHeight: 1 }}>
             Sort &amp; Zone Assignment
           </h1>
         </div>
@@ -168,7 +175,7 @@ export default function SortScanPage() {
                     border: "1px solid rgba(255,255,255,.12)",
                     borderRadius: "8px",
                     padding: ".625rem 1rem",
-                    color: "#f1f5f9",
+                    color: "#e2e8f0",
                     fontFamily: mono,
                     fontSize: "14px",
                     outline: "none",
@@ -208,7 +215,7 @@ export default function SortScanPage() {
                     border: "1px solid rgba(255,255,255,.12)",
                     borderRadius: "8px",
                     padding: ".625rem 1rem",
-                    color: "#f1f5f9",
+                    color: "#e2e8f0",
                     fontFamily: mono,
                     fontSize: "14px",
                     outline: "none",
@@ -304,6 +311,7 @@ export default function SortScanPage() {
             )}
           </div>
         </div>
+      </div>
       </div>
     </div>
   );
@@ -411,7 +419,7 @@ function ResultCard({
           <p style={{ fontSize: "10px", color: "#475569", textTransform: "uppercase", letterSpacing: ".12em", marginBottom: ".25rem" }}>
             Place in Zone
           </p>
-          <p style={{ fontSize: "28px", fontWeight: 900, color: "#f1f5f9", letterSpacing: "-.02em" }}>
+          <p style={{ fontSize: "28px", fontWeight: 900, color: "#e2e8f0", letterSpacing: "-.02em" }}>
             {result.zoneName ?? "—"}
           </p>
         </div>

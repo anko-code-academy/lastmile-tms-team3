@@ -5,11 +5,6 @@ import { ParcelSearch } from "@/components/parcels/ParcelSearch";
 import { ParcelSortBy, SortDirection } from "@/lib/types/parcel";
 import TmNavbar from "@/components/TmNavbar";
 
-const S = {
-  accent: "#f59e0b" as const,
-  mono: "var(--font-geist-mono, monospace)" as const,
-};
-
 export default async function ParcelsPage() {
   const session = await auth();
   if (!session) redirect("/login");
