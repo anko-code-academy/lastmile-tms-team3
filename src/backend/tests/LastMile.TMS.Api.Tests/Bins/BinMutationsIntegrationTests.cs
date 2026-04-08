@@ -81,7 +81,6 @@ public class BinMutationsIntegrationTests(ApiWebApplicationFactory factory)
                     zoneId,
                     name = "Aisle A",
                     code = "A",
-                    sortOrder = 1,
                     isActive = true
                 }
             },
