@@ -39,6 +39,7 @@ public class ParcelImportService : IParcelImportService
         ImportFileType fileType,
         CancellationToken cancellationToken = default)
     {
+        var fileSize = fileStream.Length;
         var rows = await ParseFileAsync(fileStream, fileName, fileType, cancellationToken);
         var validatedRows = new List<ParcelImportRowDto>();
         var validCount = 0;
@@ -75,7 +76,7 @@ public class ParcelImportService : IParcelImportService
             Rows: validatedRows
         );
 
-        await StoreImportHistoryAsync(importId, fileName, fileType, fileStream.Length, preview, rows, cancellationToken);
+        await StoreImportHistoryAsync(importId, fileName, fileType, fileSize, preview, rows, cancellationToken);
 
         return preview;
     }
@@ -307,12 +308,31 @@ public class ParcelImportService : IParcelImportService
             };
             using var csv = new CsvHelper.CsvReader(reader, config);
             csv.Context.RegisterClassMap<ParcelImportCsvMap>();
-            var records = csv.GetRecords<ParcelImportRow>().ToList();
-            for (var i = 0; i < records.Count; i++)
+
+            // Read header first so CsvHelper.Context.Parser.Row gives correct row numbers
+            await csv.ReadAsync();
+            csv.ReadHeader();
+
+            var rowNum = 1; // header is row 1
+            while (await csv.ReadAsync())
             {
-                records[i].RowNumber = i + 2;
+                rowNum++;
+                try
+                {
+                    var record = csv.GetRecord<ParcelImportRow>();
+                    if (record != null)
+                    {
+                        record.RowNumber = rowNum;
+                        rows.Add(record);
+                    }
+                }
+                catch (CsvHelper.CsvHelperException)
+                {
+                    // Row has structural issues (wrong column count, type conversion failure, etc.)
+                    // Add a minimal row so validation marks it invalid with meaningful errors
+                    rows.Add(new ParcelImportRow { RowNumber = rowNum });
+                }
             }
-            rows = records;
         }
         else
         {
