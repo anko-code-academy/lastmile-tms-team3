@@ -85,25 +85,125 @@ public class AisleCommandTests : IDisposable
     public async Task CreateAisle_WithValidInput_CreatesAisle()
     {
         var command = new CreateAisle.Command(
-            new CreateAisleDto(_zoneId, "Aisle B", "B", 2, true));
+            new CreateAisleDto(_zoneId, "Aisle B", "B", true));
 
         var result = await _createHandler.Handle(command, CancellationToken.None);
 
         result.Name.Should().Be("Aisle B");
         result.ZoneId.Should().Be(_zoneId);
+        result.SortOrder.Should().Be(2);
     }
 
     [Fact]
     public async Task UpdateAisle_WithValidInput_UpdatesAisle()
     {
         var command = new UpdateAisle.Command(
-            new UpdateAisleDto(_aisleId, "Aisle A Updated", "A", 5, false));
+            new UpdateAisleDto(_aisleId, "Aisle A Updated", false));
 
         var result = await _updateHandler.Handle(command, CancellationToken.None);
 
         result.Name.Should().Be("Aisle A Updated");
-        result.SortOrder.Should().Be(5);
+        result.Code.Should().Be("A");
+        result.SortOrder.Should().Be(1);
         result.IsActive.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task CreateAisle_AppendsToHighestSortOrderInZone()
+    {
+        _context.Aisles.Add(new Aisle
+        {
+            Id = Guid.NewGuid(),
+            Name = "Aisle Z",
+            Code = "Z",
+            SortOrder = 7,
+            IsActive = true,
+            ZoneId = _zoneId,
+        });
+        _context.SaveChanges();
+
+        var result = await _createHandler.Handle(
+            new CreateAisle.Command(new CreateAisleDto(_zoneId, "Aisle B", "B", true)),
+            CancellationToken.None);
+
+        result.SortOrder.Should().Be(8);
+    }
+
+    [Fact]
+    public async Task UpdateAisle_WhenMadeInactive_MakesAllBinsInactive()
+    {
+        _context.Bins.AddRange(
+            new Bin
+            {
+                Id = Guid.NewGuid(),
+                AisleId = _aisleId,
+                Name = "Bin A-01",
+                Code = "A-01",
+                LabelCode = "BIN-AISLE-INACTIVE-1",
+                CapacityParcelCount = 50,
+                IsActive = true
+            },
+            new Bin
+            {
+                Id = Guid.NewGuid(),
+                AisleId = _aisleId,
+                Name = "Bin A-02",
+                Code = "A-02",
+                LabelCode = "BIN-AISLE-INACTIVE-2",
+                CapacityParcelCount = 50,
+                IsActive = true
+            });
+        _context.SaveChanges();
+
+        await _updateHandler.Handle(
+            new UpdateAisle.Command(new UpdateAisleDto(_aisleId, "Aisle A Updated", false)),
+            CancellationToken.None);
+
+        using var verificationContext = (TestAppDbContext)_context.CreateDbContext();
+
+        verificationContext.Bins.Where(bin => bin.AisleId == _aisleId)
+            .Should()
+            .OnlyContain(bin => !bin.IsActive);
+    }
+
+    [Fact]
+    public async Task UpdateAisle_WhenMadeActive_MakesAllBinsActive()
+    {
+        var aisle = _context.Aisles.Single(a => a.Id == _aisleId);
+        aisle.IsActive = false;
+
+        _context.Bins.AddRange(
+            new Bin
+            {
+                Id = Guid.NewGuid(),
+                AisleId = _aisleId,
+                Name = "Bin A-01",
+                Code = "A-01",
+                LabelCode = "BIN-AISLE-ACTIVE-1",
+                CapacityParcelCount = 50,
+                IsActive = false
+            },
+            new Bin
+            {
+                Id = Guid.NewGuid(),
+                AisleId = _aisleId,
+                Name = "Bin A-02",
+                Code = "A-02",
+                LabelCode = "BIN-AISLE-ACTIVE-2",
+                CapacityParcelCount = 50,
+                IsActive = false
+            });
+        _context.SaveChanges();
+
+        await _updateHandler.Handle(
+            new UpdateAisle.Command(new UpdateAisleDto(_aisleId, "Aisle A Updated", true)),
+            CancellationToken.None);
+
+        using var verificationContext = (TestAppDbContext)_context.CreateDbContext();
+
+        verificationContext.Bins.Where(bin => bin.AisleId == _aisleId)
+            .Should()
+            .OnlyContain(bin => bin.IsActive);
     }
 
     [Fact]
@@ -146,7 +246,7 @@ public class AisleCommandTests : IDisposable
         _context.SaveChanges();
 
         var act = async () => await _updateHandler.Handle(
-            new UpdateAisle.Command(new UpdateAisleDto(_aisleId, "Aisle A Updated", "A", 5, false)),
+            new UpdateAisle.Command(new UpdateAisleDto(_aisleId, "Aisle A Updated", false)),
             CancellationToken.None);
 
         await act.Should().ThrowAsync<InvalidOperationException>()
@@ -157,7 +257,7 @@ public class AisleCommandTests : IDisposable
     public async Task CreateAisle_WithBlankCode_GeneratesCode()
     {
         var command = new CreateAisle.Command(
-            new CreateAisleDto(_zoneId, "Aisle Generated", string.Empty, 3, true));
+            new CreateAisleDto(_zoneId, "Aisle Generated", string.Empty, true));
 
         var result = await _createHandler.Handle(command, CancellationToken.None);
 

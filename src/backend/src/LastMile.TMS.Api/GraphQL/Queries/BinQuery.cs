@@ -20,7 +20,7 @@ public class BinQuery
         Guid id)
         => context.Bins
             .AsNoTracking()
-            .ApplyWarehouseDepotScope(currentUser)
+            .ApplyWarehouseScope(currentUser)
             .Where(bin => bin.Id == id);
 
     [Authorize(Policy = "AdminOrWarehouseManager")]
@@ -35,7 +35,7 @@ public class BinQuery
     {
         var query = context.Bins
             .AsNoTracking()
-            .ApplyWarehouseDepotScope(currentUser);
+            .ApplyWarehouseScope(currentUser);
 
         if (depotId.HasValue)
             query = query.Where(bin => bin.Aisle.Zone.DepotId == depotId.Value);

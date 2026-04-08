@@ -112,12 +112,13 @@ public class BinCommandTests : IDisposable
     public async Task UpdateBin_WithValidInput_UpdatesBin()
     {
         var command = new UpdateBin.Command(
-            new UpdateBinDto(_binId, "Bin A-01 Updated", "A-01", 120, false));
+            new UpdateBinDto(_binId, "Bin A-01 Updated", false));
 
         var result = await _updateHandler.Handle(command, CancellationToken.None);
 
         result.Name.Should().Be("Bin A-01 Updated");
-        result.CapacityParcelCount.Should().Be(120);
+        result.Code.Should().Be("A-01");
+        result.CapacityParcelCount.Should().Be(80);
         result.IsActive.Should().BeFalse();
     }
 
@@ -149,7 +150,7 @@ public class BinCommandTests : IDisposable
         _context.SaveChanges();
 
         var act = async () => await _updateHandler.Handle(
-            new UpdateBin.Command(new UpdateBinDto(_binId, "Bin A-01 Updated", "A-01", 120, false)),
+            new UpdateBin.Command(new UpdateBinDto(_binId, "Bin A-01 Updated", false)),
             CancellationToken.None);
 
         await act.Should().ThrowAsync<InvalidOperationException>()

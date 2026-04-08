@@ -29,9 +29,13 @@ public static class UpdateAisle
                 throw new InvalidOperationException("This aisle cannot be edited or made inactive while bins still contain parcels.");
 
             aisle.Name = request.Dto.Name.Trim();
-            aisle.Code = request.Dto.Code.Trim().ToUpperInvariant();
-            aisle.SortOrder = request.Dto.SortOrder;
             aisle.IsActive = request.Dto.IsActive;
+            foreach (var bin in aisle.Bins)
+            {
+                bin.IsActive = request.Dto.IsActive;
+                bin.LastModifiedAt = DateTimeOffset.UtcNow;
+                bin.LastModifiedBy = currentUser.UserId;
+            }
             aisle.Notes = string.IsNullOrWhiteSpace(request.Dto.Notes) ? null : request.Dto.Notes.Trim();
             aisle.LastModifiedAt = DateTimeOffset.UtcNow;
             aisle.LastModifiedBy = currentUser.UserId;

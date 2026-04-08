@@ -23,6 +23,7 @@ export interface WarehouseAisleDto {
   canDelete: boolean;
   canDeactivate: boolean;
   isActive: boolean;
+  notes?: string | null;
   bins: WarehouseBinDto[];
 }
 
@@ -43,7 +44,6 @@ export interface CreateAisleDto {
   zoneId: string;
   name: string;
   code: string;
-  sortOrder: number;
   isActive: boolean;
   notes?: string;
 }
@@ -51,8 +51,6 @@ export interface CreateAisleDto {
 export interface UpdateAisleDto {
   id: string;
   name: string;
-  code: string;
-  sortOrder: number;
   isActive: boolean;
   notes?: string;
 }
@@ -79,8 +77,6 @@ export interface CreateBinDto {
 export interface UpdateBinDto {
   id: string;
   name: string;
-  code: string;
-  capacityParcelCount: number;
   isActive: boolean;
   notes?: string;
 }

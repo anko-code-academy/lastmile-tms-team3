@@ -20,7 +20,7 @@ public class AisleQuery
         Guid id)
         => context.Aisles
             .AsNoTracking()
-            .ApplyWarehouseDepotScope(currentUser)
+            .ApplyWarehouseScope(currentUser)
             .Where(aisle => aisle.Id == id);
 
     [Authorize(Policy = "AdminOrWarehouseManager")]
@@ -34,7 +34,7 @@ public class AisleQuery
     {
         var query = context.Aisles
             .AsNoTracking()
-            .ApplyWarehouseDepotScope(currentUser);
+            .ApplyWarehouseScope(currentUser);
 
         if (depotId.HasValue)
             query = query.Where(aisle => aisle.Zone.DepotId == depotId.Value);

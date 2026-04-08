@@ -31,13 +31,18 @@ public static class CreateAisle
                 ? await codeGenerator.GenerateAisleCodeAsync(request.Dto.ZoneId, cancellationToken)
                 : request.Dto.Code.Trim().ToUpperInvariant();
 
+            var nextSortOrder = await context.Aisles
+                .Where(a => a.ZoneId == request.Dto.ZoneId)
+                .Select(a => (int?)a.SortOrder)
+                .MaxAsync(cancellationToken) + 1 ?? 1;
+
             var aisle = new Domain.Entities.Aisle
             {
                 Id = Guid.NewGuid(),
                 ZoneId = request.Dto.ZoneId,
                 Name = request.Dto.Name.Trim(),
                 Code = code,
-                SortOrder = request.Dto.SortOrder,
+                SortOrder = nextSortOrder,
                 IsActive = request.Dto.IsActive,
                 Notes = string.IsNullOrWhiteSpace(request.Dto.Notes) ? null : request.Dto.Notes.Trim(),
                 CreatedAt = DateTimeOffset.UtcNow,

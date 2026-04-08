@@ -30,8 +30,6 @@ public static class UpdateBin
                 throw new InvalidOperationException("This bin cannot be edited or made inactive while parcels are assigned to it.");
 
             bin.Name = request.Dto.Name.Trim();
-            bin.Code = request.Dto.Code.Trim().ToUpperInvariant();
-            bin.CapacityParcelCount = request.Dto.CapacityParcelCount;
             bin.IsActive = request.Dto.IsActive;
             bin.Notes = string.IsNullOrWhiteSpace(request.Dto.Notes) ? null : request.Dto.Notes.Trim();
             bin.LastModifiedAt = DateTimeOffset.UtcNow;

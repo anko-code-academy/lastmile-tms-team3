@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
+import { ChevronDown } from "lucide-react";
 import TmNavbar from "@/components/TmNavbar";
 import { useDepots } from "@/lib/hooks/useDepots";
 import {
@@ -149,6 +150,98 @@ function TmBtn({
   );
 }
 
+function SectionToggleButton({
+  expanded,
+  onClick,
+}: {
+  expanded: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={expanded}
+      aria-label={expanded ? "Collapse section" : "Expand section"}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: 34,
+        height: 34,
+        padding: 0,
+        borderRadius: 999,
+        cursor: "pointer",
+        border: expanded
+          ? `1px solid ${S.border}`
+          : "1px solid rgba(245,158,11,.3)",
+        background: expanded ? "transparent" : "rgba(245,158,11,.08)",
+        color: expanded ? S.muted : S.accent,
+        transition:
+          "transform .18s ease, background .18s ease, color .18s ease",
+      }}
+    >
+      <ChevronDown
+        size={20}
+        style={{ transform: expanded ? "rotate(0deg)" : "rotate(-90deg)" }}
+      />
+    </button>
+  );
+}
+
+function ActiveInactiveToggle({
+  value,
+  onChange,
+}: {
+  value: boolean;
+  onChange: (nextValue: boolean) => void;
+}) {
+  return (
+    <div style={{ marginBottom: "1rem" }}>
+      <TmLabel>Status</TmLabel>
+      <div style={{ display: "flex", gap: ".5rem" }}>
+        {[
+          { label: "Active", nextValue: true, color: S.green },
+          { label: "Inactive", nextValue: false, color: S.red },
+        ].map(({ label, nextValue, color }) => {
+          const selected = value === nextValue;
+          const selectedBorder = nextValue
+            ? "rgba(34,197,94,.4)"
+            : "rgba(239,68,68,.4)";
+
+          return (
+            <button
+              key={label}
+              type="button"
+              disabled={selected}
+              onClick={() => onChange(nextValue)}
+              style={{
+                fontFamily: S.mono,
+                fontSize: "11px",
+                letterSpacing: ".1em",
+                textTransform: "uppercase",
+                padding: ".45rem .95rem",
+                borderRadius: 6,
+                cursor: selected ? "default" : "pointer",
+                border: `1px solid ${selected ? selectedBorder : S.border}`,
+                background: selected
+                  ? nextValue
+                    ? "rgba(34,197,94,.1)"
+                    : "rgba(239,68,68,.08)"
+                  : "transparent",
+                color: selected ? color : S.muted,
+                opacity: selected ? 1 : 0.9,
+              }}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function getAisleActionReason(aisle: WarehouseAisleDto) {
   return aisle.canEdit
     ? undefined
@@ -169,6 +262,12 @@ export default function WarehouseBinsPage() {
   const { data: depots = [] } = useDepots(false);
   const [selectedDepotId, setSelectedDepotId] = useState<string>("");
   const [tab, setTab] = useState<Tab>("list");
+  const [expandedDepots, setExpandedDepots] = useState<Record<string, boolean>>(
+    {},
+  );
+  const [expandedZones, setExpandedZones] = useState<Record<string, boolean>>(
+    {},
+  );
   const [aisleModal, setAisleModal] = useState<AisleModalState>({
     open: false,
   });
@@ -185,63 +284,21 @@ export default function WarehouseBinsPage() {
   const deleteAisleMutation = useDeleteAisle();
   const deleteBinMutation = useDeleteBin();
 
-  const aisleFormInitial = useMemo(() => {
-    if (!aisleModal.open) {
-      return { name: "", code: "", sortOrder: 1, isActive: true, notes: "" };
-    }
+  const [aisleForm, setAisleForm] = useState({
+    name: "",
+    code: "",
+    sortOrder: 1,
+    isActive: true,
+    notes: "",
+  });
 
-    if (aisleModal.mode === "edit") {
-      return {
-        name: aisleModal.aisle.aisleName,
-        code: aisleModal.aisle.code,
-        sortOrder: aisleModal.aisle.sortOrder,
-        isActive: aisleModal.aisle.isActive,
-        notes: "",
-      };
-    }
-
-    return {
-      name: "",
-      code: "",
-      sortOrder: aisleModal.zone.aisles.length + 1,
-      isActive: true,
-      notes: "",
-    };
-  }, [aisleModal]);
-
-  const [aisleForm, setAisleForm] = useState(aisleFormInitial);
-
-  const binFormInitial = useMemo(() => {
-    if (!binModal.open) {
-      return {
-        name: "",
-        code: "",
-        capacityParcelCount: 20,
-        isActive: true,
-        notes: "",
-      };
-    }
-
-    if (binModal.mode === "edit") {
-      return {
-        name: binModal.bin.name,
-        code: binModal.bin.code,
-        capacityParcelCount: binModal.bin.capacityParcelCount,
-        isActive: binModal.bin.isActive,
-        notes: binModal.bin.notes ?? "",
-      };
-    }
-
-    return {
-      name: "",
-      code: "",
-      capacityParcelCount: 20,
-      isActive: true,
-      notes: "",
-    };
-  }, [binModal]);
-
-  const [binForm, setBinForm] = useState(binFormInitial);
+  const [binForm, setBinForm] = useState({
+    name: "",
+    code: "",
+    capacityParcelCount: 20,
+    isActive: true,
+    notes: "",
+  });
 
   const warehouseData = data ?? [];
   const totalBins = warehouseData.flatMap((depot) =>
@@ -263,12 +320,44 @@ export default function WarehouseBinsPage() {
     )
     .reduce((sum, bin) => sum + bin.capacityParcelCount, 0);
 
+  function getNextAisleSortOrder(zone: WarehouseZoneDto) {
+    return (
+      zone.aisles.reduce(
+        (highestSortOrder, aisle) =>
+          Math.max(highestSortOrder, aisle.sortOrder),
+        0,
+      ) + 1
+    );
+  }
+
+  function isDepotExpanded(depotId: string) {
+    return expandedDepots[depotId] ?? true;
+  }
+
+  function isZoneExpanded(zoneId: string) {
+    return expandedZones[zoneId] ?? true;
+  }
+
+  function toggleDepot(depotId: string) {
+    setExpandedDepots((current) => ({
+      ...current,
+      [depotId]: !(current[depotId] ?? true),
+    }));
+  }
+
+  function toggleZone(zoneId: string) {
+    setExpandedZones((current) => ({
+      ...current,
+      [zoneId]: !(current[zoneId] ?? true),
+    }));
+  }
+
   function openCreateAisle(zone: WarehouseZoneDto) {
     setAisleModal({ open: true, mode: "create", zone });
     setAisleForm({
       name: "",
       code: "",
-      sortOrder: zone.aisles.length + 1,
+      sortOrder: getNextAisleSortOrder(zone),
       isActive: true,
       notes: "",
     });
@@ -281,7 +370,7 @@ export default function WarehouseBinsPage() {
       code: aisle.code,
       sortOrder: aisle.sortOrder,
       isActive: aisle.isActive,
-      notes: "",
+      notes: aisle.notes ?? "",
     });
   }
 
@@ -317,7 +406,6 @@ export default function WarehouseBinsPage() {
           zoneId: aisleModal.zone.zoneId,
           name: aisleForm.name,
           code: aisleForm.code,
-          sortOrder: aisleForm.sortOrder,
           isActive: aisleForm.isActive,
           notes: aisleForm.notes || undefined,
         };
@@ -327,8 +415,6 @@ export default function WarehouseBinsPage() {
         const dto: UpdateAisleDto = {
           id: aisleModal.aisle.aisleId,
           name: aisleForm.name,
-          code: aisleForm.code,
-          sortOrder: aisleForm.sortOrder,
           isActive: aisleForm.isActive,
           notes: aisleForm.notes || undefined,
         };
@@ -362,8 +448,6 @@ export default function WarehouseBinsPage() {
         const dto: UpdateBinDto = {
           id: binModal.bin.id,
           name: binForm.name,
-          code: binForm.code,
-          capacityParcelCount: Number(binForm.capacityParcelCount),
           isActive: binForm.isActive,
           notes: binForm.notes || undefined,
         };
@@ -418,7 +502,6 @@ export default function WarehouseBinsPage() {
       <style>{`
         .tm-input:focus { border-color: rgba(245,158,11,.45) !important; box-shadow: 0 0 0 2px rgba(245,158,11,.08); }
         .tm-card:hover { border-color: rgba(245,158,11,.18) !important; }
-        .tm-tab.active { color: #f59e0b; border-color: rgba(245,158,11,.35); background: rgba(245,158,11,.08); }
       `}</style>
 
       <div style={{ minHeight: "100vh", background: S.bg, color: S.text }}>
@@ -543,8 +626,8 @@ export default function WarehouseBinsPage() {
 
           <div style={{ display: "flex", gap: ".75rem", marginBottom: "1rem" }}>
             <button
-              className={`tm-tab ${tab === "list" ? "active" : ""}`}
               onClick={() => setTab("list")}
+              aria-pressed={tab === "list"}
               style={{
                 fontFamily: S.mono,
                 fontSize: "11px",
@@ -552,17 +635,20 @@ export default function WarehouseBinsPage() {
                 textTransform: "uppercase",
                 padding: ".6rem .9rem",
                 borderRadius: 8,
-                border: `1px solid ${S.border}`,
-                background: S.panel,
-                color: S.text,
+                border:
+                  tab === "list"
+                    ? "1px solid rgba(245,158,11,.35)"
+                    : `1px solid ${S.border}`,
+                background: tab === "list" ? "rgba(245,158,11,.08)" : S.panel,
+                color: tab === "list" ? S.accent : S.text,
                 cursor: "pointer",
               }}
             >
               List View
             </button>
             <button
-              className={`tm-tab ${tab === "layout" ? "active" : ""}`}
               onClick={() => setTab("layout")}
+              aria-pressed={tab === "layout"}
               style={{
                 fontFamily: S.mono,
                 fontSize: "11px",
@@ -570,9 +656,12 @@ export default function WarehouseBinsPage() {
                 textTransform: "uppercase",
                 padding: ".6rem .9rem",
                 borderRadius: 8,
-                border: `1px solid ${S.border}`,
-                background: S.panel,
-                color: S.text,
+                border:
+                  tab === "layout"
+                    ? "1px solid rgba(245,158,11,.35)"
+                    : `1px solid ${S.border}`,
+                background: tab === "layout" ? "rgba(245,158,11,.08)" : S.panel,
+                color: tab === "layout" ? S.accent : S.text,
                 cursor: "pointer",
               }}
             >
@@ -605,291 +694,107 @@ export default function WarehouseBinsPage() {
           ) : null}
 
           {tab === "list"
-            ? warehouseData.map((depot: WarehouseDepotDto) => (
-                <div
-                  key={depot.depotId}
-                  style={{
-                    background: S.panel,
-                    border: `1px solid ${S.border}`,
-                    borderRadius: 12,
-                    marginBottom: "1rem",
-                    overflow: "hidden",
-                  }}
-                >
-                  <div
-                    style={{
-                      padding: "1rem 1.25rem",
-                      borderBottom: `1px solid ${S.border}`,
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontFamily: S.mono,
-                        fontSize: "10px",
-                        letterSpacing: ".16em",
-                        color: S.muted,
-                        textTransform: "uppercase",
-                        marginBottom: ".25rem",
-                      }}
-                    >
-                      Depot
-                    </div>
-                    <div
-                      style={{
-                        fontFamily: S.mono,
-                        fontSize: "1.1rem",
-                        fontWeight: 800,
-                      }}
-                    >
-                      {depot.depotName}
-                    </div>
-                  </div>
+            ? warehouseData.map((depot: WarehouseDepotDto) =>
+                (() => {
+                  const depotExpanded = isDepotExpanded(depot.depotId);
 
-                  <div style={{ padding: "1rem" }}>
-                    {depot.zones.map((zone) => (
+                  return (
+                    <div
+                      key={depot.depotId}
+                      style={{
+                        background: S.panel,
+                        border: `1px solid ${S.border}`,
+                        borderRadius: 12,
+                        marginBottom: "1rem",
+                        overflow: "hidden",
+                      }}
+                    >
                       <div
-                        key={zone.zoneId}
                         style={{
-                          border: `1px solid ${S.border}`,
-                          borderRadius: 10,
-                          marginBottom: "1rem",
-                          overflow: "hidden",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          gap: "1rem",
+                          padding: "1rem 1.25rem",
+                          borderBottom: `1px solid ${S.border}`,
                         }}
                       >
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            gap: "1rem",
-                            alignItems: "center",
-                            padding: ".9rem 1rem",
-                            background: "rgba(255,255,255,.02)",
-                          }}
-                        >
-                          <div>
-                            <div
-                              style={{
-                                fontFamily: S.mono,
-                                fontSize: "10px",
-                                letterSpacing: ".14em",
-                                color: S.muted,
-                                textTransform: "uppercase",
-                              }}
-                            >
-                              Zone
-                            </div>
-                            <div
-                              style={{ fontFamily: S.mono, fontWeight: 700 }}
-                            >
-                              {zone.zoneName}
-                            </div>
-                          </div>
-                          <TmBtn
-                            variant="primary"
-                            onClick={() => openCreateAisle(zone)}
+                        <div>
+                          <div
+                            style={{
+                              fontFamily: S.mono,
+                              fontSize: "10px",
+                              letterSpacing: ".16em",
+                              color: S.muted,
+                              textTransform: "uppercase",
+                              marginBottom: ".25rem",
+                            }}
                           >
-                            + Add Aisle
-                          </TmBtn>
+                            Depot
+                          </div>
+                          <div
+                            style={{
+                              fontFamily: S.mono,
+                              fontSize: "1.1rem",
+                              fontWeight: 800,
+                            }}
+                          >
+                            {depot.depotName}
+                          </div>
                         </div>
+                        <SectionToggleButton
+                          expanded={depotExpanded}
+                          onClick={() => toggleDepot(depot.depotId)}
+                        />
+                      </div>
 
-                        <div
-                          style={{
-                            padding: "1rem",
-                            display: "grid",
-                            gap: "1rem",
-                          }}
-                        >
-                          {zone.aisles.length === 0 ? (
-                            <div
-                              style={{
-                                fontFamily: S.mono,
-                                color: S.muted,
-                                fontSize: ".9rem",
-                              }}
-                            >
-                              No aisles configured yet.
-                            </div>
-                          ) : null}
+                      {depotExpanded ? (
+                        <div style={{ padding: "1rem" }}>
+                          {depot.zones.map((zone) =>
+                            (() => {
+                              const zoneExpanded = isZoneExpanded(zone.zoneId);
 
-                          {zone.aisles.map((aisle) => (
-                            <div
-                              key={aisle.aisleId}
-                              style={{
-                                border: `1px solid ${S.border}`,
-                                borderRadius: 10,
-                                overflow: "hidden",
-                              }}
-                            >
-                              <div
-                                style={{
-                                  display: "flex",
-                                  justifyContent: "space-between",
-                                  alignItems: "center",
-                                  gap: "1rem",
-                                  padding: ".85rem 1rem",
-                                  borderBottom: `1px solid ${S.border}`,
-                                }}
-                              >
-                                <div>
-                                  <div
-                                    style={{
-                                      fontFamily: S.mono,
-                                      fontSize: "10px",
-                                      letterSpacing: ".14em",
-                                      color: S.muted,
-                                      textTransform: "uppercase",
-                                    }}
-                                  >
-                                    {aisle.code}
-                                  </div>
-                                  <div
-                                    style={{
-                                      fontFamily: S.mono,
-                                      fontWeight: 700,
-                                    }}
-                                  >
-                                    {aisle.aisleName}
-                                  </div>
-                                  <div
-                                    style={{
-                                      fontFamily: S.mono,
-                                      fontSize: "11px",
-                                      color: S.muted,
-                                      marginTop: ".25rem",
-                                    }}
-                                  >
-                                    Parcels in aisle: {aisle.currentParcelCount}
-                                  </div>
-                                </div>
+                              return (
                                 <div
+                                  key={zone.zoneId}
                                   style={{
-                                    display: "flex",
-                                    gap: ".5rem",
-                                    flexWrap: "wrap",
+                                    border: `1px solid ${S.border}`,
+                                    borderRadius: 10,
+                                    marginBottom: "1rem",
+                                    overflow: "hidden",
                                   }}
                                 >
-                                  <TmBtn
-                                    variant="ghost"
-                                    onClick={() => openEditAisle(zone, aisle)}
-                                    disabled={!aisle.canEdit}
-                                    title={getAisleActionReason(aisle)}
-                                  >
-                                    Edit Aisle
-                                  </TmBtn>
-                                  <TmBtn
-                                    variant="danger"
-                                    onClick={() => handleDeleteAisle(aisle)}
-                                    disabled={!aisle.canDelete}
-                                    title={getAisleActionReason(aisle)}
-                                  >
-                                    Delete Aisle
-                                  </TmBtn>
-                                  <TmBtn
-                                    variant="primary"
-                                    onClick={() => openCreateBin(aisle)}
-                                  >
-                                    + Add Bin
-                                  </TmBtn>
-                                </div>
-                              </div>
-
-                              <div
-                                style={{
-                                  padding: "1rem",
-                                  display: "grid",
-                                  gridTemplateColumns:
-                                    "repeat(auto-fit,minmax(240px,1fr))",
-                                  gap: "1rem",
-                                }}
-                              >
-                                {aisle.bins.map((bin) => (
                                   <div
-                                    key={bin.id}
-                                    className="tm-card"
                                     style={{
+                                      display: "flex",
+                                      justifyContent: "space-between",
+                                      gap: "1rem",
+                                      alignItems: "center",
+                                      padding: ".9rem 1rem",
                                       background: "rgba(255,255,255,.02)",
-                                      border: `1px solid ${S.border}`,
-                                      borderRadius: 10,
-                                      padding: "1rem",
                                     }}
                                   >
-                                    <div
-                                      style={{
-                                        display: "flex",
-                                        justifyContent: "space-between",
-                                        alignItems: "flex-start",
-                                        gap: ".75rem",
-                                        marginBottom: ".5rem",
-                                      }}
-                                    >
-                                      <div>
-                                        <div
-                                          style={{
-                                            fontFamily: S.mono,
-                                            fontSize: "10px",
-                                            letterSpacing: ".14em",
-                                            color: S.muted,
-                                            textTransform: "uppercase",
-                                          }}
-                                        >
-                                          {bin.code}
-                                        </div>
-                                        <div
-                                          style={{
-                                            fontFamily: S.mono,
-                                            fontSize: "1rem",
-                                            fontWeight: 700,
-                                          }}
-                                        >
-                                          {bin.name}
-                                        </div>
-                                      </div>
-                                      <span
+                                    <div>
+                                      <div
                                         style={{
                                           fontFamily: S.mono,
                                           fontSize: "10px",
-                                          letterSpacing: ".12em",
+                                          letterSpacing: ".14em",
+                                          color: S.muted,
                                           textTransform: "uppercase",
-                                          color: bin.isActive ? S.green : S.red,
                                         }}
                                       >
-                                        {bin.isActive ? "Active" : "Inactive"}
-                                      </span>
-                                    </div>
-
-                                    <div
-                                      style={{
-                                        fontFamily: S.mono,
-                                        fontSize: "11px",
-                                        color: S.muted,
-                                        marginBottom: ".5rem",
-                                      }}
-                                    >
-                                      Utilization: {bin.currentParcelCount}/
-                                      {bin.capacityParcelCount} (
-                                      {bin.utilizationPercent}%)
-                                    </div>
-                                    <div
-                                      style={{
-                                        height: 8,
-                                        background: "rgba(255,255,255,.05)",
-                                        borderRadius: 999,
-                                        overflow: "hidden",
-                                        marginBottom: ".9rem",
-                                      }}
-                                    >
+                                        Zone
+                                      </div>
                                       <div
                                         style={{
-                                          width: `${Math.min(bin.utilizationPercent, 100)}%`,
-                                          background:
-                                            bin.utilizationPercent > 85
-                                              ? S.red
-                                              : S.accent,
-                                          height: "100%",
+                                          fontFamily: S.mono,
+                                          fontWeight: 700,
                                         }}
-                                      />
+                                      >
+                                        {zone.zoneName}
+                                      </div>
                                     </div>
-
                                     <div
                                       style={{
                                         display: "flex",
@@ -898,159 +803,503 @@ export default function WarehouseBinsPage() {
                                       }}
                                     >
                                       <TmBtn
-                                        variant="ghost"
-                                        onClick={() => openEditBin(aisle, bin)}
-                                        disabled={!bin.canEdit}
-                                        title={getBinActionReason(bin)}
+                                        variant="primary"
+                                        onClick={() => openCreateAisle(zone)}
                                       >
-                                        Edit
+                                        + Add Aisle
                                       </TmBtn>
-                                      <TmBtn
-                                        variant="danger"
-                                        onClick={() => handleDeleteBin(bin)}
-                                        disabled={!bin.canDelete}
-                                        title={getBinActionReason(bin)}
-                                      >
-                                        Delete
-                                      </TmBtn>
+                                      <SectionToggleButton
+                                        expanded={zoneExpanded}
+                                        onClick={() => toggleZone(zone.zoneId)}
+                                      />
                                     </div>
                                   </div>
-                                ))}
-                              </div>
-                            </div>
-                          ))}
+
+                                  {zoneExpanded ? (
+                                    <div
+                                      style={{
+                                        padding: "1rem",
+                                        display: "grid",
+                                        gap: "1rem",
+                                      }}
+                                    >
+                                      {zone.aisles.length === 0 ? (
+                                        <div
+                                          style={{
+                                            fontFamily: S.mono,
+                                            color: S.muted,
+                                            fontSize: ".9rem",
+                                          }}
+                                        >
+                                          No aisles configured yet.
+                                        </div>
+                                      ) : null}
+
+                                      {zone.aisles.map((aisle) => (
+                                        <div
+                                          key={aisle.aisleId}
+                                          style={{
+                                            border: `1px solid ${S.border}`,
+                                            borderRadius: 10,
+                                            overflow: "hidden",
+                                          }}
+                                        >
+                                          <div
+                                            style={{
+                                              display: "flex",
+                                              justifyContent: "space-between",
+                                              alignItems: "center",
+                                              gap: "1rem",
+                                              padding: ".85rem 1rem",
+                                              borderBottom: `1px solid ${S.border}`,
+                                            }}
+                                          >
+                                            <div>
+                                              <div
+                                                style={{
+                                                  fontFamily: S.mono,
+                                                  fontSize: "10px",
+                                                  letterSpacing: ".14em",
+                                                  color: S.muted,
+                                                  textTransform: "uppercase",
+                                                }}
+                                              >
+                                                {aisle.code}
+                                              </div>
+                                              <div
+                                                style={{
+                                                  fontFamily: S.mono,
+                                                  fontWeight: 700,
+                                                }}
+                                              >
+                                                {aisle.aisleName}
+                                              </div>
+                                              <div
+                                                style={{
+                                                  fontFamily: S.mono,
+                                                  fontSize: "11px",
+                                                  color: S.muted,
+                                                  marginTop: ".25rem",
+                                                }}
+                                              >
+                                                Parcels in aisle:{" "}
+                                                {aisle.currentParcelCount}
+                                              </div>
+                                            </div>
+                                            <div
+                                              style={{
+                                                display: "flex",
+                                                gap: ".5rem",
+                                                flexWrap: "wrap",
+                                              }}
+                                            >
+                                              <TmBtn
+                                                variant="ghost"
+                                                onClick={() =>
+                                                  openEditAisle(zone, aisle)
+                                                }
+                                                disabled={!aisle.canEdit}
+                                                title={getAisleActionReason(
+                                                  aisle,
+                                                )}
+                                              >
+                                                Edit Aisle
+                                              </TmBtn>
+                                              <TmBtn
+                                                variant="danger"
+                                                onClick={() =>
+                                                  handleDeleteAisle(aisle)
+                                                }
+                                                disabled={!aisle.canDelete}
+                                                title={getAisleActionReason(
+                                                  aisle,
+                                                )}
+                                              >
+                                                Delete Aisle
+                                              </TmBtn>
+                                              <TmBtn
+                                                variant="primary"
+                                                onClick={() =>
+                                                  openCreateBin(aisle)
+                                                }
+                                              >
+                                                + Add Bin
+                                              </TmBtn>
+                                            </div>
+                                          </div>
+
+                                          <div
+                                            style={{
+                                              padding: "1rem",
+                                              display: "grid",
+                                              gridTemplateColumns:
+                                                "repeat(auto-fit,minmax(240px,1fr))",
+                                              gap: "1rem",
+                                            }}
+                                          >
+                                            {aisle.bins.map((bin) => (
+                                              <div
+                                                key={bin.id}
+                                                className="tm-card"
+                                                style={{
+                                                  background:
+                                                    "rgba(255,255,255,.02)",
+                                                  border: `1px solid ${S.border}`,
+                                                  borderRadius: 10,
+                                                  padding: "1rem",
+                                                }}
+                                              >
+                                                <div
+                                                  style={{
+                                                    display: "flex",
+                                                    justifyContent:
+                                                      "space-between",
+                                                    alignItems: "flex-start",
+                                                    gap: ".75rem",
+                                                    marginBottom: ".5rem",
+                                                  }}
+                                                >
+                                                  <div>
+                                                    <div
+                                                      style={{
+                                                        fontFamily: S.mono,
+                                                        fontSize: "10px",
+                                                        letterSpacing: ".14em",
+                                                        color: S.muted,
+                                                        textTransform:
+                                                          "uppercase",
+                                                      }}
+                                                    >
+                                                      {bin.code}
+                                                    </div>
+                                                    <div
+                                                      style={{
+                                                        fontFamily: S.mono,
+                                                        fontSize: "1rem",
+                                                        fontWeight: 700,
+                                                      }}
+                                                    >
+                                                      {bin.name}
+                                                    </div>
+                                                  </div>
+                                                  <span
+                                                    style={{
+                                                      fontFamily: S.mono,
+                                                      fontSize: "10px",
+                                                      letterSpacing: ".12em",
+                                                      textTransform:
+                                                        "uppercase",
+                                                      color: bin.isActive
+                                                        ? S.green
+                                                        : S.red,
+                                                    }}
+                                                  >
+                                                    {bin.isActive
+                                                      ? "Active"
+                                                      : "Inactive"}
+                                                  </span>
+                                                </div>
+
+                                                <div
+                                                  style={{
+                                                    fontFamily: S.mono,
+                                                    fontSize: "11px",
+                                                    color: S.muted,
+                                                    marginBottom: ".5rem",
+                                                  }}
+                                                >
+                                                  Utilization:{" "}
+                                                  {bin.currentParcelCount}/
+                                                  {bin.capacityParcelCount} (
+                                                  {bin.utilizationPercent}%)
+                                                </div>
+                                                <div
+                                                  style={{
+                                                    height: 8,
+                                                    background:
+                                                      "rgba(255,255,255,.05)",
+                                                    borderRadius: 999,
+                                                    overflow: "hidden",
+                                                    marginBottom: ".9rem",
+                                                  }}
+                                                >
+                                                  <div
+                                                    style={{
+                                                      width: `${Math.min(bin.utilizationPercent, 100)}%`,
+                                                      background:
+                                                        bin.utilizationPercent >
+                                                        85
+                                                          ? S.red
+                                                          : S.accent,
+                                                      height: "100%",
+                                                    }}
+                                                  />
+                                                </div>
+
+                                                <div
+                                                  style={{
+                                                    display: "flex",
+                                                    gap: ".5rem",
+                                                    flexWrap: "wrap",
+                                                  }}
+                                                >
+                                                  <TmBtn
+                                                    variant="ghost"
+                                                    onClick={() =>
+                                                      openEditBin(aisle, bin)
+                                                    }
+                                                    disabled={!bin.canEdit}
+                                                    title={getBinActionReason(
+                                                      bin,
+                                                    )}
+                                                  >
+                                                    Edit
+                                                  </TmBtn>
+                                                  <TmBtn
+                                                    variant="danger"
+                                                    onClick={() =>
+                                                      handleDeleteBin(bin)
+                                                    }
+                                                    disabled={!bin.canDelete}
+                                                    title={getBinActionReason(
+                                                      bin,
+                                                    )}
+                                                  >
+                                                    Delete
+                                                  </TmBtn>
+                                                </div>
+                                                {bin.notes ? (
+                                                  <div
+                                                    style={{
+                                                      marginTop: ".85rem",
+                                                      paddingTop: ".75rem",
+                                                      borderTop: `1px solid ${S.border}`,
+                                                      fontFamily: S.mono,
+                                                      fontSize: "10px",
+                                                      color: S.muted,
+                                                    }}
+                                                  >
+                                                    {bin.notes}
+                                                  </div>
+                                                ) : null}
+                                              </div>
+                                            ))}
+                                          </div>
+                                          {aisle.notes ? (
+                                            <div
+                                              style={{
+                                                padding: ".8rem 1rem 1rem",
+                                                borderTop: `1px solid ${S.border}`,
+                                                fontFamily: S.mono,
+                                                fontSize: "11px",
+                                                color: S.muted,
+                                              }}
+                                            >
+                                              {aisle.notes}
+                                            </div>
+                                          ) : null}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : null}
+                                </div>
+                              );
+                            })(),
+                          )}
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))
-            : warehouseData.map((depot) => (
-                <div
-                  key={depot.depotId}
-                  style={{
-                    background: S.panel,
-                    border: `1px solid ${S.border}`,
-                    borderRadius: 12,
-                    marginBottom: "1rem",
-                    overflow: "hidden",
-                  }}
-                >
-                  <div
-                    style={{
-                      padding: "1rem 1.25rem",
-                      borderBottom: `1px solid ${S.border}`,
-                      fontFamily: S.mono,
-                      fontWeight: 800,
-                    }}
-                  >
-                    {depot.depotName}
-                  </div>
-                  <div
-                    style={{ padding: "1rem", display: "grid", gap: "1rem" }}
-                  >
-                    {depot.zones.map((zone) => (
+                      ) : null}
+                    </div>
+                  );
+                })(),
+              )
+            : warehouseData.map((depot) =>
+                (() => {
+                  const depotExpanded = isDepotExpanded(depot.depotId);
+
+                  return (
+                    <div
+                      key={depot.depotId}
+                      style={{
+                        background: S.panel,
+                        border: `1px solid ${S.border}`,
+                        borderRadius: 12,
+                        marginBottom: "1rem",
+                        overflow: "hidden",
+                      }}
+                    >
                       <div
-                        key={zone.zoneId}
                         style={{
-                          border: `1px solid ${S.border}`,
-                          borderRadius: 10,
-                          padding: "1rem",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          gap: "1rem",
+                          padding: "1rem 1.25rem",
+                          borderBottom: `1px solid ${S.border}`,
+                          fontFamily: S.mono,
+                          fontWeight: 800,
                         }}
                       >
+                        <span>{depot.depotName}</span>
+                        <SectionToggleButton
+                          expanded={depotExpanded}
+                          onClick={() => toggleDepot(depot.depotId)}
+                        />
+                      </div>
+                      {depotExpanded ? (
                         <div
                           style={{
-                            fontFamily: S.mono,
-                            fontSize: "10px",
-                            color: S.muted,
-                            letterSpacing: ".14em",
-                            textTransform: "uppercase",
-                            marginBottom: ".6rem",
-                          }}
-                        >
-                          {zone.zoneName}
-                        </div>
-                        <div
-                          style={{
+                            padding: "1rem",
                             display: "grid",
-                            gridTemplateColumns:
-                              "repeat(auto-fit,minmax(220px,1fr))",
                             gap: "1rem",
                           }}
                         >
-                          {zone.aisles.map((aisle) => (
-                            <div
-                              key={aisle.aisleId}
-                              style={{
-                                background: "rgba(255,255,255,.02)",
-                                border: `1px solid ${S.border}`,
-                                borderRadius: 10,
-                                padding: ".85rem",
-                              }}
-                            >
-                              <div
-                                style={{
-                                  fontFamily: S.mono,
-                                  fontSize: "11px",
-                                  letterSpacing: ".1em",
-                                  color: S.accent,
-                                  textTransform: "uppercase",
-                                  marginBottom: ".6rem",
-                                }}
-                              >
-                                {aisle.code}
-                              </div>
-                              <div
-                                style={{
-                                  display: "grid",
-                                  gridTemplateColumns:
-                                    "repeat(2, minmax(0,1fr))",
-                                  gap: ".5rem",
-                                }}
-                              >
-                                {aisle.bins.map((bin) => (
+                          {depot.zones.map((zone) =>
+                            (() => {
+                              const zoneExpanded = isZoneExpanded(zone.zoneId);
+
+                              return (
+                                <div
+                                  key={zone.zoneId}
+                                  style={{
+                                    border: `1px solid ${S.border}`,
+                                    borderRadius: 10,
+                                    padding: "1rem",
+                                  }}
+                                >
                                   <div
-                                    key={bin.id}
                                     style={{
-                                      border: `1px solid ${S.border}`,
-                                      borderRadius: 8,
-                                      padding: ".55rem",
-                                      background:
-                                        bin.currentParcelCount > 0
-                                          ? "rgba(245,158,11,.08)"
-                                          : "rgba(255,255,255,.03)",
+                                      fontFamily: S.mono,
+                                      fontSize: "10px",
+                                      color: S.muted,
+                                      letterSpacing: ".14em",
+                                      textTransform: "uppercase",
+                                      marginBottom: zoneExpanded ? ".6rem" : 0,
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "space-between",
+                                      gap: "1rem",
                                     }}
                                   >
-                                    <div
-                                      style={{
-                                        fontFamily: S.mono,
-                                        fontSize: "11px",
-                                        fontWeight: 700,
-                                      }}
-                                    >
-                                      {bin.code}
-                                    </div>
-                                    <div
-                                      style={{
-                                        fontFamily: S.mono,
-                                        fontSize: "10px",
-                                        color: S.muted,
-                                      }}
-                                    >
-                                      {bin.currentParcelCount}/
-                                      {bin.capacityParcelCount}
-                                    </div>
+                                    <span>{zone.zoneName}</span>
+                                    <SectionToggleButton
+                                      expanded={zoneExpanded}
+                                      onClick={() => toggleZone(zone.zoneId)}
+                                    />
                                   </div>
-                                ))}
-                              </div>
-                            </div>
-                          ))}
+                                  {zoneExpanded ? (
+                                    <div
+                                      style={{
+                                        display: "grid",
+                                        gridTemplateColumns:
+                                          "repeat(auto-fit,minmax(220px,1fr))",
+                                        gap: "1rem",
+                                      }}
+                                    >
+                                      {zone.aisles.map((aisle) => (
+                                        <div
+                                          key={aisle.aisleId}
+                                          style={{
+                                            background: "rgba(255,255,255,.02)",
+                                            border: `1px solid ${S.border}`,
+                                            borderRadius: 10,
+                                            padding: ".85rem",
+                                          }}
+                                        >
+                                          <div
+                                            style={{
+                                              fontFamily: S.mono,
+                                              fontSize: "11px",
+                                              letterSpacing: ".1em",
+                                              color: S.accent,
+                                              textTransform: "uppercase",
+                                              marginBottom: ".6rem",
+                                            }}
+                                          >
+                                            {aisle.code}
+                                          </div>
+                                          {aisle.notes ? (
+                                            <div
+                                              style={{
+                                                fontFamily: S.mono,
+                                                fontSize: "10px",
+                                                color: S.muted,
+                                                marginBottom: ".6rem",
+                                              }}
+                                            >
+                                              {aisle.notes}
+                                            </div>
+                                          ) : null}
+                                          <div
+                                            style={{
+                                              display: "grid",
+                                              gridTemplateColumns:
+                                                "repeat(2, minmax(0,1fr))",
+                                              gap: ".5rem",
+                                            }}
+                                          >
+                                            {aisle.bins.map((bin) => (
+                                              <div
+                                                key={bin.id}
+                                                style={{
+                                                  border: `1px solid ${S.border}`,
+                                                  borderRadius: 8,
+                                                  padding: ".55rem",
+                                                  background:
+                                                    bin.currentParcelCount > 0
+                                                      ? "rgba(245,158,11,.08)"
+                                                      : "rgba(255,255,255,.03)",
+                                                }}
+                                              >
+                                                <div
+                                                  style={{
+                                                    fontFamily: S.mono,
+                                                    fontSize: "11px",
+                                                    fontWeight: 700,
+                                                  }}
+                                                >
+                                                  {bin.code}
+                                                </div>
+                                                <div
+                                                  style={{
+                                                    fontFamily: S.mono,
+                                                    fontSize: "10px",
+                                                    color: S.muted,
+                                                  }}
+                                                >
+                                                  {bin.currentParcelCount}/
+                                                  {bin.capacityParcelCount}
+                                                </div>
+                                                {bin.notes ? (
+                                                  <div
+                                                    style={{
+                                                      marginTop: ".45rem",
+                                                      paddingTop: ".45rem",
+                                                      borderTop: `1px solid ${S.border}`,
+                                                      fontFamily: S.mono,
+                                                      fontSize: "9px",
+                                                      color: S.muted,
+                                                    }}
+                                                  >
+                                                    {bin.notes}
+                                                  </div>
+                                                ) : null}
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : null}
+                                </div>
+                              );
+                            })(),
+                          )}
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
+                      ) : null}
+                    </div>
+                  );
+                })(),
+              )}
         </div>
       </div>
 
@@ -1118,12 +1367,16 @@ export default function WarehouseBinsPage() {
                   <input
                     id="aisle-code"
                     value={aisleForm.code}
-                    onChange={(e) =>
-                      setAisleForm((current) => ({
-                        ...current,
-                        code: e.target.value.toUpperCase(),
-                      }))
+                    onChange={
+                      aisleModal.mode === "create"
+                        ? (e) =>
+                            setAisleForm((current) => ({
+                              ...current,
+                              code: e.target.value.toUpperCase(),
+                            }))
+                        : undefined
                     }
+                    readOnly={aisleModal.mode === "edit"}
                     className="tm-input"
                     placeholder={
                       aisleModal.mode === "create"
@@ -1132,10 +1385,14 @@ export default function WarehouseBinsPage() {
                     }
                     style={{
                       width: "100%",
-                      background: S.inputBg,
-                      border: `1px solid ${S.inputBorder}`,
+                      background:
+                        aisleModal.mode === "edit" ? S.panel : S.inputBg,
+                      border:
+                        aisleModal.mode === "edit"
+                          ? `1px solid ${S.border}`
+                          : `1px solid ${S.inputBorder}`,
                       borderRadius: 6,
-                      color: S.text,
+                      color: aisleModal.mode === "edit" ? S.muted : S.text,
                       padding: ".65rem .8rem",
                       boxSizing: "border-box",
                     }}
@@ -1148,20 +1405,14 @@ export default function WarehouseBinsPage() {
                     type="number"
                     min={1}
                     value={aisleForm.sortOrder}
-                    onChange={(e) =>
-                      setAisleForm((current) => ({
-                        ...current,
-                        sortOrder: Number(e.target.value),
-                      }))
-                    }
-                    required
+                    readOnly
                     className="tm-input"
                     style={{
                       width: "100%",
-                      background: S.inputBg,
-                      border: `1px solid ${S.inputBorder}`,
+                      background: S.panel,
+                      border: `1px solid ${S.border}`,
                       borderRadius: 6,
-                      color: S.text,
+                      color: S.muted,
                       padding: ".65rem .8rem",
                       boxSizing: "border-box",
                     }}
@@ -1192,29 +1443,15 @@ export default function WarehouseBinsPage() {
                   }}
                 />
               </div>
-              <label
-                style={{
-                  display: "flex",
-                  gap: ".5rem",
-                  alignItems: "center",
-                  fontFamily: S.mono,
-                  fontSize: "11px",
-                  color: S.muted,
-                  marginBottom: "1rem",
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={aisleForm.isActive}
-                  onChange={(e) =>
-                    setAisleForm((current) => ({
-                      ...current,
-                      isActive: e.target.checked,
-                    }))
-                  }
-                />
-                Active
-              </label>
+              <ActiveInactiveToggle
+                value={aisleForm.isActive}
+                onChange={(nextValue) =>
+                  setAisleForm((current) => ({
+                    ...current,
+                    isActive: nextValue,
+                  }))
+                }
+              />
               <div
                 style={{
                   display: "flex",
@@ -1308,12 +1545,16 @@ export default function WarehouseBinsPage() {
                   <input
                     id="bin-code"
                     value={binForm.code}
-                    onChange={(e) =>
-                      setBinForm((current) => ({
-                        ...current,
-                        code: e.target.value.toUpperCase(),
-                      }))
+                    onChange={
+                      binModal.mode === "create"
+                        ? (e) =>
+                            setBinForm((current) => ({
+                              ...current,
+                              code: e.target.value.toUpperCase(),
+                            }))
+                        : undefined
                     }
+                    readOnly={binModal.mode === "edit"}
                     className="tm-input"
                     placeholder={
                       binModal.mode === "create"
@@ -1322,10 +1563,14 @@ export default function WarehouseBinsPage() {
                     }
                     style={{
                       width: "100%",
-                      background: S.inputBg,
-                      border: `1px solid ${S.inputBorder}`,
+                      background:
+                        binModal.mode === "edit" ? S.panel : S.inputBg,
+                      border:
+                        binModal.mode === "edit"
+                          ? `1px solid ${S.border}`
+                          : `1px solid ${S.inputBorder}`,
                       borderRadius: 6,
-                      color: S.text,
+                      color: binModal.mode === "edit" ? S.muted : S.text,
                       padding: ".65rem .8rem",
                       boxSizing: "border-box",
                     }}
@@ -1338,20 +1583,28 @@ export default function WarehouseBinsPage() {
                     type="number"
                     min={1}
                     value={binForm.capacityParcelCount}
-                    onChange={(e) =>
-                      setBinForm((current) => ({
-                        ...current,
-                        capacityParcelCount: Number(e.target.value),
-                      }))
+                    onChange={
+                      binModal.mode === "create"
+                        ? (e) =>
+                            setBinForm((current) => ({
+                              ...current,
+                              capacityParcelCount: Number(e.target.value),
+                            }))
+                        : undefined
                     }
+                    readOnly={binModal.mode === "edit"}
                     required
                     className="tm-input"
                     style={{
                       width: "100%",
-                      background: S.inputBg,
-                      border: `1px solid ${S.inputBorder}`,
+                      background:
+                        binModal.mode === "edit" ? S.panel : S.inputBg,
+                      border:
+                        binModal.mode === "edit"
+                          ? `1px solid ${S.border}`
+                          : `1px solid ${S.inputBorder}`,
                       borderRadius: 6,
-                      color: S.text,
+                      color: binModal.mode === "edit" ? S.muted : S.text,
                       padding: ".65rem .8rem",
                       boxSizing: "border-box",
                     }}
@@ -1382,29 +1635,15 @@ export default function WarehouseBinsPage() {
                   }}
                 />
               </div>
-              <label
-                style={{
-                  display: "flex",
-                  gap: ".5rem",
-                  alignItems: "center",
-                  fontFamily: S.mono,
-                  fontSize: "11px",
-                  color: S.muted,
-                  marginBottom: "1rem",
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={binForm.isActive}
-                  onChange={(e) =>
-                    setBinForm((current) => ({
-                      ...current,
-                      isActive: e.target.checked,
-                    }))
-                  }
-                />
-                Active
-              </label>
+              <ActiveInactiveToggle
+                value={binForm.isActive}
+                onChange={(nextValue) =>
+                  setBinForm((current) => ({
+                    ...current,
+                    isActive: nextValue,
+                  }))
+                }
+              />
               <div
                 style={{
                   display: "flex",

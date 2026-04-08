@@ -19,6 +19,7 @@ type AisleQueryRow = {
   canDelete: boolean;
   canDeactivate: boolean;
   isActive: boolean;
+  notes?: string | null;
   zone: {
     zoneId: string;
     zoneName: string;
@@ -46,7 +47,7 @@ type AisleQueryRow = {
 
 const AISLES_QUERY = `
   query GetAisles($depotId: UUID) {
-    aisles(depotId: $depotId) {
+    aisles(depotId: $depotId, includeInactive: true) {
       aisleId: id
       aisleName: name
       code
@@ -56,6 +57,7 @@ const AISLES_QUERY = `
       canDelete
       canDeactivate
       isActive
+      notes
       zone {
         zoneId: id
         zoneName: name
@@ -201,6 +203,7 @@ export async function getWarehouseBins(
       canDelete: aisle.canDelete,
       canDeactivate: aisle.canDeactivate,
       isActive: aisle.isActive,
+      notes: aisle.notes,
       bins: aisle.bins.map((bin) => ({
         id: bin.id,
         name: bin.name,

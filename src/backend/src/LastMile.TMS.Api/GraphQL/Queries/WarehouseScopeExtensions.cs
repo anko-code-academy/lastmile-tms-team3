@@ -5,7 +5,7 @@ namespace LastMile.TMS.Api.GraphQL.Queries;
 
 internal static class WarehouseScopeExtensions
 {
-    public static IQueryable<Aisle> ApplyWarehouseDepotScope(this IQueryable<Aisle> query, ICurrentUserService currentUser)
+    public static IQueryable<Aisle> ApplyWarehouseScope(this IQueryable<Aisle> query, ICurrentUserService currentUser)
     {
         if (!TryGetWarehouseManagerDepotId(currentUser, out var assignedDepotId))
             return currentUser.IsInRole("WarehouseManager") ? query.Where(_ => false) : query;
@@ -13,7 +13,7 @@ internal static class WarehouseScopeExtensions
         return query.Where(aisle => aisle.Zone.DepotId == assignedDepotId);
     }
 
-    public static IQueryable<Bin> ApplyWarehouseDepotScope(this IQueryable<Bin> query, ICurrentUserService currentUser)
+    public static IQueryable<Bin> ApplyWarehouseScope(this IQueryable<Bin> query, ICurrentUserService currentUser)
     {
         if (!TryGetWarehouseManagerDepotId(currentUser, out var assignedDepotId))
             return currentUser.IsInRole("WarehouseManager") ? query.Where(_ => false) : query;
