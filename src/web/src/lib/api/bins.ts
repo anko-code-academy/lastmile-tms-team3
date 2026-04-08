@@ -221,19 +221,21 @@ export async function getWarehouseBins(
     });
   }
 
-  return Array.from(depots.values()).map((depot) => ({
-    ...depot,
-    zones: depot.zones
-      .map((zone) => ({
-        ...zone,
-        aisles: zone.aisles.sort(
-          (left, right) =>
-            left.sortOrder - right.sortOrder ||
-            left.code.localeCompare(right.code),
-        ),
-      }))
-      .sort((left, right) => left.zoneName.localeCompare(right.zoneName)),
-  }));
+  return Array.from(depots.values())
+    .map((depot) => ({
+      ...depot,
+      zones: depot.zones
+        .map((zone) => ({
+          ...zone,
+          aisles: zone.aisles.sort(
+            (left, right) =>
+              left.sortOrder - right.sortOrder ||
+              left.code.localeCompare(right.code),
+          ),
+        }))
+        .sort((left, right) => left.zoneName.localeCompare(right.zoneName)),
+    }))
+    .sort((left, right) => left.depotName.localeCompare(right.depotName));
 }
 
 export async function createAisle(

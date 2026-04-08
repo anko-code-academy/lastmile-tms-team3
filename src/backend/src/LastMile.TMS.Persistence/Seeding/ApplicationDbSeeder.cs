@@ -628,6 +628,11 @@ public class ApplicationDbSeeder(
         var binsByZone = await dbContext.Bins
             .AsNoTracking()
             .Include(b => b.Aisle)
+            .Where(b =>
+                b.IsActive &&
+                b.Aisle.IsActive &&
+                b.Aisle.Zone.IsActive &&
+                b.Aisle.Zone.Depot.IsActive)
             .GroupBy(b => b.Aisle.ZoneId)
             .ToDictionaryAsync(g => g.Key, g => g.OrderBy(b => b.Code).ToList(), cancellationToken);
         if (depots.Count == 0) return;
@@ -649,15 +654,15 @@ public class ApplicationDbSeeder(
 
         var statuses = new[]
         {
-            (ParcelStatus.Registered, 15),
-            (ParcelStatus.ReceivedAtDepot, 8),
-            (ParcelStatus.Sorted, 5),
+            (ParcelStatus.Registered, 6),
+            (ParcelStatus.ReceivedAtDepot, 5),
+            (ParcelStatus.Sorted, 25),
             (ParcelStatus.Staged, 4),
-            (ParcelStatus.Loaded, 3),
-            (ParcelStatus.OutForDelivery, 6),
-            (ParcelStatus.Delivered, 5),
-            (ParcelStatus.FailedAttempt, 2),
-            (ParcelStatus.Exception, 2),
+            (ParcelStatus.Loaded, 2),
+            (ParcelStatus.OutForDelivery, 4),
+            (ParcelStatus.Delivered, 2),
+            (ParcelStatus.FailedAttempt, 1),
+            (ParcelStatus.Exception, 1),
         };
 
         var serviceTypes = Enum.GetValues<ServiceType>();

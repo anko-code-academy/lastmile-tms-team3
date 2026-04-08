@@ -18,7 +18,14 @@ public class AisleType : ObjectType<Aisle>
         descriptor.Field(a => a.Notes);
         descriptor.Field(a => a.ZoneId);
         descriptor.Field(a => a.Zone).Type<ZoneType>();
-        descriptor.Field(a => a.Bins).Type<NonNullType<ListType<NonNullType<BinType>>>>();
+        descriptor.Field("bins")
+            .Type<NonNullType<ListType<NonNullType<BinType>>>>()
+            .Resolve(async context =>
+            {
+                var aisle = context.Parent<Aisle>();
+                var loader = context.DataLoader<AisleBinsDataLoader>();
+                return await loader.LoadAsync(aisle.Id, context.RequestAborted);
+            });
         descriptor.Field("currentParcelCount")
             .Type<NonNullType<IntType>>()
             .Resolve(async context =>

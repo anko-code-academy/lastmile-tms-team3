@@ -120,6 +120,7 @@ try
         .AddFiltering()
         .AddSorting()
         .AddPagingArguments()
+        .AddDataLoader<AisleBinsDataLoader>()
         .AddDataLoader<ParcelContentItemsCountDataLoader>()
         .RegisterDbContextFactory<AppDbContext>()
         .AddQueryType<Query>()

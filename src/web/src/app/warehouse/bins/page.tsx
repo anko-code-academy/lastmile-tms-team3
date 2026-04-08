@@ -5,7 +5,6 @@ import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import { ChevronDown } from "lucide-react";
 import TmNavbar from "@/components/TmNavbar";
-import { useDepots } from "@/lib/hooks/useDepots";
 import {
   useCreateAisle,
   useCreateBin,
@@ -41,8 +40,6 @@ const S = {
   blue: "#38bdf8" as const,
   mono: "var(--font-geist-mono, monospace)" as const,
 };
-
-type Tab = "list" | "layout";
 
 type AisleModalState =
   | { open: false }
@@ -254,12 +251,279 @@ function getBinActionReason(bin: WarehouseBinDto) {
     : "Only empty bins can be edited, made inactive, or deleted.";
 }
 
+type WarehouseSummary = {
+  depotCount: number;
+  zoneCount: number;
+  aisleCount: number;
+  totalBins: number;
+  activeBins: number;
+  inactiveBins: number;
+  totalParcels: number;
+  usedCapacity: number;
+  totalCapacity: number;
+  utilizationPercent: number;
+};
+
+function formatUtilizationPercent(value: number) {
+  return value.toFixed(2);
+}
+
+function SummaryCard({
+  title,
+  summary,
+  compact = false,
+}: {
+  title: string;
+  summary: WarehouseSummary;
+  compact?: boolean;
+}) {
+  const sharedStats = [
+    { label: "Zones", value: <>{summary.zoneCount}</> },
+    { label: "Aisles", value: <>{summary.aisleCount}</> },
+    {
+      label: "Bins",
+      value: (
+        <>
+          <span>{summary.totalBins}</span>
+          <span style={{ color: S.muted }}>(</span>
+          <span style={{ color: S.green }}>{summary.activeBins}</span>
+          <span style={{ color: S.muted }}>/</span>
+          <span style={{ color: S.red }}>{summary.inactiveBins}</span>
+          <span style={{ color: S.muted }}>)</span>
+        </>
+      ),
+    },
+    {
+      label: "Utilization",
+      value: (
+        <>
+          {summary.usedCapacity}/{summary.totalCapacity}
+          <span style={{ color: S.muted }}> </span>
+          <span style={{ color: S.muted }}>
+            ({formatUtilizationPercent(summary.utilizationPercent)}%)
+          </span>
+        </>
+      ),
+    },
+  ];
+
+  if (compact) {
+    return (
+      <div
+        className="tm-card"
+        style={{
+          background: S.panel,
+          border: `1px solid ${S.border}`,
+          borderRadius: 12,
+          padding: ".85rem 1rem",
+        }}
+      >
+        <div
+          style={{
+            fontFamily: S.mono,
+            fontSize: "10px",
+            letterSpacing: ".16em",
+            color: S.muted,
+            textTransform: "uppercase",
+            marginBottom: ".8rem",
+          }}
+        >
+          {title}
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: ".85rem 1.25rem",
+            alignItems: "flex-start",
+            justifyContent: "flex-start",
+          }}
+        >
+          {[
+            { label: "Depots", value: <>{summary.depotCount}</> },
+            ...sharedStats,
+          ].map((item) => (
+            <div
+              key={item.label}
+              style={{
+                minWidth: 110,
+                display: "grid",
+                gap: ".15rem",
+              }}
+            >
+              <div
+                style={{
+                  fontFamily: S.mono,
+                  fontSize: "10px",
+                  letterSpacing: ".12em",
+                  color: S.muted,
+                  textTransform: "uppercase",
+                }}
+              >
+                {item.label}
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  gap: ".2rem",
+                  alignItems: "baseline",
+                  flexWrap: "wrap",
+                  fontFamily: S.mono,
+                  fontSize: "1rem",
+                  fontWeight: 700,
+                  color: S.text,
+                }}
+              >
+                {item.value}
+              </div>
+              {item.detail ? (
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: ".45rem",
+                    fontFamily: S.mono,
+                    fontSize: "10px",
+                    color: S.muted,
+                  }}
+                >
+                  {item.detail}
+                </div>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="tm-card"
+      style={{
+        background: S.panel,
+        border: `1px solid ${S.border}`,
+        borderRadius: 12,
+        padding: ".9rem 1rem",
+      }}
+    >
+      <div
+        style={{
+          fontFamily: S.mono,
+          fontSize: "10px",
+          letterSpacing: ".16em",
+          color: S.muted,
+          textTransform: "uppercase",
+          marginBottom: ".75rem",
+        }}
+      >
+        {title}
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(2, minmax(0,1fr))",
+          gap: ".7rem .9rem",
+        }}
+      >
+        {sharedStats.map((item) => (
+          <div key={item.label}>
+            <div
+              style={{
+                fontFamily: S.mono,
+                fontSize: "10px",
+                letterSpacing: ".12em",
+                color: S.muted,
+                textTransform: "uppercase",
+                marginBottom: ".25rem",
+              }}
+            >
+              {item.label}
+            </div>
+            <div
+              style={{
+                display: "flex",
+                gap: ".2rem",
+                alignItems: "baseline",
+                flexWrap: "wrap",
+                fontFamily: S.mono,
+                fontWeight: 700,
+                color: S.text,
+              }}
+            >
+              {item.value}
+            </div>
+            {item.detail ? (
+              <div
+                style={{
+                  marginTop: ".2rem",
+                  fontFamily: S.mono,
+                  fontSize: "10px",
+                  color: S.muted,
+                }}
+              >
+                {item.detail}
+              </div>
+            ) : null}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function summarizeWarehouse(depots: WarehouseDepotDto[]): WarehouseSummary {
+  let zoneCount = 0;
+  let aisleCount = 0;
+  let totalBins = 0;
+  let activeBins = 0;
+  let totalParcels = 0;
+  let usedCapacity = 0;
+  let totalCapacity = 0;
+
+  for (const depot of depots) {
+    for (const zone of depot.zones) {
+      zoneCount += 1;
+      aisleCount += zone.aisles.length;
+
+      for (const aisle of zone.aisles) {
+        totalBins += aisle.bins.length;
+
+        for (const bin of aisle.bins) {
+          if (bin.isActive) {
+            activeBins += 1;
+          }
+
+          totalParcels += bin.currentParcelCount;
+          usedCapacity += bin.currentParcelCount;
+          totalCapacity += bin.capacityParcelCount;
+        }
+      }
+    }
+  }
+
+  return {
+    depotCount: depots.length,
+    zoneCount,
+    aisleCount,
+    totalBins,
+    activeBins,
+    inactiveBins: Math.max(totalBins - activeBins, 0),
+    totalParcels,
+    usedCapacity,
+    totalCapacity,
+    utilizationPercent:
+      totalCapacity > 0 ? (usedCapacity / totalCapacity) * 100 : 0,
+  };
+}
+
 export default function WarehouseBinsPage() {
   const { data: session } = useSession();
   const role = session?.user?.role;
   const isWarehouseManager = role === "WarehouseManager";
 
-  const { data: depots = [] } = useDepots(false);
   const [selectedDepotId, setSelectedDepotId] = useState<string>("");
   const [tab, setTab] = useState<Tab>("list");
   const [expandedDepots, setExpandedDepots] = useState<Record<string, boolean>>(
@@ -273,10 +537,7 @@ export default function WarehouseBinsPage() {
   });
   const [binModal, setBinModal] = useState<BinModalState>({ open: false });
 
-  const effectiveDepotId = isWarehouseManager
-    ? undefined
-    : selectedDepotId || undefined;
-  const { data, isLoading, error } = useWarehouseBins(effectiveDepotId);
+  const { data, isLoading, error } = useWarehouseBins();
   const createAisleMutation = useCreateAisle();
   const updateAisleMutation = useUpdateAisle();
   const createBinMutation = useCreateBin();
@@ -301,24 +562,19 @@ export default function WarehouseBinsPage() {
   });
 
   const warehouseData = data ?? [];
-  const totalBins = warehouseData.flatMap((depot) =>
-    depot.zones.flatMap((zone) => zone.aisles.flatMap((aisle) => aisle.bins)),
-  ).length;
-  const activeBins = warehouseData
-    .flatMap((depot) =>
-      depot.zones.flatMap((zone) => zone.aisles.flatMap((aisle) => aisle.bins)),
-    )
-    .filter((bin) => bin.isActive).length;
-  const occupiedCapacity = warehouseData
-    .flatMap((depot) =>
-      depot.zones.flatMap((zone) => zone.aisles.flatMap((aisle) => aisle.bins)),
-    )
-    .reduce((sum, bin) => sum + bin.currentParcelCount, 0);
-  const totalCapacity = warehouseData
-    .flatMap((depot) =>
-      depot.zones.flatMap((zone) => zone.aisles.flatMap((aisle) => aisle.bins)),
-    )
-    .reduce((sum, bin) => sum + bin.capacityParcelCount, 0);
+  const filteredWarehouseData =
+    !isWarehouseManager && selectedDepotId
+      ? warehouseData.filter((depot) => depot.depotId === selectedDepotId)
+      : warehouseData;
+  const totalSummary = summarizeWarehouse(warehouseData);
+  const depotSummaries = warehouseData.map((depot) => ({
+    depot,
+    summary: summarizeWarehouse([depot]),
+  }));
+  const warehouseManagerSummary = summarizeWarehouse(filteredWarehouseData);
+  const selectedDepotName =
+    warehouseData.find((depot) => depot.depotId === selectedDepotId)
+      ?.depotName ?? null;
 
   function getNextAisleSortOrder(zone: WarehouseZoneDto) {
     return (
@@ -538,135 +794,162 @@ export default function WarehouseBinsPage() {
                   margin: 0,
                 }}
               >
-                Bin Management
+                Warehouse Overview
               </h1>
-            </div>
-
-            {!isWarehouseManager && depots.length > 0 ? (
-              <select
-                value={selectedDepotId}
-                onChange={(event) => setSelectedDepotId(event.target.value)}
+              <p
                 style={{
-                  background: S.inputBg,
-                  border: `1px solid ${S.inputBorder}`,
-                  color: S.text,
-                  borderRadius: 6,
-                  padding: ".65rem .8rem",
-                  minWidth: 260,
+                  margin: ".55rem 0 0",
                   fontFamily: S.mono,
+                  fontSize: "11px",
+                  letterSpacing: ".06em",
+                  color: S.muted,
                 }}
               >
-                <option value="">All accessible depots</option>
-                {depots.map((depot) => (
-                  <option key={depot.id} value={depot.id}>
-                    {depot.name}
-                  </option>
-                ))}
-              </select>
-            ) : null}
+                {isWarehouseManager
+                  ? "Your depot totals and current warehouse layout."
+                  : selectedDepotName
+                    ? `System totals above. Showing ${selectedDepotName} below.`
+                    : "System totals above. Depot breakdowns shown below."}
+              </p>
+            </div>
           </div>
+
+          {isWarehouseManager ? (
+            <div style={{ marginBottom: "1.25rem" }}>
+              <SummaryCard
+                title={filteredWarehouseData[0]?.depotName ?? "Assigned Depot"}
+                summary={warehouseManagerSummary}
+              />
+            </div>
+          ) : (
+            <div style={{ marginBottom: "1.25rem" }}>
+              <SummaryCard
+                title="System Total"
+                summary={totalSummary}
+                compact
+              />
+            </div>
+          )}
+
+          {!isWarehouseManager && depotSummaries.length > 0 ? (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))",
+                gap: ".85rem",
+                marginBottom: "1.25rem",
+              }}
+            >
+              {depotSummaries.map(({ depot, summary }) => (
+                <SummaryCard
+                  key={depot.depotId}
+                  title={depot.depotName}
+                  summary={summary}
+                />
+              ))}
+            </div>
+          ) : null}
 
           <div
             style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))",
-              gap: "1rem",
-              marginBottom: "1.25rem",
+              display: "flex",
+              gap: ".75rem",
+              marginTop: ".9rem",
+              marginBottom: "1rem",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
             }}
           >
-            {[
-              {
-                label: "Accessible Depots",
-                value: warehouseData.length,
-                accent: S.blue,
-              },
-              { label: "Configured Bins", value: totalBins, accent: S.accent },
-              { label: "Active Bins", value: activeBins, accent: S.green },
-              {
-                label: "Utilization",
-                value: `${occupiedCapacity}/${totalCapacity}`,
-                accent: S.text,
-              },
-            ].map((stat) => (
-              <div
-                key={stat.label}
-                className="tm-card"
+            <div style={{ display: "flex", gap: ".75rem", flexWrap: "wrap" }}>
+              <button
+                onClick={() => setTab("list")}
+                aria-pressed={tab === "list"}
                 style={{
-                  background: S.panel,
-                  border: `1px solid ${S.border}`,
-                  borderRadius: 10,
-                  padding: "1rem 1.1rem",
+                  fontFamily: S.mono,
+                  fontSize: "11px",
+                  letterSpacing: ".12em",
+                  textTransform: "uppercase",
+                  padding: ".6rem .9rem",
+                  borderRadius: 8,
+                  border:
+                    tab === "list"
+                      ? "1px solid rgba(245,158,11,.35)"
+                      : `1px solid ${S.border}`,
+                  background: tab === "list" ? "rgba(245,158,11,.08)" : S.panel,
+                  color: tab === "list" ? S.accent : S.text,
+                  cursor: "pointer",
                 }}
               >
-                <div
+                List View
+              </button>
+              <button
+                onClick={() => setTab("layout")}
+                aria-pressed={tab === "layout"}
+                style={{
+                  fontFamily: S.mono,
+                  fontSize: "11px",
+                  letterSpacing: ".12em",
+                  textTransform: "uppercase",
+                  padding: ".6rem .9rem",
+                  borderRadius: 8,
+                  border:
+                    tab === "layout"
+                      ? "1px solid rgba(245,158,11,.35)"
+                      : `1px solid ${S.border}`,
+                  background:
+                    tab === "layout" ? "rgba(245,158,11,.08)" : S.panel,
+                  color: tab === "layout" ? S.accent : S.text,
+                  cursor: "pointer",
+                }}
+              >
+                Layout View
+              </button>
+            </div>
+
+            {!isWarehouseManager ? (
+              <div
+                style={{
+                  display: "flex",
+                  gap: ".6rem",
+                  alignItems: "center",
+                  marginLeft: "auto",
+                }}
+              >
+                <span
                   style={{
                     fontFamily: S.mono,
                     fontSize: "10px",
-                    letterSpacing: ".14em",
-                    color: S.muted,
+                    letterSpacing: ".16em",
                     textTransform: "uppercase",
-                    marginBottom: ".45rem",
+                    color: S.muted,
                   }}
                 >
-                  {stat.label}
-                </div>
-                <div
+                  Depot Filter
+                </span>
+                <select
+                  value={selectedDepotId}
+                  onChange={(event) => setSelectedDepotId(event.target.value)}
                   style={{
+                    background: "#0d1424",
+                    border: `1px solid ${S.inputBorder}`,
+                    color: S.text,
+                    borderRadius: 8,
+                    padding: ".6rem .8rem",
+                    minWidth: 260,
                     fontFamily: S.mono,
-                    fontSize: "1.35rem",
-                    fontWeight: 800,
-                    color: stat.accent,
+                    colorScheme: "dark",
                   }}
                 >
-                  {stat.value}
-                </div>
+                  <option value="">All accessible depots</option>
+                  {warehouseData.map((depot) => (
+                    <option key={depot.depotId} value={depot.depotId}>
+                      {depot.depotName}
+                    </option>
+                  ))}
+                </select>
               </div>
-            ))}
-          </div>
-
-          <div style={{ display: "flex", gap: ".75rem", marginBottom: "1rem" }}>
-            <button
-              onClick={() => setTab("list")}
-              aria-pressed={tab === "list"}
-              style={{
-                fontFamily: S.mono,
-                fontSize: "11px",
-                letterSpacing: ".12em",
-                textTransform: "uppercase",
-                padding: ".6rem .9rem",
-                borderRadius: 8,
-                border:
-                  tab === "list"
-                    ? "1px solid rgba(245,158,11,.35)"
-                    : `1px solid ${S.border}`,
-                background: tab === "list" ? "rgba(245,158,11,.08)" : S.panel,
-                color: tab === "list" ? S.accent : S.text,
-                cursor: "pointer",
-              }}
-            >
-              List View
-            </button>
-            <button
-              onClick={() => setTab("layout")}
-              aria-pressed={tab === "layout"}
-              style={{
-                fontFamily: S.mono,
-                fontSize: "11px",
-                letterSpacing: ".12em",
-                textTransform: "uppercase",
-                padding: ".6rem .9rem",
-                borderRadius: 8,
-                border:
-                  tab === "layout"
-                    ? "1px solid rgba(245,158,11,.35)"
-                    : `1px solid ${S.border}`,
-                background: tab === "layout" ? "rgba(245,158,11,.08)" : S.panel,
-                color: tab === "layout" ? S.accent : S.text,
-                cursor: "pointer",
-              }}
-            >
-              Layout View
-            </button>
+            ) : null}
           </div>
 
           {isLoading ? (
@@ -678,7 +961,7 @@ export default function WarehouseBinsPage() {
             <p style={{ fontFamily: S.mono, color: S.red }}>{String(error)}</p>
           ) : null}
 
-          {!isLoading && warehouseData.length === 0 ? (
+          {!isLoading && filteredWarehouseData.length === 0 ? (
             <div
               style={{
                 background: S.panel,
@@ -689,12 +972,12 @@ export default function WarehouseBinsPage() {
                 color: S.muted,
               }}
             >
-              No accessible depots or bins found.
+              No depots match the current filter.
             </div>
           ) : null}
 
           {tab === "list"
-            ? warehouseData.map((depot: WarehouseDepotDto) =>
+            ? filteredWarehouseData.map((depot: WarehouseDepotDto) =>
                 (() => {
                   const depotExpanded = isDepotExpanded(depot.depotId);
 
@@ -882,8 +1165,21 @@ export default function WarehouseBinsPage() {
                                                   marginTop: ".25rem",
                                                 }}
                                               >
-                                                Parcels in aisle:{" "}
-                                                {aisle.currentParcelCount}
+                                                {aisle.bins.length} bins •{" "}
+                                                {
+                                                  aisle.bins.filter(
+                                                    (bin) => bin.isActive,
+                                                  ).length
+                                                }{" "}
+                                                active •{" "}
+                                                {
+                                                  aisle.bins.filter(
+                                                    (bin) => !bin.isActive,
+                                                  ).length
+                                                }{" "}
+                                                inactive •{" "}
+                                                {aisle.currentParcelCount}{" "}
+                                                parcels
                                               </div>
                                             </div>
                                             <div
@@ -1112,7 +1408,7 @@ export default function WarehouseBinsPage() {
                   );
                 })(),
               )
-            : warehouseData.map((depot) =>
+            : filteredWarehouseData.map((depot) =>
                 (() => {
                   const depotExpanded = isDepotExpanded(depot.depotId);
 
@@ -1327,7 +1623,14 @@ export default function WarehouseBinsPage() {
             }}
           >
             <form onSubmit={submitAisle}>
-              <h2 style={{ fontFamily: S.mono, marginTop: 0 }}>
+              <h2
+                style={{
+                  fontFamily: S.mono,
+                  color: S.accent,
+                  marginTop: 0,
+                  marginBottom: ".85rem",
+                }}
+              >
                 {aisleModal.mode === "create" ? "Create Aisle" : "Edit Aisle"}
               </h2>
               <div style={{ marginBottom: ".9rem" }}>
@@ -1505,7 +1808,14 @@ export default function WarehouseBinsPage() {
             }}
           >
             <form onSubmit={submitBin}>
-              <h2 style={{ fontFamily: S.mono, marginTop: 0 }}>
+              <h2
+                style={{
+                  fontFamily: S.mono,
+                  color: S.accent,
+                  marginTop: 0,
+                  marginBottom: ".85rem",
+                }}
+              >
                 {binModal.mode === "create" ? "Create Bin" : "Edit Bin"}
               </h2>
               <div style={{ marginBottom: ".9rem" }}>
