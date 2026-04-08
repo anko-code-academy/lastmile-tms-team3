@@ -43,8 +43,8 @@ public class ParcelImportHistoryConfiguration : IEntityTypeConfiguration<ParcelI
         builder.Property(x => x.CorrelationId)
             .HasMaxLength(100);
 
-        builder.Property(x => x.RowErrors)
-            .HasColumnType("jsonb");
+        builder.Property(x => x.RowErrorsData)
+            .HasColumnType("text");
 
         builder.Property(x => x.PreviewData)
             .HasColumnType("text");

@@ -4,6 +4,7 @@ import { useState, useCallback } from "react";
 import Link from "next/link";
 import TmNavbar from "@/components/TmNavbar";
 import { previewImportAction, confirmImportAction, type ParcelImportPreviewDto } from "@/lib/actions/parcelImport";
+import { useImportProgress } from "@/lib/hooks/useImportProgress";
 
 const S = {
   bg: "#080c14" as const,
@@ -24,6 +25,9 @@ export default function ParcelImportPage() {
   const [preview, setPreview] = useState<ParcelImportPreviewDto | null>(null);
   const [result, setResult] = useState<{ success: boolean; message: string; trackingNumbers?: string[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const activeImportId = step === "importing" && preview ? preview.importId : null;
+  const { progress } = useImportProgress(activeImportId);
 
   const handleFile = useCallback(async (file: File) => {
     setError(null);
@@ -170,42 +174,9 @@ export default function ParcelImportPage() {
               Select File
             </label>
 
-            <div style={{ marginTop: "2rem", display: "flex", gap: "1rem", justifyContent: "center" }}>
-              <a
-                href="/api/parcel-imports/template"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  padding: "0.5rem 1rem",
-                  backgroundColor: S.panel,
-                  color: S.text,
-                  borderRadius: "0.5rem",
-                  textDecoration: "none",
-                  fontSize: "0.875rem",
-                  border: `1px solid ${S.border}`,
-                }}
-              >
-                📄 Download CSV Template
-              </a>
-              <a
-                href="/api/parcel-imports/template/xlsx"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  padding: "0.5rem 1rem",
-                  backgroundColor: S.panel,
-                  color: S.text,
-                  borderRadius: "0.5rem",
-                  textDecoration: "none",
-                  fontSize: "0.875rem",
-                  border: `1px solid ${S.border}`,
-                }}
-              >
-                📊 Download XLSX Template
-              </a>
-            </div>
+            <p style={{ marginTop: "1.5rem", color: S.muted, fontSize: "0.875rem" }}>
+              Supported formats: CSV, XLSX
+            </p>
           </div>
         )}
 
@@ -333,9 +304,43 @@ export default function ParcelImportPage() {
         {/* Step: Importing */}
         {step === "importing" && (
           <div style={{ textAlign: "center", padding: "4rem" }}>
-            <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>⏳</div>
-            <h2 style={{ color: S.text, fontSize: "1.25rem" }}>Importing parcels...</h2>
-            <p style={{ color: S.muted }}>Please wait while we process your file</p>
+            <h2 style={{ color: S.text, fontSize: "1.25rem", marginBottom: "1.5rem" }}>
+              Importing parcels...
+            </h2>
+            {/* Progress bar */}
+            <div style={{
+              width: "100%",
+              maxWidth: "500px",
+              margin: "0 auto 1.5rem",
+              height: "10px",
+              backgroundColor: S.panel,
+              borderRadius: "5px",
+              overflow: "hidden",
+              border: `1px solid ${S.border}`,
+            }}>
+              <div style={{
+                width: `${progress?.percentComplete ?? 0}%`,
+                height: "100%",
+                backgroundColor: S.button,
+                transition: "width 0.3s ease",
+                borderRadius: "5px",
+              }} />
+            </div>
+            <p style={{ color: S.muted, marginBottom: "0.5rem" }}>
+              {progress
+                ? `${progress.currentRow} of ${progress.totalRows} rows processed`
+                : "Starting import..."}
+            </p>
+            {progress?.currentTrackingNumber && (
+              <p style={{ color: S.muted, fontSize: "0.875rem", marginBottom: "0.25rem" }}>
+                Creating: {progress.currentTrackingNumber}
+              </p>
+            )}
+            {progress && (
+              <p style={{ color: S.green, fontSize: "0.875rem" }}>
+                {progress.parcelsCreated} parcels created
+              </p>
+            )}
           </div>
         )}
 

@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using LastMile.TMS.Domain.Entities;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -27,7 +25,7 @@ namespace LastMile.TMS.Persistence.Migrations
                     ParcelsCreated = table.Column<int>(type: "integer", nullable: false),
                     Status = table.Column<string>(type: "text", nullable: false),
                     CorrelationId = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
-                    RowErrors = table.Column<List<ParcelImportRowError>>(type: "jsonb", nullable: false),
+                    RowErrorsData = table.Column<string>(type: "text", nullable: true),
                     PreviewData = table.Column<string>(type: "text", nullable: true),
                     CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     CreatedBy = table.Column<string>(type: "text", nullable: true),

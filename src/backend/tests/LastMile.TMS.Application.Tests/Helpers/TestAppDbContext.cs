@@ -177,6 +177,12 @@ public class TestAppDbContext : DbContext, IAppDbContext, IAppDbContextFactory
             entity.HasOne(e => e.Parcel).WithOne(p => p.DeliveryConfirmation).HasForeignKey<DeliveryConfirmation>(e => e.ParcelId).OnDelete(DeleteBehavior.Cascade);
             entity.Ignore(e => e.DeliveryGeoLocation);
         });
+
+        modelBuilder.Entity<ParcelImportHistory>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Ignore(e => e.RowErrorsData);
+        });
     }
 
     private static List<DailyAvailability> DeserializeSchedule(string json)

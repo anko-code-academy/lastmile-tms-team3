@@ -1,5 +1,9 @@
 "use server";
 
+import { auth } from "@/auth";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
 export interface ParcelImportRowDto {
   rowNumber: number;
   isValid: boolean;
@@ -39,20 +43,27 @@ export interface ImportHistoryDto {
   createdAt: string;
 }
 
+async function getAuthHeaders(): Promise<HeadersInit> {
+  const session = await auth();
+  const token = session?.accessToken as string;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 export async function previewImportAction(file: File): Promise<ParcelImportPreviewDto | { error: string }> {
   const formData = new FormData();
   formData.append("file", file);
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-
   try {
-    const response = await fetch(`${apiUrl}/api/parcel-imports/preview`, {
+    const headers = await getAuthHeaders();
+    const response = await fetch(`${API_URL}/api/parcel-imports/preview`, {
       method: "POST",
+      headers,
       body: formData,
       credentials: "include",
     });
 
     if (!response.ok) {
+      if (response.status === 401) return { error: "Please log in to import parcels" };
       const text = await response.text();
       return { error: text || "Preview failed" };
     }
@@ -70,23 +81,23 @@ export async function previewImportAction(file: File): Promise<ParcelImportPrevi
         errors: r.errors || [],
       })),
     };
-  } catch (err) {
+  } catch {
     return { error: "Failed to connect to server" };
   }
 }
 
 export async function confirmImportAction(importId: string): Promise<ParcelImportResultDto | { error: string }> {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-
   try {
-    const response = await fetch(`${apiUrl}/api/parcel-imports/confirm`, {
+    const headers = await getAuthHeaders();
+    const response = await fetch(`${API_URL}/api/parcel-imports/confirm`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...headers },
       body: JSON.stringify({ importId }),
       credentials: "include",
     });
 
     if (!response.ok) {
+      if (response.status === 401) return { error: "Please log in to import parcels" };
       const text = await response.text();
       return { error: text || "Import failed" };
     }
@@ -107,16 +118,16 @@ export async function confirmImportAction(importId: string): Promise<ParcelImpor
         errors: e.errors || [],
       })),
     };
-  } catch (err) {
+  } catch {
     return { error: "Failed to connect to server" };
   }
 }
 
 export async function getImportHistoryAction(): Promise<ImportHistoryDto[]> {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-
   try {
-    const response = await fetch(`${apiUrl}/api/parcel-imports/history`, {
+    const headers = await getAuthHeaders();
+    const response = await fetch(`${API_URL}/api/parcel-imports/history`, {
+      headers,
       credentials: "include",
     });
 

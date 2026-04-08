@@ -15,8 +15,16 @@ public class ParcelImportHistory : BaseAuditableEntity
     public int ParcelsCreated { get; set; }
     public ImportStatus Status { get; set; }
     public string? CorrelationId { get; set; }
-    public List<ParcelImportRowError> RowErrors { get; set; } = new();
+    public string? RowErrorsData { get; set; }
     public string? PreviewData { get; set; }
+
+    public List<ParcelImportRowError> GetRowErrors() =>
+        string.IsNullOrEmpty(RowErrorsData)
+            ? new List<ParcelImportRowError>()
+            : System.Text.Json.JsonSerializer.Deserialize<List<ParcelImportRowError>>(RowErrorsData) ?? new();
+
+    public void SetRowErrors(List<ParcelImportRowError> errors) =>
+        RowErrorsData = System.Text.Json.JsonSerializer.Serialize(errors);
 }
 
 public class ParcelImportRowError

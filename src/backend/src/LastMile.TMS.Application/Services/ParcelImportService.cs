@@ -15,18 +15,21 @@ public class ParcelImportService : IParcelImportService
     private readonly ICurrentUserService _currentUser;
     private readonly IGeocodingService _geocodingService;
     private readonly IZoneMatchingService _zoneMatchingService;
+    private readonly IImportProgressNotifier _notifier;
     private readonly RowValidator _validator;
 
     public ParcelImportService(
         IAppDbContextFactory contextFactory,
         ICurrentUserService currentUser,
         IGeocodingService geocodingService,
-        IZoneMatchingService zoneMatchingService)
+        IZoneMatchingService zoneMatchingService,
+        IImportProgressNotifier notifier)
     {
         _contextFactory = contextFactory;
         _currentUser = currentUser;
         _geocodingService = geocodingService;
         _zoneMatchingService = zoneMatchingService;
+        _notifier = notifier;
         _validator = new RowValidator();
     }
 
@@ -102,8 +105,9 @@ public class ParcelImportService : IParcelImportService
         var errors = new List<ParcelImportRowDto>();
         var now = DateTimeOffset.UtcNow;
 
-        foreach (var row in rows)
+        for (var i = 0; i < rows.Count; i++)
         {
+            var row = rows[i];
             try
             {
                 var dto = row.ToCreateParcelDto();
@@ -201,18 +205,32 @@ public class ParcelImportService : IParcelImportService
             {
                 errors.Add(new ParcelImportRowDto(row.RowNumber, false, new List<string> { ex.Message }));
             }
+
+            await _notifier.NotifyProgressAsync(
+                importId,
+                i + 1,
+                rows.Count,
+                createdTrackingNumbers.Count > 0 ? createdTrackingNumbers[^1] : "",
+                createdTrackingNumbers.Count,
+                cancellationToken);
         }
 
         await context.SaveChangesAsync(cancellationToken);
 
         import.Status = ImportStatus.Completed;
         import.ParcelsCreated = createdTrackingNumbers.Count;
-        import.RowErrors = errors.Select(e => new ParcelImportRowError
+        import.SetRowErrors(errors.Select(e => new ParcelImportRowError
         {
             RowNumber = e.RowNumber,
             ErrorMessage = string.Join("; ", e.Errors)
-        }).ToList();
+        }).ToList());
         await context.SaveChangesAsync(cancellationToken);
+
+        await _notifier.NotifyCompletedAsync(
+            importId,
+            rows.Count,
+            createdTrackingNumbers.Count,
+            cancellationToken);
 
         return new ParcelImportResultDto(
             ImportId: importId,
@@ -245,7 +263,7 @@ public class ParcelImportService : IParcelImportService
             InvalidRows: import.InvalidRows,
             ParcelsCreated: import.ParcelsCreated,
             CreatedParcelTrackingNumbers: new List<string>(),
-            Errors: import.RowErrors.Select(e => new ParcelImportRowDto(e.RowNumber, false, new List<string> { e.ErrorMessage })).ToList()
+            Errors: import.GetRowErrors().Select(e => new ParcelImportRowDto(e.RowNumber, false, new List<string> { e.ErrorMessage })).ToList()
         );
     }
 
