@@ -47,14 +47,14 @@ const STAGE_PARCEL_MUTATION = `
 `;
 
 const GET_DELIVERY_ROUTES_QUERY = `
-  query GetDeliveryRoutes($date: Date, $depotId: UUID) {
-    deliveryRoutes(date: $date, depotId: $depotId) {
+  query GetDeliveryRoutes($date: Date) {
+    deliveryRoutes(where: { date: { eq: $date } }) {
       id
       name
       status
       date
-      driverName
-      zoneName
+      driver { firstName lastName }
+      zone { name }
     }
   }
 `;
@@ -107,12 +107,28 @@ export async function stageParcelAction(input: {
   return data.stageParcel;
 }
 
+interface DeliveryRouteRaw {
+  id: string;
+  name: string;
+  status: string;
+  date: string;
+  driver: { firstName: string; lastName: string } | null;
+  zone: { name: string } | null;
+}
+
 export async function getDeliveryRoutesAction(date?: string): Promise<DeliveryRoute[]> {
-  const data = await gqlRequest<{ deliveryRoutes: DeliveryRoute[] }>(
+  const data = await gqlRequest<{ deliveryRoutes: DeliveryRouteRaw[] }>(
     GET_DELIVERY_ROUTES_QUERY,
-    { date: date ?? null, depotId: null }
+    { date: date ?? null }
   );
-  return data.deliveryRoutes;
+  return data.deliveryRoutes.map((r) => ({
+    id: r.id,
+    name: r.name,
+    status: r.status,
+    date: r.date,
+    driverName: r.driver ? `${r.driver.firstName} ${r.driver.lastName}` : null,
+    zoneName: r.zone?.name ?? null,
+  }));
 }
 
 export async function getStagingStatusAction(routeId: string): Promise<StagingStatus | null> {
