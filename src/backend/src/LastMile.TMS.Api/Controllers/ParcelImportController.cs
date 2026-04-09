@@ -3,6 +3,7 @@ using LastMile.TMS.Application.Services;
 using LastMile.TMS.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace LastMile.TMS.Api.Controllers;
 
@@ -83,12 +84,27 @@ John Doe,Acme Corp,123 Main St,Suite 100,Nashville,TN,37211,US,+16155551234,john
     /// Upload file and get preview with validation results
     /// </summary>
     [HttpPost("preview")]
+    [RequestSizeLimit(10_000_000)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 10_000_000)]
     public async Task<ActionResult<ParcelImportPreviewDto>> Preview(IFormFile file, CancellationToken cancellationToken)
     {
         if (file == null || file.Length == 0)
             return BadRequest("No file uploaded");
 
         var fileName = file.FileName.ToLowerInvariant();
+        if (!fileName.EndsWith(".csv") && !fileName.EndsWith(".xlsx") && !fileName.EndsWith(".xls"))
+            return BadRequest("Unsupported file format. Please upload a CSV or XLSX file.");
+
+        var contentType = file.ContentType.ToLowerInvariant();
+        var validContentTypes = new[]
+        {
+            "text/csv", "text/plain", "application/csv",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "application/vnd.ms-excel",
+            "application/octet-stream"
+        };
+        if (!validContentTypes.Contains(contentType))
+            return BadRequest("Invalid file content type.");
         var fileType = fileName.EndsWith(".xlsx") || fileName.EndsWith(".xls")
             ? ImportFileType.Xlsx
             : ImportFileType.Csv;
@@ -116,6 +132,11 @@ John Doe,Acme Corp,123 Main St,Suite 100,Nashville,TN,37211,US,+16155551234,john
                 confirmDto.ImportId, result.ParcelsCreated);
 
             return Ok(result);
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            _logger.LogWarning(ex, "Import already in progress or completed: {ImportId}", confirmDto.ImportId);
+            return Conflict(new { error = "This import is already being processed or has been completed." });
         }
         catch (InvalidOperationException ex)
         {

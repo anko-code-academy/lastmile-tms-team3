@@ -5,6 +5,7 @@ using LastMile.TMS.Application.Features.Parcels.Mappers;
 using LastMile.TMS.Domain.Entities;
 using LastMile.TMS.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using NetTopologySuite.Geometries;
 
 namespace LastMile.TMS.Application.Services;
@@ -16,6 +17,7 @@ public class ParcelImportService : IParcelImportService
     private readonly IGeocodingService _geocodingService;
     private readonly IZoneMatchingService _zoneMatchingService;
     private readonly IImportProgressNotifier _notifier;
+    private readonly ILogger<ParcelImportService> _logger;
     private readonly RowValidator _validator;
 
     public ParcelImportService(
@@ -23,13 +25,15 @@ public class ParcelImportService : IParcelImportService
         ICurrentUserService currentUser,
         IGeocodingService geocodingService,
         IZoneMatchingService zoneMatchingService,
-        IImportProgressNotifier notifier)
+        IImportProgressNotifier notifier,
+        ILogger<ParcelImportService> logger)
     {
         _contextFactory = contextFactory;
         _currentUser = currentUser;
         _geocodingService = geocodingService;
         _zoneMatchingService = zoneMatchingService;
         _notifier = notifier;
+        _logger = logger;
         _validator = new RowValidator();
     }
 
@@ -202,8 +206,9 @@ public class ParcelImportService : IParcelImportService
                 context.Parcels.Add(parcel);
                 createdTrackingNumbers.Add(trackingNumber);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OutOfMemoryException)
             {
+                _logger.LogWarning(ex, "Failed to process row {RowNumber} in import {ImportId}", row.RowNumber, importId);
                 errors.Add(new ParcelImportRowDto(row.RowNumber, false, new List<string> { ex.Message }));
             }
 
@@ -215,8 +220,6 @@ public class ParcelImportService : IParcelImportService
                 createdTrackingNumbers.Count,
                 cancellationToken);
         }
-
-        await context.SaveChangesAsync(cancellationToken);
 
         import.Status = ImportStatus.Completed;
         import.ParcelsCreated = createdTrackingNumbers.Count;
@@ -347,7 +350,7 @@ public class ParcelImportService : IParcelImportService
                 {
                     rowData[headers[j]] = worksheet.Cell(i, j + 1).GetString();
                 }
-                rows.Add(MapRowFromExcel(rowData, i + 1));
+                rows.Add(MapRowFromExcel(rowData, i));
             }
         }
 

@@ -4,6 +4,8 @@ using LastMile.TMS.Application.Common.Interfaces;
 using LastMile.TMS.Application.Services;
 using LastMile.TMS.Application.Tests.Helpers;
 using LastMile.TMS.Domain.Enums;
+using Microsoft.Extensions.Logging;
+using NSubstitute;
 
 namespace LastMile.TMS.Application.Tests.Services;
 
@@ -63,12 +65,14 @@ public class ParcelImportCsvErrorTests : IDisposable
 
     private ParcelImportService CreateService()
     {
+        var logger = Substitute.For<ILogger<ParcelImportService>>();
         return new ParcelImportService(
             _context,
             _currentUser,
             new StubGeocodingService(),
             new StubZoneMatchingService(),
-            new NullImportProgressNotifier());
+            new NullImportProgressNotifier(),
+            logger);
     }
 
     public void Dispose()

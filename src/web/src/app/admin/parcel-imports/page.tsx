@@ -26,10 +26,16 @@ const statusColors: Record<string, string> = {
 export default function ParcelImportHistoryPage() {
   const [history, setHistory] = useState<ImportHistoryDto[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     getImportHistoryAction().then((data) => {
-      setHistory(data);
+      if ("error" in data) {
+        setError(data.error);
+        setHistory([]);
+      } else {
+        setHistory(data);
+      }
       setLoading(false);
     });
   }, []);
@@ -54,6 +60,17 @@ export default function ParcelImportHistoryPage() {
         {loading ? (
           <div style={{ textAlign: "center", padding: "4rem", color: S.muted }}>
             Loading...
+          </div>
+        ) : error ? (
+          <div style={{
+            textAlign: "center",
+            padding: "4rem",
+            backgroundColor: "rgba(239,68,68,0.1)",
+            border: `1px solid ${S.red}`,
+            borderRadius: "0.75rem",
+            color: S.red,
+          }}>
+            {error}
           </div>
         ) : history.length === 0 ? (
           <div style={{

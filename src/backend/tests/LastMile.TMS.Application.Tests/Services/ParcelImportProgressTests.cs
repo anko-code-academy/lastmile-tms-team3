@@ -5,6 +5,7 @@ using LastMile.TMS.Application.Services;
 using LastMile.TMS.Application.Tests.Helpers;
 using LastMile.TMS.Domain.Entities;
 using LastMile.TMS.Domain.Enums;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 
 namespace LastMile.TMS.Application.Tests.Services;
@@ -104,8 +105,9 @@ public class ParcelImportProgressTests : IDisposable
 
     private ParcelImportService CreateService(IImportProgressNotifier? notifier = null)
     {
+        var logger = Substitute.For<ILogger<ParcelImportService>>();
         return new ParcelImportService(
-            _context, _currentUser, new StubGeocodingService(), new StubZoneMatchingService(), notifier ?? _notifier);
+            _context, _currentUser, new StubGeocodingService(), new StubZoneMatchingService(), notifier ?? _notifier, logger);
     }
 
     private static List<ParcelImportRow> CreateValidImportRows(int count)

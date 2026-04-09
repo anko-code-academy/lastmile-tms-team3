@@ -18,6 +18,8 @@ public class ParcelImportHistory : BaseAuditableEntity
     public string? RowErrorsData { get; set; }
     public string? PreviewData { get; set; }
 
+    public byte[]? Version { get; set; }
+
     public List<ParcelImportRowError> GetRowErrors() =>
         string.IsNullOrEmpty(RowErrorsData)
             ? new List<ParcelImportRowError>()

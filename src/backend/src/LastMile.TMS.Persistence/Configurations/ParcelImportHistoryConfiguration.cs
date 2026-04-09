@@ -49,6 +49,10 @@ public class ParcelImportHistoryConfiguration : IEntityTypeConfiguration<ParcelI
         builder.Property(x => x.PreviewData)
             .HasColumnType("text");
 
+        builder.Property(x => x.Version)
+            .IsRowVersion()
+            .IsConcurrencyToken();
+
         builder.HasIndex(x => x.CorrelationId);
         builder.HasIndex(x => x.Status);
         builder.HasIndex(x => x.CreatedAt);

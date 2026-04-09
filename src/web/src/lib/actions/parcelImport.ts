@@ -123,7 +123,7 @@ export async function confirmImportAction(importId: string): Promise<ParcelImpor
   }
 }
 
-export async function getImportHistoryAction(): Promise<ImportHistoryDto[]> {
+export async function getImportHistoryAction(): Promise<ImportHistoryDto[] | { error: string }> {
   try {
     const headers = await getAuthHeaders();
     const response = await fetch(`${API_URL}/api/parcel-imports/history`, {
@@ -131,7 +131,10 @@ export async function getImportHistoryAction(): Promise<ImportHistoryDto[]> {
       credentials: "include",
     });
 
-    if (!response.ok) return [];
+    if (!response.ok) {
+      if (response.status === 401) return { error: "Please log in to view import history" };
+      return { error: "Failed to load import history" };
+    }
 
     const data = await response.json();
     return data.map((h: ImportHistoryDto) => ({
@@ -146,6 +149,6 @@ export async function getImportHistoryAction(): Promise<ImportHistoryDto[]> {
       createdAt: h.createdAt,
     }));
   } catch {
-    return [];
+    return { error: "Failed to connect to server" };
   }
 }

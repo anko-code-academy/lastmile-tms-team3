@@ -46,8 +46,8 @@ export function useImportProgress(importId: string | null) {
     return () => {
       connection
         .invoke("LeaveImport", importId)
-        .catch(() => {});
-      connection.stop();
+        .catch(() => {})
+        .finally(() => connection.stop());
       connectionRef.current = null;
     };
   }, [importId]);

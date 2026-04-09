@@ -31,6 +31,19 @@ export default function ParcelImportPage() {
 
   const handleFile = useCallback(async (file: File) => {
     setError(null);
+
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+    if (file.size > MAX_FILE_SIZE) {
+      setError("File is too large. Maximum size is 10MB.");
+      return;
+    }
+
+    const ext = file.name.toLowerCase();
+    if (!ext.endsWith(".csv") && !ext.endsWith(".xlsx") && !ext.endsWith(".xls")) {
+      setError("Unsupported file format. Please upload a CSV or XLSX file.");
+      return;
+    }
+
     const result = await previewImportAction(file);
 
     if ("error" in result) {
