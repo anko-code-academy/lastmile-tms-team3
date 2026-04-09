@@ -3,6 +3,7 @@ using System;
 using LastMile.TMS.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NetTopologySuite.Geometries;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -13,9 +14,11 @@ using NpgsqlTypes;
 namespace LastMile.TMS.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260409123644_AddDeliveryRoute")]
+    partial class AddDeliveryRoute
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -393,15 +396,9 @@ namespace LastMile.TMS.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Date");
-
                     b.HasIndex("DepotId");
 
                     b.HasIndex("DriverId");
-
-                    b.HasIndex("Name");
-
-                    b.HasIndex("Status");
 
                     b.HasIndex("ZoneId");
 
@@ -755,78 +752,6 @@ namespace LastMile.TMS.Persistence.Migrations
                     b.HasIndex("ParcelId");
 
                     b.ToTable("ParcelContentItems");
-                });
-
-            modelBuilder.Entity("LastMile.TMS.Domain.Entities.ParcelImportHistory", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("CorrelationId")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<string>("FileName")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<long>("FileSizeBytes")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("FileType")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("InvalidRows")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTimeOffset?>("LastModifiedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("LastModifiedBy")
-                        .HasColumnType("text");
-
-                    b.Property<int>("ParcelsCreated")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("PreviewData")
-                        .HasColumnType("text");
-
-                    b.Property<string>("RowErrorsData")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("TotalRows")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("ValidRows")
-                        .HasColumnType("integer");
-
-                    b.Property<byte[]>("Version")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("bytea");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CorrelationId");
-
-                    b.HasIndex("CreatedAt");
-
-                    b.HasIndex("Status");
-
-                    b.ToTable("ParcelImportHistories", (string)null);
                 });
 
             modelBuilder.Entity("LastMile.TMS.Domain.Entities.ParcelWatcher", b =>

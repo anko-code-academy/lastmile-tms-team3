@@ -65,6 +65,10 @@ public class Parcel : BaseAuditableEntity, IAuditTracked
     public Guid? CurrentBinId { get; set; }
     public Bin? CurrentBin { get; set; }
 
+    // Route assignment
+    public Guid? RouteId { get; set; }
+    public DeliveryRoute? Route { get; set; }
+
     // Navigation properties
     public ICollection<TrackingEvent> TrackingEvents { get; set; } = new List<TrackingEvent>();
     public ICollection<ParcelContentItem> ContentItems { get; set; } = new List<ParcelContentItem>();
@@ -168,7 +172,7 @@ public class Parcel : BaseAuditableEntity, IAuditTracked
             ParcelStatus.ReceivedAtDepot => EventType.ArrivedAtFacility,
             ParcelStatus.Sorted => EventType.HeldAtFacility,
             ParcelStatus.Staged => EventType.HeldAtFacility,
-            ParcelStatus.Loaded => EventType.DepartedFacility,
+            ParcelStatus.Loaded => EventType.Loaded,
             ParcelStatus.OutForDelivery => EventType.OutForDelivery,
             ParcelStatus.Delivered => EventType.Delivered,
             ParcelStatus.FailedAttempt => EventType.DeliveryAttempted,
