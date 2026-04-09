@@ -79,11 +79,15 @@ export default async function Home() {
   const isAdmin = session?.user?.role === "Admin";
   const isOperationsManager = session?.user?.role === "OperationsManager";
   const isWarehouseManager = session?.user?.role === "WarehouseManager";
+  const isDepotOperator = session?.user?.role === "DepotOperator";
 
   const navItems = [
     { label: "Dashboard", href: "/" },
     { label: "Parcels", href: "/parcels" },
     { label: "Routes", href: "#" },
+    ...(isAdmin || isDepotOperator
+      ? [{ label: "Load Out", href: "/load-out" }]
+      : []),
     ...(isAdmin || isWarehouseManager
       ? [{ label: "Warehouse", href: "/warehouse" }]
       : []),

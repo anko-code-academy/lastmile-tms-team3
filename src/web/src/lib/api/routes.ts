@@ -1,0 +1,101 @@
+import { graphql } from "./graphql";
+import type {
+  DeliveryRoute,
+  LoadParcelInput,
+  LoadParcelResult,
+  CompleteLoadingInput,
+  CompleteLoadingResult,
+} from "../types/route";
+
+interface DeliveryRoutesResponse {
+  deliveryRoutes: {
+    totalCount: number;
+    nodes: DeliveryRoute[];
+  };
+}
+
+const DELIVERY_ROUTES_QUERY = `
+  query GetDeliveryRoutes($where: DeliveryRouteFilterInput) {
+    deliveryRoutes(first: 100, where: $where) {
+      totalCount
+      nodes {
+        id
+        name
+        depotId
+        depot { id name }
+        driverId
+        driver { id firstName lastName }
+        zoneId
+        zone { id name }
+        date
+        status
+        parcels {
+          id
+          trackingNumber
+          status
+          serviceType
+          weight
+          weightUnit
+          declaredValue
+          currency
+          recipientAddress { city state countryCode }
+          contentItemsCount
+        }
+      }
+    }
+  }
+`;
+
+const LOAD_PARCEL_MUTATION = `
+  mutation LoadParcel($input: LoadParcelDtoInput!) {
+    loadParcel(input: $input) {
+      parcelId
+      trackingNumber
+      status
+      isWrongRoute
+      assignedRouteName
+      assignedRouteId
+    }
+  }
+`;
+
+const COMPLETE_LOADING_MUTATION = `
+  mutation CompleteLoading($input: CompleteLoadingDtoInput!) {
+    completeLoading(input: $input) {
+      routeId
+      isSuccess
+      hasUnloadedParcels
+      unloadedParcelCount
+      unloadedParcels {
+        parcelId
+        trackingNumber
+        status
+      }
+    }
+  }
+`;
+
+export async function getDeliveryRoutes(
+  where?: Record<string, unknown>,
+): Promise<DeliveryRoutesResponse> {
+  return graphql<DeliveryRoutesResponse>(DELIVERY_ROUTES_QUERY, {
+    where: where ?? null,
+  });
+}
+
+export async function loadParcel(
+  input: LoadParcelInput,
+): Promise<{ loadParcel: LoadParcelResult }> {
+  return graphql<{ loadParcel: LoadParcelResult }>(LOAD_PARCEL_MUTATION, {
+    input,
+  });
+}
+
+export async function completeLoading(
+  input: CompleteLoadingInput,
+): Promise<{ completeLoading: CompleteLoadingResult }> {
+  return graphql<{ completeLoading: CompleteLoadingResult }>(
+    COMPLETE_LOADING_MUTATION,
+    { input },
+  );
+}
