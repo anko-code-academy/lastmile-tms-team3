@@ -1,4 +1,5 @@
 using LastMile.TMS.Application.Common.Interfaces;
+using LastMile.TMS.Application.Common.Security;
 using LastMile.TMS.Application.Features.Parcels.DTOs;
 using LastMile.TMS.Domain.Entities;
 using LastMile.TMS.Domain.Enums;
@@ -15,10 +16,12 @@ public static class LoadParcel
     public class Handler : IRequestHandler<Command, LoadParcelResultDto>
     {
         private readonly IAppDbContextFactory _contextFactory;
+        private readonly ICurrentUserService _currentUser;
 
-        public Handler(IAppDbContextFactory contextFactory)
+        public Handler(IAppDbContextFactory contextFactory, ICurrentUserService currentUser)
         {
             _contextFactory = contextFactory;
+            _currentUser = currentUser;
         }
 
         public async Task<LoadParcelResultDto> Handle(Command request, CancellationToken cancellationToken)
@@ -38,6 +41,8 @@ public static class LoadParcel
 
             if (route is null)
                 throw new InvalidOperationException($"Route with ID '{request.Dto.RouteId}' was not found.");
+
+            DepotAccessGuard.EnsureDepotAccess(_currentUser, route.DepotId);
 
             // Wrong route: parcel is already assigned to a different route
             if (!request.Dto.ForceLoad && parcel.RouteId.HasValue && parcel.RouteId.Value != route.Id)

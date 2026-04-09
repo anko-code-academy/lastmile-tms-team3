@@ -113,6 +113,13 @@ try
             policy.RequireAuthenticatedUser();
             policy.RequireRole("Admin", "WarehouseManager");
         });
+
+        options.AddPolicy("AdminOrDepotOperator", policy =>
+        {
+            policy.AddAuthenticationSchemes(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme);
+            policy.RequireAuthenticatedUser();
+            policy.RequireRole("Admin", "DepotOperator");
+        });
     });
 
     builder.Services
@@ -144,6 +151,8 @@ try
         .AddType<UserQuery>()
         .AddType<UserMutation>()
         .AddType<AuditLogQuery>()
+        .AddType<DeliveryRouteQuery>()
+        .AddType<DeliveryRouteMutation>()
         .AddType<AddressType>()
         .AddType<DepotType>()
         .AddType<VehicleType>()
@@ -161,6 +170,7 @@ try
         .AddType<DeliveryConfirmationType>()
         .AddType<ParcelContentItemType>()
         .AddType<ParcelWatcherType>()
+        .AddType<DeliveryRouteType>()
         .AddErrorFilter<ValidationErrorFilter>()
         .ModifyCostOptions(options =>
         {

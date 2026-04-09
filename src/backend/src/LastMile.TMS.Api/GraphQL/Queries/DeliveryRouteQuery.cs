@@ -12,7 +12,7 @@ namespace LastMile.TMS.Api.GraphQL.Queries;
 [ExtendObjectType(OperationTypeNames.Query)]
 public class DeliveryRouteQuery
 {
-    [Authorize(Policy = "AdminOrOperationsManager")]
+    [Authorize(Policy = "AdminOrDepotOperator")]
     [UsePaging(IncludeTotalCount = true, MaxPageSize = 100)]
     [UseProjection]
     [UseFiltering(typeof(DeliveryRouteFilterInput))]

@@ -7,5 +7,6 @@ public enum UserRole
     Dispatcher = 3,
     WarehouseOperator = 4,
     Driver = 5,
-    WarehouseManager = 6
+    WarehouseManager = 6,
+    DepotOperator = 7
 }

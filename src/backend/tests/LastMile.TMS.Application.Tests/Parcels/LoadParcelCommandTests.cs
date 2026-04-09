@@ -1,5 +1,6 @@
 using FluentAssertions;
 using LastMile.TMS.Application.Common.Interfaces;
+using NSubstitute;
 using LastMile.TMS.Application.Features.Parcels.Commands;
 using LastMile.TMS.Application.Features.Parcels.DTOs;
 using LastMile.TMS.Application.Tests.Helpers;
@@ -16,12 +17,15 @@ public class LoadParcelCommandTests : IDisposable
     private readonly TestAppDbContext _context;
     private readonly LoadParcel.Handler _handler;
     private readonly IAppDbContextFactory _contextFactory;
+    private readonly ICurrentUserService _currentUser;
 
     public LoadParcelCommandTests()
     {
         _context = TestAppDbContext.Create();
         _contextFactory = _context;
-        _handler = new LoadParcel.Handler(_contextFactory);
+        _currentUser = Substitute.For<ICurrentUserService>();
+        _currentUser.IsInRole("Admin").Returns(true);
+        _handler = new LoadParcel.Handler(_contextFactory, _currentUser);
     }
 
     [Fact]

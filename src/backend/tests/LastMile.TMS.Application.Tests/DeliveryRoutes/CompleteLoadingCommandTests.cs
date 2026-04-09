@@ -1,5 +1,6 @@
 using FluentAssertions;
 using LastMile.TMS.Application.Common.Interfaces;
+using NSubstitute;
 using LastMile.TMS.Application.Features.DeliveryRoutes.Commands;
 using LastMile.TMS.Application.Features.DeliveryRoutes.DTOs;
 using LastMile.TMS.Application.Tests.Helpers;
@@ -14,11 +15,14 @@ public class CompleteLoadingCommandTests : IDisposable
 {
     private readonly TestAppDbContext _context;
     private readonly CompleteLoading.Handler _handler;
+    private readonly ICurrentUserService _currentUser;
 
     public CompleteLoadingCommandTests()
     {
         _context = TestAppDbContext.Create();
-        _handler = new CompleteLoading.Handler(_context);
+        _currentUser = Substitute.For<ICurrentUserService>();
+        _currentUser.IsInRole("Admin").Returns(true);
+        _handler = new CompleteLoading.Handler(_context, _currentUser);
     }
 
     [Fact]

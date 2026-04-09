@@ -36,7 +36,7 @@ public class ParcelMutation
         return await mediator.Send(new MarkParcelDelivered.Command(input), cancellationToken);
     }
 
-    [Authorize(Policy = "AdminOrOperationsManager")]
+    [Authorize(Policy = "AdminOrDepotOperator")]
     public async Task<LoadParcelResultDto> LoadParcel(
         [Service] IMediator mediator,
         LoadParcelDto input,

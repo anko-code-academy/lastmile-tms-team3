@@ -1,4 +1,5 @@
 using LastMile.TMS.Application.Common.Interfaces;
+using LastMile.TMS.Application.Common.Security;
 using LastMile.TMS.Application.Features.DeliveryRoutes.DTOs;
 using LastMile.TMS.Domain.Entities;
 using LastMile.TMS.Domain.Enums;
@@ -14,10 +15,12 @@ public static class CompleteLoading
     public class Handler : IRequestHandler<Command, CompleteLoadingResultDto>
     {
         private readonly IAppDbContextFactory _contextFactory;
+        private readonly ICurrentUserService _currentUser;
 
-        public Handler(IAppDbContextFactory contextFactory)
+        public Handler(IAppDbContextFactory contextFactory, ICurrentUserService currentUser)
         {
             _contextFactory = contextFactory;
+            _currentUser = currentUser;
         }
 
         public async Task<CompleteLoadingResultDto> Handle(Command request, CancellationToken cancellationToken)
@@ -30,6 +33,8 @@ public static class CompleteLoading
 
             if (route is null)
                 throw new InvalidOperationException($"Route with ID '{request.Dto.RouteId}' was not found.");
+
+            DepotAccessGuard.EnsureDepotAccess(_currentUser, route.DepotId);
 
             // Find parcels that are not loaded (Staged)
             var unloadedParcels = route.Parcels

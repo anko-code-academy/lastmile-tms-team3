@@ -12,7 +12,7 @@ namespace LastMile.TMS.Api.GraphQL.Mutations;
 [ExtendObjectType(OperationTypeNames.Mutation)]
 public class DeliveryRouteMutation
 {
-    [Authorize(Policy = "AdminOrOperationsManager")]
+    [Authorize(Policy = "AdminOrDepotOperator")]
     public async Task<CompleteLoadingResultDto> CompleteLoading(
         [Service] IMediator mediator,
         CompleteLoadingDto input,
