@@ -4,7 +4,7 @@ using LastMile.TMS.Domain.Enums;
 
 namespace LastMile.TMS.Domain.Entities;
 
-public class DeliveryRoute : BaseAuditableEntity
+public class DeliveryRoute : BaseAuditableEntity, IAuditTracked
 {
     [Required]
     [MaxLength(100)]
