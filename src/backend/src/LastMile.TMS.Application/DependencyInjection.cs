@@ -17,6 +17,8 @@ public static class DependencyInjection
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
         services.AddScoped<IZoneMatchingService, ZoneMatchingService>();
         services.AddScoped<IWarehouseCodeGenerator, WarehouseCodeGenerator>();
+        services.AddScoped<IImportProgressNotifier, NullImportProgressNotifier>();
+        services.AddScoped<IParcelImportService, ParcelImportService>();
 
         return services;
     }

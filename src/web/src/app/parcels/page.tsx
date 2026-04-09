@@ -49,13 +49,22 @@ export default async function ParcelsPage() {
           </p>
           <h1 className="text-2xl font-bold tracking-tight">Parcels</h1>
         </div>
-        <Link
-          href="/parcels/new"
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-xs font-mono uppercase tracking-widest transition-colors"
-          style={{ background: "rgba(245,158,11,.12)", border: "1px solid rgba(245,158,11,.35)", color: S.accent }}
-        >
-          + New Parcel
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            href="/parcels/import"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-xs font-mono uppercase tracking-widest transition-colors"
+            style={{ background: "rgba(16,185,129,.12)", border: "1px solid rgba(16,185,129,.35)", color: "#10b981" }}
+          >
+            Bulk Import
+          </Link>
+          <Link
+            href="/parcels/new"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-xs font-mono uppercase tracking-widest transition-colors"
+            style={{ background: "rgba(245,158,11,.12)", border: "1px solid rgba(245,158,11,.35)", color: S.accent }}
+          >
+            + New Parcel
+          </Link>
+        </div>
       </div>
 
       <ParcelSearch initialResult={initialResult} />

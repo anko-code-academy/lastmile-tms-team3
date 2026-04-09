@@ -33,6 +33,7 @@ public class TestAppDbContext : DbContext, IAppDbContext, IAppDbContextFactory
     public DbSet<ParcelContentItem> ParcelContentItems => Set<ParcelContentItem>();
     public DbSet<ParcelWatcher> ParcelWatchers => Set<ParcelWatcher>();
     public DbSet<DeliveryConfirmation> DeliveryConfirmations => Set<DeliveryConfirmation>();
+    public DbSet<ParcelImportHistory> ParcelImportHistories => Set<ParcelImportHistory>();
 
     public new Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
@@ -175,6 +176,12 @@ public class TestAppDbContext : DbContext, IAppDbContext, IAppDbContextFactory
             entity.HasKey(e => e.Id);
             entity.HasOne(e => e.Parcel).WithOne(p => p.DeliveryConfirmation).HasForeignKey<DeliveryConfirmation>(e => e.ParcelId).OnDelete(DeleteBehavior.Cascade);
             entity.Ignore(e => e.DeliveryGeoLocation);
+        });
+
+        modelBuilder.Entity<ParcelImportHistory>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Ignore(e => e.RowErrorsData);
         });
     }
 
