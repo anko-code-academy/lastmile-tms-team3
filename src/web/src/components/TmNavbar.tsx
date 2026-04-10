@@ -19,6 +19,9 @@ export default function TmNavbar() {
     { label: "Routes", href: "#" },
     ...(canLoadOut ? [{ label: "Load Out", href: "/load-out" }] : []),
     ...(canManageBins ? [{ label: "Warehouse", href: "/warehouse" }] : []),
+    ...(isAdminOrOm
+      ? [{ label: "Depot Dashboard", href: "/admin/depot-dashboard" }]
+      : []),
     ...(isAdminOrOm ? [{ label: "Depots", href: "/admin/depots" }] : []),
     ...(isAdmin ? [{ label: "Zones", href: "/admin/zones" }] : []),
     ...(isAdminOrOm

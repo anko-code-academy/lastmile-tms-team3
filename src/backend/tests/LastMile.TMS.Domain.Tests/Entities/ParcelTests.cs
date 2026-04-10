@@ -75,6 +75,21 @@ public class ParcelTests
     }
 
     [Fact]
+    public void TransitionToStatus_WithValidTransition_ShouldUpdateCurrentStatusChangedAt()
+    {
+        // Arrange
+        var previousStatusChangedAt = DateTimeOffset.UtcNow.AddHours(-4);
+        _parcel.CurrentStatusChangedAt = previousStatusChangedAt;
+
+        // Act
+        _parcel.TransitionToStatus(ParcelStatus.ReceivedAtDepot, "Operator");
+
+        // Assert
+        _parcel.CurrentStatusChangedAt.Should().BeAfter(previousStatusChangedAt);
+        _parcel.CurrentStatusChangedAt.Should().BeCloseTo(DateTimeOffset.UtcNow, TimeSpan.FromSeconds(1));
+    }
+
+    [Fact]
     public void TransitionToStatus_WhenInTerminalState_ShouldThrowParcelInTerminalStateException()
     {
         // Arrange

@@ -99,6 +99,8 @@ public class ParcelConfiguration : IEntityTypeConfiguration<Parcel>
         // Dates
         builder.Property(p => p.EstimatedDeliveryDate);
         builder.Property(p => p.ActualDeliveryDate);
+        builder.Property(p => p.CurrentStatusChangedAt)
+            .IsRequired();
 
         // Delivery tracking
         builder.Property(p => p.DeliveryAttempts)
@@ -114,6 +116,7 @@ public class ParcelConfiguration : IEntityTypeConfiguration<Parcel>
 
         // Indexes
         builder.HasIndex(p => p.Status);
+        builder.HasIndex(p => new { p.Status, p.CurrentStatusChangedAt });
         builder.HasIndex(p => p.CreatedAt);
         builder.HasIndex(p => p.EstimatedDeliveryDate);
         builder.HasIndex(p => p.ParcelType);

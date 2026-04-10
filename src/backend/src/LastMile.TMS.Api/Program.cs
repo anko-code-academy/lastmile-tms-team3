@@ -130,6 +130,7 @@ try
         .AddSorting()
         .AddPagingArguments()
         .AddDataLoader<AisleBinsDataLoader>()
+        .AddDataLoader<DepotParcelDashboardDataLoader>()
         .AddDataLoader<ParcelContentItemsCountDataLoader>()
         .RegisterDbContextFactory<AppDbContext>()
         .AddQueryType<Query>()
