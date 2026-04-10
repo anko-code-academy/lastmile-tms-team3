@@ -184,6 +184,44 @@ public class ParcelQueriesIntegrationTests(ApiWebApplicationFactory factory)
     }
 
     [Fact]
+    public async Task Parcels_FiltersByCurrentStatusChangedAt()
+    {
+        await InsertTestParcelsAsync();
+        var token = await GraphQLRequestHelper.GetOpsManagerTokenAsync(_client);
+        var cutoff = DateTimeOffset.UtcNow.AddHours(-24);
+        var trackingNumber = $"PKG-TEST-{_parcelId.ToString().Substring(0, 8).ToUpper()}";
+
+        var query = @"
+            query GetParcels($cutoff: DateTime!, $search: String!) {
+                parcels(
+                    first: 10
+                    search: $search
+                    where: {
+                        status: { eq: REGISTERED }
+                        currentStatusChangedAt: { lte: $cutoff }
+                    }
+                    order: [{ createdAt: DESC }]
+                ) {
+                    totalCount
+                    nodes {
+                        id
+                        trackingNumber
+                    }
+                }
+            }";
+
+        var response = await GraphQLRequestHelper.QueryAsync(_client, query, new { cutoff, search = trackingNumber }, token);
+        var body = await GraphQLRequestHelper.ReadGraphQLResponseAsync(response);
+
+        response.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
+        body.TryGetProperty("errors", out _).Should().BeFalse();
+
+        var data = body.GetProperty("data").GetProperty("parcels");
+        data.GetProperty("totalCount").GetInt32().Should().Be(1);
+        data.GetProperty("nodes")[0].GetProperty("id").GetString().Should().Be(_parcelId.ToString());
+    }
+
+    [Fact]
     public async Task GetParcel_ReturnsParcelWithNestedCollections()
     {
         await InsertParcelWithNestedDataAsync();
@@ -349,6 +387,7 @@ public class ParcelQueriesIntegrationTests(ApiWebApplicationFactory factory)
             Zone = zone,
             DeliveryAttempts = 0,
             CreatedAt = DateTimeOffset.UtcNow.AddDays(-1),
+            CurrentStatusChangedAt = DateTimeOffset.UtcNow.AddHours(-30),
             TrackingEvents = new List<TrackingEvent>(),
             ContentItems =
             [
@@ -407,6 +446,7 @@ public class ParcelQueriesIntegrationTests(ApiWebApplicationFactory factory)
             ZoneId = null,
             DeliveryAttempts = 1,
             CreatedAt = DateTimeOffset.UtcNow.AddDays(-5),
+            CurrentStatusChangedAt = DateTimeOffset.UtcNow.AddHours(-2),
             TrackingEvents = new List<TrackingEvent>(),
             ContentItems = new List<ParcelContentItem>(),
             Watchers = new List<ParcelWatcher>()

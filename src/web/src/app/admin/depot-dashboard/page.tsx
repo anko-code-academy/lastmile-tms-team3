@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import TmNavbar from "@/components/TmNavbar";
 import { useDepotDashboards } from "@/lib/hooks/useDepotDashboard";
+import type { DepotDashboardViewModel } from "@/lib/types/depotDashboard";
 import { ParcelStatus } from "@/lib/types/parcel";
 
 const STATUS_ORDER = [
@@ -59,10 +60,29 @@ export default function DepotDashboardPage() {
     ? depots.filter((depot) => depot.id === selectedDepotId)
     : depots;
 
-  const lastUpdatedAt = visibleDepots[0]?.parcelDashboard.lastUpdatedAt;
+  const showAllDepotsOverview = !selectedDepotId && depots.length > 1;
+  const overallOverview = showAllDepotsOverview
+    ? aggregateDepotOverview(visibleDepots)
+    : null;
+
+  const lastUpdatedAt = visibleDepots.reduce<string | null>((latest, depot) => {
+    if (!latest) {
+      return depot.parcelDashboard.lastUpdatedAt;
+    }
+
+    return new Date(depot.parcelDashboard.lastUpdatedAt) > new Date(latest)
+      ? depot.parcelDashboard.lastUpdatedAt
+      : latest;
+  }, null);
 
   return (
     <div style={{ minHeight: "100vh", background: S.bg, color: S.text }}>
+      <style>{`
+        @keyframes depotDashboardPulseDot {
+          0%, 100% { opacity: .35; transform: scale(.85); }
+          50% { opacity: 1; transform: scale(1.15); }
+        }
+      `}</style>
       <TmNavbar />
       <div style={{ maxWidth: 1280, margin: "0 auto", padding: "2rem" }}>
         <div
@@ -101,14 +121,21 @@ export default function DepotDashboardPage() {
             <p
               style={{
                 margin: ".6rem 0 0",
+                display: "flex",
+                alignItems: "center",
+                gap: ".45rem",
+                flexWrap: "wrap",
                 fontFamily: S.mono,
                 fontSize: "11px",
                 letterSpacing: ".06em",
                 color: S.muted,
               }}
             >
-              Real-time parcel throughput by depot status, zone, and age.
-              Refreshes every 60 seconds.
+              <span style={liveDotStyle} aria-hidden="true" />
+              <span>
+                Real-time parcel throughput by depot status, zone, and age.
+              </span>
+              <span>Refreshes every 60 seconds.</span>
             </p>
           </div>
 
@@ -230,18 +257,156 @@ export default function DepotDashboardPage() {
         <div
           style={{
             marginBottom: "1rem",
+            display: "flex",
+            justifyContent: "space-between",
+            gap: "1rem",
+            flexWrap: "wrap",
             fontFamily: S.mono,
             fontSize: "11px",
             color: S.muted,
           }}
         >
-          {lastUpdatedAt
-            ? `Last updated ${new Intl.DateTimeFormat("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" }).format(new Date(lastUpdatedAt))}`
-            : "Waiting for dashboard data"}
+          <span>
+            {lastUpdatedAt
+              ? `Last updated ${new Intl.DateTimeFormat("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" }).format(new Date(lastUpdatedAt))}`
+              : "Waiting for dashboard data"}
+          </span>
+          <span style={thresholdBadgeStyle}>
+            Alert threshold: older than {thresholdHours} hours in current status
+          </span>
         </div>
 
         {error ? (
           <div style={errorPanelStyle}>{(error as Error).message}</div>
+        ) : null}
+
+        {overallOverview ? (
+          <section style={{ ...panelStyle, marginBottom: "1rem" }}>
+            <div style={panelHeaderStyle}>
+              <div>
+                <p style={panelEyebrowStyle}>Network Overview</p>
+                <h2 style={panelTitleStyle}>Parcels in All Depots Combined</h2>
+              </div>
+              <div style={panelSummaryStyle}>
+                <span style={panelSummaryMetricStyle}>
+                  Depots {overallOverview.depotCount}
+                </span>
+                <span style={panelSummaryMetricStyle}>
+                  Total {isLoading ? "..." : overallOverview.totalCount}
+                </span>
+                <span
+                  style={{
+                    ...panelSummaryMetricStyle,
+                    color: S.danger,
+                  }}
+                >
+                  Alerted {isLoading ? "..." : overallOverview.alertedCount}
+                </span>
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))",
+                gap: ".85rem",
+                padding: "1rem",
+              }}
+            >
+              <div style={statusSectionHeaderStyle}>Parcels in All Depots by Status</div>
+              <div style={statusGridStyle}>
+                <div style={cardStyle}>
+                  <p style={allStatusesCardLabelStyle}>All Statuses</p>
+                  <div style={cardMetricGridStyle}>
+                    <p style={cardMetricLabelStyle}>Total</p>
+                    <p style={{ ...cardMetricLabelStyle, color: S.danger }}>
+                      Alerted
+                    </p>
+                    <p style={cardCountValueStyle}>
+                      {isLoading ? "..." : overallOverview.totalCount}
+                    </p>
+                    <p style={cardAlertCountValueStyle}>
+                      {isLoading ? "..." : overallOverview.alertedCount}
+                    </p>
+                    <Link
+                      href={buildParcelListHref({
+                        statuses: STATUS_ORDER,
+                      })}
+                      style={cardArrowLinkStyle}
+                      aria-label="Go to all dashboard parcels across all depots"
+                      title="Go to parcels"
+                    >
+                      -&gt;
+                    </Link>
+                    <Link
+                      href={buildParcelListHref({
+                        statuses: STATUS_ORDER,
+                        currentStatusChangedBefore:
+                          overallOverview.agingStatusChangedBefore,
+                      })}
+                      style={alertArrowLinkStyle}
+                      aria-label="Go to alerted dashboard parcels across all depots"
+                      title="Go to alerted parcels"
+                    >
+                      -&gt;
+                    </Link>
+                  </div>
+                </div>
+
+                {overallOverview.statusCounts.map((item) => {
+                  const statusAlertCount =
+                    overallOverview.agingStatusCounts.find(
+                      (agingItem) => agingItem.status === item.status,
+                    )?.count ?? 0;
+
+                  return (
+                    <div key={item.status} style={cardStyle}>
+                      <p style={cardLabelStyle}>{STATUS_LABELS[item.status]}</p>
+                      <div style={cardMetricGridStyle}>
+                        <p style={cardMetricLabelStyle}>Total</p>
+                        <p
+                          style={{
+                            ...cardMetricLabelStyle,
+                            color: S.danger,
+                          }}
+                        >
+                          Alerted
+                        </p>
+                        <p style={cardCountValueStyle}>
+                          {isLoading ? "..." : item.count}
+                        </p>
+                        <p style={cardAlertCountValueStyle}>
+                          {isLoading ? "..." : statusAlertCount}
+                        </p>
+                        <Link
+                          href={buildParcelListHref({
+                            statuses: [item.status],
+                          })}
+                          style={cardArrowLinkStyle}
+                          aria-label={`Go to all ${STATUS_LABELS[item.status]} parcels across all depots`}
+                          title="Go to parcels"
+                        >
+                          -&gt;
+                        </Link>
+                        <Link
+                          href={buildParcelListHref({
+                            statuses: [item.status],
+                            currentStatusChangedBefore:
+                              overallOverview.agingStatusChangedBefore,
+                          })}
+                          style={alertArrowLinkStyle}
+                          aria-label={`Go to alerted ${STATUS_LABELS[item.status]} parcels across all depots`}
+                          title="Go to alerted parcels"
+                        >
+                          -&gt;
+                        </Link>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
         ) : null}
 
         <div style={{ display: "grid", gap: "1rem" }}>
@@ -253,7 +418,20 @@ export default function DepotDashboardPage() {
               return { status, count: match?.count ?? 0 };
             });
 
-            const agingCreatedBefore = depot.parcelDashboard.lastUpdatedAt
+            const agingStatusCounts = STATUS_ORDER.map((status) => {
+              const match = depot.parcelDashboard.agingAlerts.statusCounts.find(
+                (item) => item.status === status,
+              );
+              return { status, count: match?.count ?? 0 };
+            });
+
+            const totalCount = statusCounts.reduce(
+              (sum, item) => sum + item.count,
+              0,
+            );
+            const alertedCount = depot.parcelDashboard.agingAlerts.totalCount;
+
+            const agingStatusChangedBefore = depot.parcelDashboard.lastUpdatedAt
               ? new Date(
                   new Date(depot.parcelDashboard.lastUpdatedAt).getTime() -
                     thresholdHours * 60 * 60 * 1000,
@@ -266,6 +444,19 @@ export default function DepotDashboardPage() {
                   <div>
                     <p style={panelEyebrowStyle}>Depot Overview</p>
                     <h2 style={panelTitleStyle}>{depot.name}</h2>
+                  </div>
+                  <div style={panelSummaryStyle}>
+                    <span style={panelSummaryMetricStyle}>
+                      Total {isLoading ? "..." : totalCount}
+                    </span>
+                    <span
+                      style={{
+                        ...panelSummaryMetricStyle,
+                        color: S.danger,
+                      }}
+                    >
+                      Alerted {isLoading ? "..." : alertedCount}
+                    </span>
                   </div>
                 </div>
 
@@ -280,78 +471,125 @@ export default function DepotDashboardPage() {
                 >
                   <div style={statusSectionHeaderStyle}>Parcels by Status</div>
                   <div style={statusGridStyle}>
-                    {statusCounts.map((item) => (
-                      <div key={item.status} style={cardStyle}>
-                        <p style={cardLabelStyle}>
-                          {STATUS_LABELS[item.status]}
+                    <div style={cardStyle}>
+                      <p style={allStatusesCardLabelStyle}>All Statuses</p>
+                      <div style={cardMetricGridStyle}>
+                        <p style={cardMetricLabelStyle}>Total</p>
+                        <p style={{ ...cardMetricLabelStyle, color: S.danger }}>
+                          Alerted
                         </p>
-                        <p style={cardValueStyle}>
-                          {isLoading ? "..." : item.count}
+                        <p style={cardCountValueStyle}>
+                          {isLoading ? "..." : totalCount}
                         </p>
-                        <div style={cardFooterStyle}>
-                          <Link
-                            href={buildParcelListHref({
-                              depotId: depot.id,
-                              statuses: [item.status],
-                            })}
-                            style={cardArrowLinkStyle}
-                            aria-label={`Go to parcels for ${STATUS_LABELS[item.status]} in ${depot.name}`}
-                            title="Go to parcels"
-                          >
-                            -&gt;
-                          </Link>
-                        </div>
-                      </div>
-                    ))}
-
-                    <div
-                      style={{
-                        ...cardStyle,
-                        borderColor: "rgba(239,68,68,.25)",
-                      }}
-                    >
-                      <p style={{ ...cardLabelStyle, color: S.danger }}>
-                        Aging Alerts
-                      </p>
-                      <p style={cardValueStyle}>
-                        {isLoading
-                          ? "..."
-                          : depot.parcelDashboard.agingAlerts.totalCount}
-                      </p>
-                      <p style={cardSubtextStyle}>
-                        Older than {thresholdHours} hours
-                      </p>
-                      <div style={cardFooterStyle}>
+                        <p style={cardAlertCountValueStyle}>
+                          {isLoading ? "..." : alertedCount}
+                        </p>
                         <Link
                           href={buildParcelListHref({
                             depotId: depot.id,
                             statuses: STATUS_ORDER,
-                            createdBefore: agingCreatedBefore,
                           })}
                           style={cardArrowLinkStyle}
-                          aria-label={`Go to aging parcels for ${depot.name}`}
+                          aria-label={`Go to all dashboard parcels in ${depot.name}`}
                           title="Go to parcels"
+                        >
+                          -&gt;
+                        </Link>
+                        <Link
+                          href={buildParcelListHref({
+                            depotId: depot.id,
+                            statuses: STATUS_ORDER,
+                            currentStatusChangedBefore:
+                              agingStatusChangedBefore,
+                          })}
+                          style={alertArrowLinkStyle}
+                          aria-label={`Go to alerted dashboard parcels in ${depot.name}`}
+                          title="Go to alerted parcels"
                         >
                           -&gt;
                         </Link>
                       </div>
                     </div>
+
+                    {statusCounts.map((item) => {
+                      const statusAlertCount =
+                        agingStatusCounts.find(
+                          (agingItem) => agingItem.status === item.status,
+                        )?.count ?? 0;
+
+                      return (
+                        <div key={item.status} style={cardStyle}>
+                          <p style={cardLabelStyle}>
+                            {STATUS_LABELS[item.status]}
+                          </p>
+                          <div style={cardMetricGridStyle}>
+                            <p style={cardMetricLabelStyle}>Total</p>
+                            <p
+                              style={{
+                                ...cardMetricLabelStyle,
+                                color: S.danger,
+                              }}
+                            >
+                              Alerted
+                            </p>
+                            <p style={cardCountValueStyle}>
+                              {isLoading ? "..." : item.count}
+                            </p>
+                            <p style={cardAlertCountValueStyle}>
+                              {isLoading ? "..." : statusAlertCount}
+                            </p>
+                            <Link
+                              href={buildParcelListHref({
+                                depotId: depot.id,
+                                statuses: [item.status],
+                              })}
+                              style={cardArrowLinkStyle}
+                              aria-label={`Go to all ${STATUS_LABELS[item.status]} parcels in ${depot.name}`}
+                              title="Go to parcels"
+                            >
+                              -&gt;
+                            </Link>
+                            <Link
+                              href={buildParcelListHref({
+                                depotId: depot.id,
+                                statuses: [item.status],
+                                currentStatusChangedBefore:
+                                  agingStatusChangedBefore,
+                              })}
+                              style={alertArrowLinkStyle}
+                              aria-label={`Go to alerted ${STATUS_LABELS[item.status]} parcels in ${depot.name}`}
+                              title="Go to alerted parcels"
+                            >
+                              -&gt;
+                            </Link>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 
                 <div style={{ padding: "0 1rem 1rem" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <table style={zoneTableStyle}>
+                    <colgroup>
+                      <col style={{ width: "22%" }} />
+                      {Array.from({ length: 1 + STATUS_ORDER.length }).map(
+                        (_, index) => (
+                          <col
+                            key={index}
+                            style={{
+                              width: `${78 / (1 + STATUS_ORDER.length)}%`,
+                            }}
+                          />
+                        ),
+                      )}
+                    </colgroup>
                     <thead>
                       <tr>
                         <th style={tableHeadStyle}>Zone</th>
-                        <th style={{ ...tableHeadStyle, textAlign: "right" }}>
-                          Total
-                        </th>
+                        <th style={allStatusesHeadStyle}>All Statuses</th>
                         {STATUS_ORDER.map((status) => (
-                          <th
-                            key={status}
-                            style={{ ...tableHeadStyle, textAlign: "right" }}
-                          >
+                          <th key={status} style={statusColumnHeadStyle}>
                             {STATUS_LABELS[status]}
                           </th>
                         ))}
@@ -359,60 +597,105 @@ export default function DepotDashboardPage() {
                     </thead>
                     <tbody>
                       {(depot.parcelDashboard.zoneBreakdown ?? []).map(
-                        (zone) => (
-                          <tr key={zone.zoneId}>
-                            <td style={tableCellStyle}>{zone.zoneName}</td>
-                            <td
-                              style={{ ...tableCellStyle, textAlign: "right" }}
-                            >
-                              <span style={tableValueWrapStyle}>
-                                <span>{zone.count}</span>
-                                <Link
-                                  href={buildParcelListHref({
-                                    depotId: depot.id,
-                                    zoneId: zone.zoneId,
-                                  })}
-                                  style={inlineArrowLinkStyle}
-                                  aria-label={`Go to parcels for ${zone.zoneName} in ${depot.name}`}
-                                  title="Go to parcels"
-                                >
-                                  -&gt;
-                                </Link>
-                              </span>
-                            </td>
-                            {STATUS_ORDER.map((status) => {
-                              const count =
-                                zone.statusCounts.find(
-                                  (item) => item.status === status,
-                                )?.count ?? 0;
-                              return (
-                                <td
-                                  key={`${zone.zoneId}-${status}`}
-                                  style={{
-                                    ...tableCellStyle,
-                                    textAlign: "right",
-                                  }}
-                                >
-                                  <span style={tableValueWrapStyle}>
-                                    <span>{count}</span>
-                                    <Link
-                                      href={buildParcelListHref({
-                                        depotId: depot.id,
-                                        zoneId: zone.zoneId,
-                                        statuses: [status],
-                                      })}
-                                      style={inlineArrowLinkStyle}
-                                      aria-label={`Go to parcels for ${STATUS_LABELS[status]} in ${zone.zoneName}, ${depot.name}`}
-                                      title="Go to parcels"
-                                    >
-                                      -&gt;
-                                    </Link>
+                        (zone) => {
+                          const zoneAlertedCount =
+                            zone.agingStatusCounts.reduce(
+                              (sum, item) => sum + item.count,
+                              0,
+                            );
+
+                          return (
+                            <tr key={zone.zoneId}>
+                              <td style={tableCellStyle}>{zone.zoneName}</td>
+                              <td
+                                style={{
+                                  ...tableMetricCellStyle,
+                                }}
+                              >
+                                <div style={metricCellStyle}>
+                                  <span>{zone.count}</span>
+                                  <span style={zoneAlertValueStyle}>
+                                    {zoneAlertedCount}
                                   </span>
-                                </td>
-                              );
-                            })}
-                          </tr>
-                        ),
+                                  <Link
+                                    href={buildParcelListHref({
+                                      depotId: depot.id,
+                                      zoneId: zone.zoneId,
+                                    })}
+                                    style={inlineArrowLinkStyle}
+                                    aria-label={`Go to parcels for ${zone.zoneName} in ${depot.name}`}
+                                    title="Go to parcels"
+                                  >
+                                    -&gt;
+                                  </Link>
+                                  <Link
+                                    href={buildParcelListHref({
+                                      depotId: depot.id,
+                                      zoneId: zone.zoneId,
+                                      currentStatusChangedBefore:
+                                        agingStatusChangedBefore,
+                                      statuses: STATUS_ORDER,
+                                    })}
+                                    style={zoneAlertArrowLinkStyle}
+                                    aria-label={`Go to alerted parcels for ${zone.zoneName} in ${depot.name}`}
+                                    title="Go to alerted parcels"
+                                  >
+                                    -&gt;
+                                  </Link>
+                                </div>
+                              </td>
+                              {STATUS_ORDER.map((status) => {
+                                const count =
+                                  zone.statusCounts.find(
+                                    (item) => item.status === status,
+                                  )?.count ?? 0;
+                                const agingCount =
+                                  zone.agingStatusCounts.find(
+                                    (item) => item.status === status,
+                                  )?.count ?? 0;
+                                return (
+                                  <td
+                                    key={`${zone.zoneId}-${status}`}
+                                    style={statusColumnCellStyle}
+                                  >
+                                    <div style={metricCellStyle}>
+                                      <span>{count}</span>
+                                      <span style={zoneAlertValueStyle}>
+                                        {agingCount}
+                                      </span>
+                                      <Link
+                                        href={buildParcelListHref({
+                                          depotId: depot.id,
+                                          zoneId: zone.zoneId,
+                                          statuses: [status],
+                                        })}
+                                        style={inlineArrowLinkStyle}
+                                        aria-label={`Go to parcels for ${STATUS_LABELS[status]} in ${zone.zoneName}, ${depot.name}`}
+                                        title="Go to parcels"
+                                      >
+                                        -&gt;
+                                      </Link>
+                                      <Link
+                                        href={buildParcelListHref({
+                                          depotId: depot.id,
+                                          zoneId: zone.zoneId,
+                                          statuses: [status],
+                                          currentStatusChangedBefore:
+                                            agingStatusChangedBefore,
+                                        })}
+                                        style={zoneAlertArrowLinkStyle}
+                                        aria-label={`Go to alerted ${STATUS_LABELS[status]} parcels in ${zone.zoneName}, ${depot.name}`}
+                                        title="Go to alerted parcels"
+                                      >
+                                        -&gt;
+                                      </Link>
+                                    </div>
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          );
+                        },
                       )}
                       {!isLoading &&
                       (depot.parcelDashboard.zoneBreakdown.length ?? 0) ===
@@ -476,15 +759,18 @@ function buildParcelListHref({
   depotId,
   statuses,
   zoneId,
-  createdBefore,
+  currentStatusChangedBefore,
 }: {
-  depotId: string;
+  depotId?: string;
   statuses?: ParcelStatus[];
   zoneId?: string;
-  createdBefore?: string;
+  currentStatusChangedBefore?: string;
 }) {
   const params = new URLSearchParams();
-  params.set("depotId", depotId);
+
+  if (depotId) {
+    params.set("depotId", depotId);
+  }
 
   if (statuses && statuses.length > 0) {
     params.set("status", statuses.join(","));
@@ -494,11 +780,62 @@ function buildParcelListHref({
     params.set("zoneId", zoneId);
   }
 
-  if (createdBefore) {
-    params.set("createdBefore", createdBefore);
+  if (currentStatusChangedBefore) {
+    params.set("currentStatusChangedBefore", currentStatusChangedBefore);
   }
 
   return `/parcels?${params.toString()}`;
+}
+
+function aggregateDepotOverview(depots: DepotDashboardViewModel[]) {
+  const statusCounts = STATUS_ORDER.map((status) => ({
+    status,
+    count: depots.reduce((sum, depot) => {
+      const item = depot.parcelDashboard.statusCounts.find(
+        (statusCount) => statusCount.status === status,
+      );
+      return sum + (item?.count ?? 0);
+    }, 0),
+  }));
+
+  const agingStatusCounts = STATUS_ORDER.map((status) => ({
+    status,
+    count: depots.reduce((sum, depot) => {
+      const item = depot.parcelDashboard.agingAlerts.statusCounts.find(
+        (statusCount) => statusCount.status === status,
+      );
+      return sum + (item?.count ?? 0);
+    }, 0),
+  }));
+
+  const totalCount = statusCounts.reduce((sum, item) => sum + item.count, 0);
+  const alertedCount = agingStatusCounts.reduce(
+    (sum, item) => sum + item.count,
+    0,
+  );
+
+  const lastUpdatedAt = depots.reduce<string | null>((latest, depot) => {
+    if (!latest) {
+      return depot.parcelDashboard.lastUpdatedAt;
+    }
+
+    return new Date(depot.parcelDashboard.lastUpdatedAt) > new Date(latest)
+      ? depot.parcelDashboard.lastUpdatedAt
+      : latest;
+  }, null);
+
+  const agingStatusChangedBefore = lastUpdatedAt
+    ? new Date(lastUpdatedAt).toISOString()
+    : undefined;
+
+  return {
+    depotCount: depots.length,
+    statusCounts,
+    agingStatusCounts,
+    totalCount,
+    alertedCount,
+    agingStatusChangedBefore,
+  };
 }
 
 const selectStyle: React.CSSProperties = {
@@ -531,6 +868,28 @@ const buttonStyle: React.CSSProperties = {
   cursor: "pointer",
 };
 
+const thresholdBadgeStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  padding: ".35rem .6rem",
+  borderRadius: 999,
+  border: `1px solid ${S.border}`,
+  background: S.panelStrong,
+  color: S.text,
+  whiteSpace: "nowrap",
+};
+
+const liveDotStyle: React.CSSProperties = {
+  width: 6,
+  height: 6,
+  borderRadius: "50%",
+  background: "#22c55e",
+  boxShadow: "0 0 6px #22c55e",
+  display: "inline-block",
+  animation: "depotDashboardPulseDot 2.2s ease-in-out infinite",
+  flexShrink: 0,
+};
+
 const controlLabelSpacerStyle: React.CSSProperties = {
   fontFamily: S.mono,
   fontSize: "10px",
@@ -551,8 +910,24 @@ const panelHeaderStyle: React.CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
+  gap: "1rem",
+  flexWrap: "wrap",
   padding: "1rem",
   borderBottom: `1px solid ${S.border}`,
+};
+
+const panelSummaryStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: ".75rem",
+  flexWrap: "wrap",
+  fontFamily: S.mono,
+  fontSize: "11px",
+};
+
+const panelSummaryMetricStyle: React.CSSProperties = {
+  color: S.text,
+  whiteSpace: "nowrap",
 };
 
 const panelEyebrowStyle: React.CSSProperties = {
@@ -575,9 +950,27 @@ const cardStyle: React.CSSProperties = {
   border: `1px solid ${S.border}`,
   borderRadius: 12,
   padding: "1rem",
-  minHeight: 124,
+  minHeight: 132,
   display: "flex",
   flexDirection: "column",
+};
+
+const cardMetricGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  columnGap: ".9rem",
+  rowGap: ".35rem",
+  marginTop: ".85rem",
+  alignItems: "end",
+};
+
+const cardMetricLabelStyle: React.CSSProperties = {
+  margin: 0,
+  fontFamily: S.mono,
+  fontSize: "10px",
+  letterSpacing: ".16em",
+  textTransform: "uppercase",
+  color: S.muted,
 };
 
 const statusSectionHeaderStyle: React.CSSProperties = {
@@ -606,39 +999,48 @@ const cardLabelStyle: React.CSSProperties = {
   color: S.muted,
 };
 
-const cardValueStyle: React.CSSProperties = {
-  margin: ".85rem 0 0",
+const allStatusesCardLabelStyle: React.CSSProperties = {
+  ...cardLabelStyle,
+  color: S.accent,
+  fontWeight: 800,
+};
+
+const cardCountValueStyle: React.CSSProperties = {
+  margin: 0,
   fontFamily: S.mono,
-  fontSize: "2rem",
+  fontSize: "1.9rem",
   fontWeight: 800,
   color: S.text,
+  lineHeight: 1,
+  alignSelf: "baseline",
 };
 
-const cardSubtextStyle: React.CSSProperties = {
-  margin: ".45rem 0 0",
+const cardAlertCountValueStyle: React.CSSProperties = {
+  ...cardCountValueStyle,
+  fontSize: "1.4rem",
+  color: S.danger,
+};
+
+const alertArrowLinkStyle: React.CSSProperties = {
+  color: S.danger,
+  textDecoration: "none",
   fontFamily: S.mono,
-  fontSize: "10px",
-  color: S.muted,
-  minHeight: 16,
-};
-
-const cardFooterStyle: React.CSSProperties = {
-  marginTop: "auto",
-  display: "flex",
-  justifyContent: "flex-end",
-  paddingTop: ".8rem",
+  fontSize: "11px",
+  lineHeight: 1,
 };
 
 const cardArrowLinkStyle: React.CSSProperties = {
-  fontFamily: S.mono,
-  fontSize: "12px",
-  letterSpacing: ".12em",
   color: S.accent,
   textDecoration: "none",
-  padding: ".15rem .35rem",
-  borderRadius: 6,
-  border: "1px solid rgba(245,158,11,.25)",
+  fontFamily: S.mono,
+  fontSize: "11px",
   lineHeight: 1,
+};
+
+const zoneTableStyle: React.CSSProperties = {
+  width: "100%",
+  borderCollapse: "collapse",
+  tableLayout: "fixed",
 };
 
 const tableHeadStyle: React.CSSProperties = {
@@ -652,6 +1054,19 @@ const tableHeadStyle: React.CSSProperties = {
   textAlign: "left",
 };
 
+const allStatusesHeadStyle: React.CSSProperties = {
+  ...tableHeadStyle,
+  textAlign: "center",
+  color: S.accent,
+  fontWeight: 800,
+};
+
+const statusColumnHeadStyle: React.CSSProperties = {
+  ...tableHeadStyle,
+  textAlign: "center",
+  borderLeft: `1px solid rgba(255,255,255,.06)`,
+};
+
 const tableCellStyle: React.CSSProperties = {
   padding: ".9rem 0",
   borderBottom: `1px solid rgba(255,255,255,.04)`,
@@ -660,20 +1075,50 @@ const tableCellStyle: React.CSSProperties = {
   color: S.text,
 };
 
+const tableMetricCellStyle: React.CSSProperties = {
+  ...tableCellStyle,
+  textAlign: "center",
+  verticalAlign: "top",
+};
+
+const statusColumnCellStyle: React.CSSProperties = {
+  ...tableMetricCellStyle,
+  borderLeft: `1px solid rgba(255,255,255,.05)`,
+};
+
 const emptyCellStyle: React.CSSProperties = {
   ...tableCellStyle,
   textAlign: "center",
   color: S.muted,
 };
 
-const tableValueWrapStyle: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: ".45rem",
-};
-
 const inlineArrowLinkStyle: React.CSSProperties = {
   color: S.accent,
+  textDecoration: "none",
+  fontFamily: S.mono,
+  fontSize: "11px",
+  lineHeight: 1,
+};
+
+const metricCellStyle: React.CSSProperties = {
+  display: "grid",
+  width: "100%",
+  gridTemplateColumns: "repeat(2, minmax(2.2rem, auto))",
+  justifyItems: "center",
+  alignItems: "center",
+  justifyContent: "center",
+  columnGap: ".45rem",
+  rowGap: ".3rem",
+  fontVariantNumeric: "tabular-nums",
+  textAlign: "center",
+};
+
+const zoneAlertValueStyle: React.CSSProperties = {
+  color: S.danger,
+};
+
+const zoneAlertArrowLinkStyle: React.CSSProperties = {
+  color: S.danger,
   textDecoration: "none",
   fontFamily: S.mono,
   fontSize: "11px",

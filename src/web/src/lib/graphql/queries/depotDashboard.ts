@@ -16,9 +16,17 @@ export const GET_DEPOT_DASHBOARD = `
             status
             count
           }
+          agingStatusCounts {
+            status
+            count
+          }
         }
         agingAlerts {
           totalCount
+          statusCounts {
+            status
+            count
+          }
         }
         lastUpdatedAt
       }
@@ -44,9 +52,17 @@ export const GET_DEPOT_DASHBOARDS = `
             status
             count
           }
+          agingStatusCounts {
+            status
+            count
+          }
         }
         agingAlerts {
           totalCount
+          statusCounts {
+            status
+            count
+          }
         }
         lastUpdatedAt
       }

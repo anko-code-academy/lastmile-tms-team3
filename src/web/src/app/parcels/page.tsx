@@ -89,6 +89,9 @@ function buildInitialInput(
     dateFrom: getSingle(searchParams.dateFrom),
     dateTo: getSingle(searchParams.dateTo),
     createdBefore: getSingle(searchParams.createdBefore),
+    currentStatusChangedBefore: getSingle(
+      searchParams.currentStatusChangedBefore,
+    ),
     zoneIds: parseCsvValues(searchParams.zoneId),
     depotId: getSingle(searchParams.depotId),
     parcelType: getSingle(searchParams.parcelType),

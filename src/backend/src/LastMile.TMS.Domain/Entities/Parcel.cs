@@ -46,6 +46,7 @@ public class Parcel : BaseAuditableEntity, IAuditTracked
     // Dates
     public DateTimeOffset? EstimatedDeliveryDate { get; set; }
     public DateTimeOffset? ActualDeliveryDate { get; set; }
+    public DateTimeOffset CurrentStatusChangedAt { get; set; } = DateTimeOffset.UtcNow;
 
     // Delivery tracking
     public int DeliveryAttempts { get; set; }
@@ -90,27 +91,29 @@ public class Parcel : BaseAuditableEntity, IAuditTracked
             throw new InvalidStatusTransitionException(Status, newStatus);
 
         var previousStatus = Status;
+        var transitionedAt = DateTimeOffset.UtcNow;
         Status = newStatus;
+        CurrentStatusChangedAt = transitionedAt;
 
         // Record tracking event for status change
         var trackingEvent = new TrackingEvent
         {
             ParcelId = Id,
-            Timestamp = DateTimeOffset.UtcNow,
+            Timestamp = transitionedAt,
             EventType = MapStatusToEventType(newStatus),
             Description = $"Status changed from {previousStatus} to {newStatus}",
             LocationCity = locationCity,
             LocationState = locationState,
             LocationCountryCode = locationCountryCode,
             Operator = operatorName,
-            CreatedAt = DateTimeOffset.UtcNow
+            CreatedAt = transitionedAt
         };
 
         TrackingEvents.Add(trackingEvent);
 
         // Update timestamps for specific statuses
         if (newStatus == ParcelStatus.Delivered)
-            ActualDeliveryDate = DateTimeOffset.UtcNow;
+            ActualDeliveryDate = transitionedAt;
     }
 
     public void IncrementDeliveryAttempts()

@@ -10,10 +10,12 @@ export interface ZoneParcelSummary {
   zoneName: string;
   count: number;
   statusCounts: ParcelStatusCount[];
+  agingStatusCounts: ParcelStatusCount[];
 }
 
 export interface ParcelAgingAlerts {
   totalCount: number;
+  statusCounts: ParcelStatusCount[];
 }
 
 export interface DepotParcelDashboard {

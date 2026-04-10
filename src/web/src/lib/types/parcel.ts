@@ -186,6 +186,7 @@ export interface SearchParcelInput {
   dateFrom: string | null;
   dateTo: string | null;
   createdBefore?: string | null;
+  currentStatusChangedBefore?: string | null;
   zoneIds: string[] | null;
   depotId?: string | null;
   parcelType: string | null;

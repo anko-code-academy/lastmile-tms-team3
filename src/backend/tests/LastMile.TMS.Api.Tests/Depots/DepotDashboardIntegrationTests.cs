@@ -45,9 +45,17 @@ public class DepotDashboardIntegrationTests(ApiWebApplicationFactory factory)
                                 status
                                 count
                             }
+                            agingStatusCounts {
+                                status
+                                count
+                            }
                         }
                         agingAlerts {
                             totalCount
+                            statusCounts {
+                                status
+                                count
+                            }
                         }
                     }
                 }
@@ -98,7 +106,30 @@ public class DepotDashboardIntegrationTests(ApiWebApplicationFactory factory)
             item.GetProperty("status").GetString() == "SORTED" &&
             item.GetProperty("count").GetInt32() == 1);
 
-        dashboard.GetProperty("agingAlerts").GetProperty("totalCount").GetInt32().Should().Be(2);
+        var northAgingStatusCounts = northZone.GetProperty("agingStatusCounts").EnumerateArray().ToList();
+        northAgingStatusCounts.Should().ContainSingle(item =>
+            item.GetProperty("status").GetString() == "RECEIVED_AT_DEPOT" &&
+            item.GetProperty("count").GetInt32() == 1);
+        northAgingStatusCounts.Should().ContainSingle(item =>
+            item.GetProperty("status").GetString() == "SORTED" &&
+            item.GetProperty("count").GetInt32() == 1);
+
+        var southZone = zoneBreakdown.Single(item =>
+            item.GetProperty("zoneId").GetString() == _zoneSouthId.ToString());
+        southZone.GetProperty("agingStatusCounts").EnumerateArray().Should().BeEmpty();
+
+        var agingAlerts = dashboard.GetProperty("agingAlerts");
+        agingAlerts.GetProperty("totalCount").GetInt32().Should().Be(2);
+
+        var agingStatusCounts = agingAlerts.GetProperty("statusCounts").EnumerateArray().ToList();
+        agingStatusCounts.Should().ContainSingle(item =>
+            item.GetProperty("status").GetString() == "RECEIVED_AT_DEPOT" &&
+            item.GetProperty("count").GetInt32() == 1);
+        agingStatusCounts.Should().ContainSingle(item =>
+            item.GetProperty("status").GetString() == "SORTED" &&
+            item.GetProperty("count").GetInt32() == 1);
+        agingStatusCounts.Should().NotContain(item =>
+            item.GetProperty("status").GetString() == "EXCEPTION");
     }
 
     private async Task InsertDashboardDataAsync()
@@ -188,11 +219,11 @@ public class DepotDashboardIntegrationTests(ApiWebApplicationFactory factory)
 
         var parcels = new[]
         {
-            CreateParcel(_zoneNorthId, "DBD-RCV-1", ParcelStatus.ReceivedAtDepot, DateTimeOffset.UtcNow.AddHours(-30)),
-            CreateParcel(_zoneNorthId, "DBD-RCV-2", ParcelStatus.ReceivedAtDepot, DateTimeOffset.UtcNow.AddHours(-6)),
-            CreateParcel(_zoneNorthId, "DBD-SRT-1", ParcelStatus.Sorted, DateTimeOffset.UtcNow.AddHours(-28)),
-            CreateParcel(_zoneSouthId, "DBD-EXP-1", ParcelStatus.Exception, DateTimeOffset.UtcNow.AddHours(-2)),
-            CreateParcel(_otherZoneId, "DBD-OTH-1", ParcelStatus.ReceivedAtDepot, DateTimeOffset.UtcNow.AddHours(-72)),
+            CreateParcel(_zoneNorthId, "DBD-RCV-1", ParcelStatus.ReceivedAtDepot, DateTimeOffset.UtcNow.AddHours(-72), DateTimeOffset.UtcNow.AddHours(-30)),
+            CreateParcel(_zoneNorthId, "DBD-RCV-2", ParcelStatus.ReceivedAtDepot, DateTimeOffset.UtcNow.AddHours(-72), DateTimeOffset.UtcNow.AddHours(-6)),
+            CreateParcel(_zoneNorthId, "DBD-SRT-1", ParcelStatus.Sorted, DateTimeOffset.UtcNow.AddHours(-6), DateTimeOffset.UtcNow.AddHours(-28)),
+            CreateParcel(_zoneSouthId, "DBD-EXP-1", ParcelStatus.Exception, DateTimeOffset.UtcNow.AddHours(-96), DateTimeOffset.UtcNow.AddHours(-2)),
+            CreateParcel(_otherZoneId, "DBD-OTH-1", ParcelStatus.ReceivedAtDepot, DateTimeOffset.UtcNow.AddHours(-96), DateTimeOffset.UtcNow.AddHours(-72)),
         };
 
         await db.Addresses.AddRangeAsync(depotAddress, otherDepotAddress);
@@ -206,7 +237,8 @@ public class DepotDashboardIntegrationTests(ApiWebApplicationFactory factory)
         Guid zoneId,
         string trackingNumber,
         ParcelStatus status,
-        DateTimeOffset createdAt)
+        DateTimeOffset createdAt,
+        DateTimeOffset currentStatusChangedAt)
     {
         var uniqueTrackingNumber = $"{trackingNumber}-{Guid.NewGuid():N}"[..28];
 
@@ -258,6 +290,7 @@ public class DepotDashboardIntegrationTests(ApiWebApplicationFactory factory)
             ZoneId = zoneId,
             DeliveryAttempts = 0,
             CreatedAt = createdAt,
+            CurrentStatusChangedAt = currentStatusChangedAt,
         };
     }
 }

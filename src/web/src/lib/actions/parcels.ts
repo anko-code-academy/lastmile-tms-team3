@@ -118,6 +118,10 @@ function buildParcelWhere(input: SearchParcelInput) {
     where.createdAt = createdAt;
   }
 
+  if (input.currentStatusChangedBefore) {
+    where.currentStatusChangedAt = { lte: input.currentStatusChangedBefore };
+  }
+
   const parcelType = input.parcelType?.trim();
   if (parcelType) {
     where.parcelType = { eq: parcelType };

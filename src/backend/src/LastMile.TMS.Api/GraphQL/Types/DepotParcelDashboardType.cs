@@ -15,9 +15,12 @@ public sealed record DepotZoneParcelSummary(
     Guid ZoneId,
     string ZoneName,
     int Count,
-    IReadOnlyList<ParcelStatusCountItem> StatusCounts);
+    IReadOnlyList<ParcelStatusCountItem> StatusCounts,
+    IReadOnlyList<ParcelStatusCountItem> AgingStatusCounts);
 
-public sealed record ParcelAgingAlerts(int TotalCount);
+public sealed record ParcelAgingAlerts(
+    int TotalCount,
+    IReadOnlyList<ParcelStatusCountItem> StatusCounts);
 
 public class DepotParcelDashboardType : ObjectType<DepotParcelDashboard>
 {
@@ -54,6 +57,8 @@ public class DepotZoneParcelSummaryType : ObjectType<DepotZoneParcelSummary>
         descriptor.Field(x => x.Count);
         descriptor.Field(x => x.StatusCounts)
             .Type<NonNullType<ListType<NonNullType<ParcelStatusCountItemType>>>>();
+        descriptor.Field(x => x.AgingStatusCounts)
+            .Type<NonNullType<ListType<NonNullType<ParcelStatusCountItemType>>>>();
     }
 }
 
@@ -64,5 +69,7 @@ public class ParcelAgingAlertsType : ObjectType<ParcelAgingAlerts>
         descriptor.BindFieldsExplicitly();
 
         descriptor.Field(x => x.TotalCount);
+        descriptor.Field(x => x.StatusCounts)
+            .Type<NonNullType<ListType<NonNullType<ParcelStatusCountItemType>>>>();
     }
 }

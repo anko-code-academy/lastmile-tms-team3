@@ -13,7 +13,7 @@ internal sealed record DepotParcelDashboardParcelRow(
     Guid ZoneId,
     string ZoneName,
     ParcelStatus Status,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CurrentStatusChangedAt);
 
 public sealed class DepotParcelDashboardDataLoader(
     IDbContextFactory<AppDbContext> dbContextFactory,
@@ -50,7 +50,7 @@ public sealed class DepotParcelDashboardDataLoader(
                 parcel.ZoneId!.Value,
                 parcel.Zone!.Name,
                 parcel.Status,
-                parcel.CreatedAt))
+                parcel.CurrentStatusChangedAt))
             .ToListAsync(cancellationToken);
 
         return keys.ToDictionary(
@@ -73,6 +73,8 @@ public sealed class DepotParcelDashboardDataLoader(
                 parcels.Count(parcel => parcel.Status == status)))
             .ToList();
 
+        var threshold = now.AddHours(-Math.Max(1, key.AgingThresholdHours));
+
         var zoneBreakdown = parcels
             .GroupBy(parcel => new { parcel.ZoneId, parcel.ZoneName })
             .Select(group => new DepotZoneParcelSummary(
@@ -84,13 +86,31 @@ public sealed class DepotParcelDashboardDataLoader(
                         status,
                         group.Count(parcel => parcel.Status == status)))
                     .Where(item => item.Count > 0)
+                    .ToList(),
+                DashboardStatuses
+                    .Select(status => new ParcelStatusCountItem(
+                        status,
+                        group.Count(parcel =>
+                            parcel.Status == status &&
+                            parcel.CurrentStatusChangedAt <= threshold)))
+                    .Where(item => item.Count > 0)
                     .ToList()))
             .OrderByDescending(item => item.Count)
             .ThenBy(item => item.ZoneName)
             .ToList();
 
-        var threshold = now.AddHours(-Math.Max(1, key.AgingThresholdHours));
-        var agingAlerts = new ParcelAgingAlerts(parcels.Count(parcel => parcel.CreatedAt <= threshold));
+        var agingStatusCounts = DashboardStatuses
+            .Select(status => new ParcelStatusCountItem(
+                status,
+                parcels.Count(parcel =>
+                    parcel.Status == status &&
+                    parcel.CurrentStatusChangedAt <= threshold)))
+            .Where(item => item.Count > 0)
+            .ToList();
+
+        var agingAlerts = new ParcelAgingAlerts(
+            agingStatusCounts.Sum(item => item.Count),
+            agingStatusCounts);
 
         return new DepotParcelDashboard(statusCounts, zoneBreakdown, agingAlerts, now);
     }
