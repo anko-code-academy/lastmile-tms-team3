@@ -14,5 +14,6 @@ public enum EventType
     Returned = 9,
     AddressCorrection = 10,
     CustomsClearance = 11,
-    HeldAtFacility = 12
+    HeldAtFacility = 12,
+    Loaded = 13
 }

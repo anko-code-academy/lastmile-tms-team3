@@ -31,6 +31,7 @@ public static class DependencyInjection
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<IEmailSender, LoggingEmailSender>();
         services.AddScoped<ILabelService, LabelService>();
+        services.AddScoped<IManifestService, ManifestService>();
 
         // Hangfire, SendGrid, Twilio, etc. will be registered here
 

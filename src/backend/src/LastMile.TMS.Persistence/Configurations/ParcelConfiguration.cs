@@ -61,6 +61,14 @@ public class ParcelConfiguration : IEntityTypeConfiguration<Parcel>
             .HasForeignKey(p => p.CurrentBinId)
             .OnDelete(DeleteBehavior.SetNull)
             .IsRequired(false);
+
+        // Route relationship (optional)
+        builder.HasOne(p => p.Route)
+            .WithMany(r => r.Parcels)
+            .HasForeignKey(p => p.RouteId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
+
         // Physical properties
         builder.Property(p => p.Weight)
             .HasPrecision(10, 3);
@@ -111,5 +119,6 @@ public class ParcelConfiguration : IEntityTypeConfiguration<Parcel>
         builder.HasIndex(p => p.ParcelType);
         builder.HasIndex(p => p.ZoneId);
         builder.HasIndex(p => p.CurrentBinId);
+        builder.HasIndex(p => p.RouteId);
     }
 }

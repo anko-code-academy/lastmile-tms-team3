@@ -6,10 +6,10 @@ namespace LastMile.TMS.Domain.Tests.Entities;
 public class UserRoleTests
 {
     [Fact]
-    public void UserRole_Should_Have_Six_Predefined_Roles()
+    public void UserRole_Should_Have_Seven_Predefined_Roles()
     {
         var roles = Enum.GetValues<UserRole>();
-        roles.Should().HaveCount(6);
+        roles.Should().HaveCount(7);
     }
 
     [Theory]
@@ -18,6 +18,7 @@ public class UserRoleTests
     [InlineData(UserRole.WarehouseManager)]
     [InlineData(UserRole.Dispatcher)]
     [InlineData(UserRole.WarehouseOperator)]
+    [InlineData(UserRole.DepotOperator)]
     [InlineData(UserRole.Driver)]
     public void UserRole_Should_Contain_Expected_Role(UserRole role)
     {
@@ -58,5 +59,11 @@ public class UserRoleTests
     public void UserRole_WarehouseManager_Should_Be_Appended_At_End()
     {
         ((int)UserRole.WarehouseManager).Should().Be(6);
+    }
+
+    [Fact]
+    public void UserRole_DepotOperator_Should_Have_Value_Seven()
+    {
+        ((int)UserRole.DepotOperator).Should().Be(7);
     }
 }
