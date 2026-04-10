@@ -1,7 +1,11 @@
 "use server";
 
 import { gqlFetch } from "@/lib/graphql/fetch";
-import { SEARCH_PARCELS, GET_PARCEL, CREATE_PARCEL } from "@/lib/graphql/queries/parcels";
+import {
+  SEARCH_PARCELS,
+  GET_PARCEL,
+  CREATE_PARCEL,
+} from "@/lib/graphql/queries/parcels";
 import { parseWktPoint } from "@/lib/graphql/utils";
 import type {
   Parcel,
@@ -100,6 +104,10 @@ function buildParcelWhere(input: SearchParcelInput) {
     createdAt.lte = `${input.dateTo}T23:59:59Z`;
   }
 
+  if (input.createdBefore) {
+    createdAt.lte = input.createdBefore;
+  }
+
   const where: Record<string, unknown> = {};
 
   if (input.status && input.status.length > 0) {
@@ -117,6 +125,10 @@ function buildParcelWhere(input: SearchParcelInput) {
 
   if (input.zoneIds && input.zoneIds.length > 0) {
     where.or = input.zoneIds.map((zoneId) => ({ zoneId: { eq: zoneId } }));
+  }
+
+  if (input.depotId) {
+    where.zone = { depotId: { eq: input.depotId } };
   }
 
   return Object.keys(where).length > 0 ? where : null;
@@ -203,12 +215,14 @@ export async function getParcelAction(id: string): Promise<Parcel> {
 }
 
 export async function createParcelAction(
-  input: CreateParcelInput
+  input: CreateParcelInput,
 ): Promise<{ parcel?: Parcel; error?: string }> {
   try {
     const data = await gqlFetch<CreateParcelResponse>(CREATE_PARCEL, { input });
     return { parcel: data.createParcel };
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to create parcel" };
+    return {
+      error: err instanceof Error ? err.message : "Failed to create parcel",
+    };
   }
 }

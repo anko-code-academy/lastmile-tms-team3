@@ -185,7 +185,9 @@ export interface SearchParcelInput {
   status: ParcelStatus[] | null;
   dateFrom: string | null;
   dateTo: string | null;
+  createdBefore?: string | null;
   zoneIds: string[] | null;
+  depotId?: string | null;
   parcelType: string | null;
   sortBy: ParcelSortBy;
   sortDirection: SortDirection;

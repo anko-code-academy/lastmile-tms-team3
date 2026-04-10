@@ -92,6 +92,9 @@ export default async function Home() {
       ? [{ label: "Warehouse", href: "/warehouse" }]
       : []),
     ...(isAdmin || isOperationsManager
+      ? [{ label: "Depot Dashboard", href: "/admin/depot-dashboard" }]
+      : []),
+    ...(isAdmin || isOperationsManager
       ? [{ label: "Depots", href: "/admin/depots" }]
       : []),
     ...(isAdmin ? [{ label: "Zones", href: "/admin/zones" }] : []),
