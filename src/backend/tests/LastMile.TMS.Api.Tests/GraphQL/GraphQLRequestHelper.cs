@@ -68,6 +68,27 @@ public static class GraphQLRequestHelper
         return json.RootElement.GetProperty("access_token").GetString()!;
     }
 
+    public static async Task<string> GetDispatcherTokenAsync(HttpClient client)
+    {
+        var formContent = new FormUrlEncodedContent(new[]
+        {
+            new KeyValuePair<string, string>("grant_type", "password"),
+            new KeyValuePair<string, string>("username", "dispatcher@lastmile.local"),
+            new KeyValuePair<string, string>("password", "Dispatcher@123456"),
+        });
+
+        var response = await client.PostAsync("/connect/token", formContent);
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorBody = await response.Content.ReadAsStringAsync();
+            throw new InvalidOperationException(
+                $"Token endpoint failed with {(int)response.StatusCode}: {errorBody}");
+        }
+
+        var json = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
+        return json.RootElement.GetProperty("access_token").GetString()!;
+    }
+
     public static async Task<JsonElement> ReadGraphQLResponseAsync(HttpResponseMessage response)
     {
         var json = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
