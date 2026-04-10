@@ -32,6 +32,7 @@ export interface DeliveryRoute {
   zone?: { id: string; name: string } | null;
   date: string;
   status: RouteStatus;
+  loadedAt?: string | null;
   parcels: RouteParcel[];
 }
 

@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import TmNavbar from "@/components/TmNavbar";
 import { useDeliveryRoutes, useLoadParcel, useCompleteLoading } from "@/lib/hooks/useRoutes";
+import { downloadManifest } from "@/lib/api/routes";
 import type { DeliveryRoute } from "@/lib/types/route";
 import { ParcelStatus } from "@/lib/types/parcel";
 
@@ -420,13 +421,51 @@ export default function LoadOutPage() {
                         </div>
                         <div
                           style={{
-                            fontFamily: S.mono,
-                            fontSize: "12px",
-                            fontWeight: 700,
-                            color: progress?.pct === 100 ? S.green : S.accent,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: ".75rem",
                           }}
                         >
-                          {progress?.loaded}/{progress?.total}
+                          <span
+                            style={{
+                              fontFamily: S.mono,
+                              fontSize: "12px",
+                              fontWeight: 700,
+                              color: progress?.pct === 100 ? S.green : S.accent,
+                            }}
+                          >
+                            {progress?.loaded}/{progress?.total}
+                          </span>
+                          <button
+                            type="button"
+                            disabled={!selectedRoute.loadedAt}
+                            onClick={async () => {
+                              try {
+                                await downloadManifest(selectedRoute.id);
+                              } catch (err) {
+                                toast.error(err instanceof Error ? err.message : "Failed to download manifest.");
+                              }
+                            }}
+                            style={{
+                              fontFamily: S.mono,
+                              fontSize: "10px",
+                              letterSpacing: ".08em",
+                              textTransform: "uppercase",
+                              padding: ".35rem .7rem",
+                              borderRadius: 5,
+                              border: selectedRoute.loadedAt
+                                ? "1px solid rgba(245,158,11,.35)"
+                                : `1px solid ${S.border}`,
+                              background: selectedRoute.loadedAt
+                                ? "rgba(245,158,11,.12)"
+                                : "transparent",
+                              color: selectedRoute.loadedAt ? S.accent : S.dim,
+                              cursor: selectedRoute.loadedAt ? "pointer" : "not-allowed",
+                              opacity: selectedRoute.loadedAt ? 1 : 0.5,
+                            }}
+                          >
+                            PDF
+                          </button>
                         </div>
                       </div>
 

@@ -58,6 +58,7 @@ public static class CompleteLoading
 
             // Update route status to Active
             route.Status = RouteStatus.Active;
+            route.LoadedAt = DateTimeOffset.UtcNow;
 
             await context.SaveChangesAsync(cancellationToken);
 

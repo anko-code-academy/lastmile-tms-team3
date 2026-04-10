@@ -19,6 +19,7 @@ public class DeliveryRouteType : ObjectType<DeliveryRoute>
         descriptor.Field(x => x.Zone).Type<ZoneType>();
         descriptor.Field(x => x.Date);
         descriptor.Field(x => x.Status);
+        descriptor.Field(x => x.LoadedAt);
         descriptor.Field(x => x.Parcels).Type<NonNullType<ListType<NonNullType<ParcelType>>>>();
         descriptor.Field(x => x.CreatedAt);
         descriptor.Field(x => x.LastModifiedAt);

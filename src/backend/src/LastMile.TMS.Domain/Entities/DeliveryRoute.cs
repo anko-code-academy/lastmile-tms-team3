@@ -23,5 +23,7 @@ public class DeliveryRoute : BaseAuditableEntity, IAuditTracked
 
     public RouteStatus Status { get; set; } = RouteStatus.Draft;
 
+    public DateTimeOffset? LoadedAt { get; set; }
+
     public ICollection<Parcel> Parcels { get; set; } = new List<Parcel>();
 }

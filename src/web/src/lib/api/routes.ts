@@ -29,6 +29,7 @@ const DELIVERY_ROUTES_QUERY = `
         zone { id name }
         date
         status
+        loadedAt
         parcels {
           id
           trackingNumber
@@ -98,4 +99,25 @@ export async function completeLoading(
     COMPLETE_LOADING_MUTATION,
     { input },
   );
+}
+
+export async function downloadManifest(routeId: string): Promise<void> {
+  const res = await fetch(`/api/manifests/${routeId}`);
+
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(body || `Failed to download manifest: ${res.status}`);
+  }
+
+  const blob = await res.blob();
+  const disposition = res.headers.get("Content-Disposition");
+  const match = disposition?.match(/filename="?([^"]+)"?/);
+  const filename = match?.[1] ?? "manifest.pdf";
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
 }
