@@ -8,16 +8,20 @@ export default function TmNavbar() {
   const pathname = usePathname();
   const isAdmin = session?.user?.role === "Admin";
   const isWarehouseManager = session?.user?.role === "WarehouseManager";
-  const isDepotOperator = session?.user?.role === "DepotOperator";
   const isAdminOrOm = isAdmin || session?.user?.role === "OperationsManager";
+  const isDepotOperator =
+    isAdmin ||
+    isAdminOrOm ||
+    session?.user?.role === "DepotOperator" ||
+    session?.user?.role === "WarehouseOperator";
   const canManageBins = isAdmin || isWarehouseManager;
-  const canLoadOut = isAdmin || isDepotOperator;
 
   const navItems = [
     { label: "Dashboard", href: "/" },
-    { label: "Parcels", href: "#" },
+    { label: "Parcels", href: "/parcels" },
     { label: "Routes", href: "#" },
-    ...(canLoadOut ? [{ label: "Load Out", href: "/load-out" }] : []),
+    ...(isDepotOperator ? [{ label: "Sort", href: "/depot/sort" }] : []),
+    ...(isDepotOperator ? [{ label: "Load Out", href: "/load-out" }] : []),
     ...(canManageBins ? [{ label: "Warehouse", href: "/warehouse" }] : []),
     ...(isAdminOrOm
       ? [{ label: "Depot Dashboard", href: "/admin/depot-dashboard" }]

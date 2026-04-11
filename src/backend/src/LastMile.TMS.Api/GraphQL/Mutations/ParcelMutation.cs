@@ -37,6 +37,15 @@ public class ParcelMutation
     }
 
     [Authorize(Policy = "AdminOrDepotOperator")]
+    public async Task<SortParcelResultDto> SortParcel(
+        [Service] IMediator mediator,
+        SortParcelDto input,
+        CancellationToken cancellationToken = default)
+    {
+        return await mediator.Send(new SortParcel.Command(input), cancellationToken);
+    }
+
+    [Authorize(Policy = "AdminOrDepotOperator")]
     public async Task<LoadParcelResultDto> LoadParcel(
         [Service] IMediator mediator,
         LoadParcelDto input,

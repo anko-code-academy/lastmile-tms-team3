@@ -118,7 +118,7 @@ try
         {
             policy.AddAuthenticationSchemes(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme);
             policy.RequireAuthenticatedUser();
-            policy.RequireRole("Admin", "DepotOperator");
+            policy.RequireRole("Admin", "DepotOperator", "WarehouseOperator");
         });
     });
 
