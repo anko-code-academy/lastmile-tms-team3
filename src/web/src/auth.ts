@@ -52,6 +52,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             email,
             accessToken: tokens.access_token as string,
             refreshToken: tokens.refresh_token as string,
+            expiresAt: payload.exp as number | undefined,
             role: payload.role as string | undefined,
           };
         } catch {
@@ -61,13 +62,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    jwt({ token, user }) {
+    async jwt({ token, user }) {
+      // Initial sign-in: persist tokens and expiry
       if (user) {
-        const u = user as { accessToken: string; refreshToken: string; role?: string };
+        const u = user as { accessToken: string; refreshToken: string; expiresAt?: number; role?: string };
         token.accessToken = u.accessToken;
         token.refreshToken = u.refreshToken;
+        token.expiresAt = u.expiresAt;
         try {
-          // JWT uses base64url encoding; convert to standard base64 before decoding
           const base64Url = u.accessToken.split(".")[1];
           const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
           const payload = JSON.parse(
@@ -77,7 +79,42 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         } catch {
           // ignore
         }
+        return token;
       }
+
+      // Token still valid — return as-is
+      if (token.expiresAt && Date.now() < token.expiresAt * 1000) {
+        return token;
+      }
+
+      // Token expired — attempt refresh
+      try {
+        const body = new URLSearchParams({
+          grant_type: "refresh_token",
+          refresh_token: token.refreshToken,
+        });
+
+        const res = await fetch(`${API_URL}/connect/token`, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: body.toString(),
+        });
+
+        if (!res.ok) return token;
+
+        const tokens = await res.json();
+        token.accessToken = tokens.access_token as string;
+        token.refreshToken = (tokens.refresh_token as string) ?? token.refreshToken;
+
+        const base64Url = (tokens.access_token as string).split(".")[1];
+        const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+        const payload = JSON.parse(Buffer.from(base64, "base64").toString("utf-8"));
+        token.expiresAt = payload.exp;
+        token.role = payload.role;
+      } catch {
+        // Refresh failed — keep stale token, session will fail naturally
+      }
+
       return token;
     },
     session({ session, token }) {
