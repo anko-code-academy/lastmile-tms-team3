@@ -35,6 +35,7 @@ public class TestAppDbContext : DbContext, IAppDbContext, IAppDbContextFactory
     public DbSet<ParcelWatcher> ParcelWatchers => Set<ParcelWatcher>();
     public DbSet<DeliveryConfirmation> DeliveryConfirmations => Set<DeliveryConfirmation>();
     public DbSet<ParcelImportHistory> ParcelImportHistories => Set<ParcelImportHistory>();
+    public DbSet<RouteParcel> RouteParcels => Set<RouteParcel>();
     public DbSet<InboundManifest> InboundManifests => Set<InboundManifest>();
     public DbSet<InboundReceivingSession> InboundReceivingSessions => Set<InboundReceivingSession>();
 

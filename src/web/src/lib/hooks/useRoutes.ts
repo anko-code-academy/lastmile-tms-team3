@@ -5,7 +5,12 @@ import {
   completeLoading,
 } from "../api/routes";
 import type { LoadParcelInput, CompleteLoadingInput } from "../types/route";
+import {
+  searchRoutesAction,
+  type SearchRoutesInput,
+} from "@/lib/actions/routes";
 
+// Load-out hooks (PR #28)
 export function useDeliveryRoutes() {
   return useQuery({
     queryKey: ["delivery-routes"],
@@ -35,5 +40,13 @@ export function useCompleteLoading() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["delivery-routes"] });
     },
+  });
+}
+
+// Route search hooks (LMTT3-40)
+export function useSearchRoutes(input: SearchRoutesInput) {
+  return useQuery({
+    queryKey: ["routes", "search", input],
+    queryFn: () => searchRoutesAction(input),
   });
 }

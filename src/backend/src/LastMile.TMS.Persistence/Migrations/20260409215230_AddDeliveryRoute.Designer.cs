@@ -3,6 +3,7 @@ using System;
 using LastMile.TMS.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NetTopologySuite.Geometries;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -13,9 +14,11 @@ using NpgsqlTypes;
 namespace LastMile.TMS.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260409215230_AddDeliveryRoute")]
+    partial class AddDeliveryRoute
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -25,21 +28,6 @@ namespace LastMile.TMS.Persistence.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "pg_trgm");
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "postgis");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
-
-            modelBuilder.Entity("InboundManifestParcel", b =>
-                {
-                    b.Property<Guid>("InboundManifestId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("ParcelsId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("InboundManifestId", "ParcelsId");
-
-                    b.HasIndex("ParcelsId");
-
-                    b.ToTable("InboundManifestParcels", (string)null);
-                });
 
             modelBuilder.Entity("LastMile.TMS.Domain.Entities.Address", b =>
                 {
@@ -565,99 +553,6 @@ namespace LastMile.TMS.Persistence.Migrations
                     NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex(new[] { "LicenseNumber" }, "IX_Drivers_LicenseNumber_Trgm"), new[] { "gin_trgm_ops" });
 
                     b.ToTable("Drivers", (string)null);
-                });
-
-            modelBuilder.Entity("LastMile.TMS.Domain.Entities.InboundManifest", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<Guid>("DepotId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset?>("LastModifiedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("LastModifiedBy")
-                        .HasColumnType("text");
-
-                    b.Property<string>("ManifestNumber")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<int>("MaxParcels")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DepotId");
-
-                    b.HasIndex("ManifestNumber")
-                        .IsUnique();
-
-                    b.HasIndex("Status");
-
-                    b.HasIndex("DepotId", "Status");
-
-                    b.ToTable("InboundManifests");
-                });
-
-            modelBuilder.Entity("LastMile.TMS.Domain.Entities.InboundReceivingSession", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset?>("ConfirmedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("ConfirmedBy")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<string>("DockDoor")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<DateTimeOffset?>("LastModifiedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("LastModifiedBy")
-                        .HasColumnType("text");
-
-                    b.Property<Guid>("ManifestId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset>("StartedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ManifestId");
-
-                    b.HasIndex("Status");
-
-                    b.ToTable("InboundReceivingSessions");
                 });
 
             modelBuilder.Entity("LastMile.TMS.Domain.Entities.Parcel", b =>
@@ -1678,21 +1573,6 @@ namespace LastMile.TMS.Persistence.Migrations
                     b.ToTable("ParcelWatcherParcel");
                 });
 
-            modelBuilder.Entity("InboundManifestParcel", b =>
-                {
-                    b.HasOne("LastMile.TMS.Domain.Entities.InboundManifest", null)
-                        .WithMany()
-                        .HasForeignKey("InboundManifestId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("LastMile.TMS.Domain.Entities.Parcel", null)
-                        .WithMany()
-                        .HasForeignKey("ParcelsId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("LastMile.TMS.Domain.Entities.Aisle", b =>
                 {
                     b.HasOne("LastMile.TMS.Domain.Entities.Zone", "Zone")
@@ -1836,28 +1716,6 @@ namespace LastMile.TMS.Persistence.Migrations
                     b.Navigation("User");
 
                     b.Navigation("Zone");
-                });
-
-            modelBuilder.Entity("LastMile.TMS.Domain.Entities.InboundManifest", b =>
-                {
-                    b.HasOne("LastMile.TMS.Domain.Entities.Depot", "Depot")
-                        .WithMany()
-                        .HasForeignKey("DepotId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Depot");
-                });
-
-            modelBuilder.Entity("LastMile.TMS.Domain.Entities.InboundReceivingSession", b =>
-                {
-                    b.HasOne("LastMile.TMS.Domain.Entities.InboundManifest", "Manifest")
-                        .WithMany("Sessions")
-                        .HasForeignKey("ManifestId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Manifest");
                 });
 
             modelBuilder.Entity("LastMile.TMS.Domain.Entities.Parcel", b =>
@@ -2066,11 +1924,6 @@ namespace LastMile.TMS.Persistence.Migrations
                     b.Navigation("Vehicles");
 
                     b.Navigation("Zones");
-                });
-
-            modelBuilder.Entity("LastMile.TMS.Domain.Entities.InboundManifest", b =>
-                {
-                    b.Navigation("Sessions");
                 });
 
             modelBuilder.Entity("LastMile.TMS.Domain.Entities.Parcel", b =>
