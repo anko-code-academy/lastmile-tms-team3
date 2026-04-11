@@ -23,6 +23,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<ParcelWatcher> ParcelWatchers => Set<ParcelWatcher>();
     public DbSet<Driver> Drivers => Set<Driver>();
     public DbSet<Vehicle> Vehicles => Set<Vehicle>();
+    public DbSet<DeliveryRoute> DeliveryRoutes => Set<DeliveryRoute>();
+    public DbSet<ParcelImportHistory> ParcelImportHistories => Set<ParcelImportHistory>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

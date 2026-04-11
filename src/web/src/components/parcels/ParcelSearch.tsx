@@ -71,16 +71,28 @@ function defaultInput(): SearchParcelInput {
 
 interface ParcelSearchProps {
   initialResult: PagedResult<ParcelListItem>;
+  initialInput?: SearchParcelInput;
 }
 
-export function ParcelSearch({ initialResult }: ParcelSearchProps) {
-  const [searchParams, setSearchParams] = useState<SearchParcelInput>(defaultInput());
-  const [searchInput, setSearchInput] = useState<SearchParcelInput>(defaultInput());
-  const [result, setResult] = useState<PagedResult<ParcelListItem>>(initialResult);
+export function ParcelSearch({
+  initialResult,
+  initialInput,
+}: ParcelSearchProps) {
+  const seededInput = initialInput ?? defaultInput();
+  const [searchParams, setSearchParams] =
+    useState<SearchParcelInput>(seededInput);
+  const [searchInput, setSearchInput] =
+    useState<SearchParcelInput>(seededInput);
+  const [result, setResult] =
+    useState<PagedResult<ParcelListItem>>(initialResult);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedStatuses, setSelectedStatuses] = useState<ParcelStatus[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = useState<ParcelStatus[]>(
+    seededInput.status ?? [],
+  );
   const [zones, setZones] = useState<ZoneDto[]>([]);
-  const [selectedZoneIds, setSelectedZoneIds] = useState<string[]>([]);
+  const [selectedZoneIds, setSelectedZoneIds] = useState<string[]>(
+    seededInput.zoneIds ?? [],
+  );
 
   useEffect(() => {
     getZones(undefined, false).then(setZones).catch(() => {});

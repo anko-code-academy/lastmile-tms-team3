@@ -353,6 +353,64 @@ namespace LastMile.TMS.Persistence.Migrations
                     b.ToTable("DeliveryConfirmations");
                 });
 
+            modelBuilder.Entity("LastMile.TMS.Domain.Entities.DeliveryRoute", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("DepotId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("DriverId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("LastModifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("LoadedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("ZoneId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Date");
+
+                    b.HasIndex("DepotId");
+
+                    b.HasIndex("DriverId");
+
+                    b.HasIndex("Name");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("ZoneId");
+
+                    b.ToTable("DeliveryRoutes");
+                });
+
             modelBuilder.Entity("LastMile.TMS.Domain.Entities.Depot", b =>
                 {
                     b.Property<Guid>("Id")
@@ -523,6 +581,9 @@ namespace LastMile.TMS.Persistence.Migrations
                     b.Property<Guid?>("CurrentBinId")
                         .HasColumnType("uuid");
 
+                    b.Property<DateTimeOffset>("CurrentStatusChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<decimal>("DeclaredValue")
                         .HasPrecision(15, 2)
                         .HasColumnType("numeric(15,2)");
@@ -568,6 +629,9 @@ namespace LastMile.TMS.Persistence.Migrations
                     b.Property<Guid>("RecipientAddressId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("RouteId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("ServiceType")
                         .IsRequired()
                         .HasColumnType("text");
@@ -611,6 +675,8 @@ namespace LastMile.TMS.Persistence.Migrations
 
                     b.HasIndex("RecipientAddressId");
 
+                    b.HasIndex("RouteId");
+
                     b.HasIndex("ShipperAddressId");
 
                     b.HasIndex("Status");
@@ -619,6 +685,8 @@ namespace LastMile.TMS.Persistence.Migrations
                         .IsUnique();
 
                     b.HasIndex("ZoneId");
+
+                    b.HasIndex("Status", "CurrentStatusChangedAt");
 
                     b.HasIndex(new[] { "TrackingNumber" }, "IX_Parcels_TrackingNumber_Trgm");
 
@@ -695,6 +763,78 @@ namespace LastMile.TMS.Persistence.Migrations
                     b.HasIndex("ParcelId");
 
                     b.ToTable("ParcelContentItems");
+                });
+
+            modelBuilder.Entity("LastMile.TMS.Domain.Entities.ParcelImportHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CorrelationId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<long>("FileSizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("FileType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("InvalidRows")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("LastModifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("text");
+
+                    b.Property<int>("ParcelsCreated")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PreviewData")
+                        .HasColumnType("text");
+
+                    b.Property<string>("RowErrorsData")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("TotalRows")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ValidRows")
+                        .HasColumnType("integer");
+
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("bytea");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CorrelationId");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("ParcelImportHistories", (string)null);
                 });
 
             modelBuilder.Entity("LastMile.TMS.Domain.Entities.ParcelWatcher", b =>
@@ -1448,6 +1588,31 @@ namespace LastMile.TMS.Persistence.Migrations
                     b.Navigation("Parcel");
                 });
 
+            modelBuilder.Entity("LastMile.TMS.Domain.Entities.DeliveryRoute", b =>
+                {
+                    b.HasOne("LastMile.TMS.Domain.Entities.Depot", "Depot")
+                        .WithMany()
+                        .HasForeignKey("DepotId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("LastMile.TMS.Domain.Entities.Driver", "Driver")
+                        .WithMany()
+                        .HasForeignKey("DriverId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("LastMile.TMS.Domain.Entities.Zone", "Zone")
+                        .WithMany()
+                        .HasForeignKey("ZoneId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Depot");
+
+                    b.Navigation("Driver");
+
+                    b.Navigation("Zone");
+                });
+
             modelBuilder.Entity("LastMile.TMS.Domain.Entities.Depot", b =>
                 {
                     b.HasOne("LastMile.TMS.Domain.Entities.Address", "Address")
@@ -1548,6 +1713,11 @@ namespace LastMile.TMS.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("LastMile.TMS.Domain.Entities.DeliveryRoute", "Route")
+                        .WithMany("Parcels")
+                        .HasForeignKey("RouteId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("LastMile.TMS.Domain.Entities.Address", "ShipperAddress")
                         .WithMany()
                         .HasForeignKey("ShipperAddressId")
@@ -1562,6 +1732,8 @@ namespace LastMile.TMS.Persistence.Migrations
                     b.Navigation("CurrentBin");
 
                     b.Navigation("RecipientAddress");
+
+                    b.Navigation("Route");
 
                     b.Navigation("ShipperAddress");
 
@@ -1708,6 +1880,11 @@ namespace LastMile.TMS.Persistence.Migrations
                 });
 
             modelBuilder.Entity("LastMile.TMS.Domain.Entities.Bin", b =>
+                {
+                    b.Navigation("Parcels");
+                });
+
+            modelBuilder.Entity("LastMile.TMS.Domain.Entities.DeliveryRoute", b =>
                 {
                     b.Navigation("Parcels");
                 });

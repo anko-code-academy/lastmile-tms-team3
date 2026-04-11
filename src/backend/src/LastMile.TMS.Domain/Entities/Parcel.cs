@@ -46,6 +46,7 @@ public class Parcel : BaseAuditableEntity, IAuditTracked
     // Dates
     public DateTimeOffset? EstimatedDeliveryDate { get; set; }
     public DateTimeOffset? ActualDeliveryDate { get; set; }
+    public DateTimeOffset CurrentStatusChangedAt { get; set; } = DateTimeOffset.UtcNow;
 
     // Delivery tracking
     public int DeliveryAttempts { get; set; }
@@ -64,6 +65,10 @@ public class Parcel : BaseAuditableEntity, IAuditTracked
     // Current warehouse placement
     public Guid? CurrentBinId { get; set; }
     public Bin? CurrentBin { get; set; }
+
+    // Route assignment
+    public Guid? RouteId { get; set; }
+    public DeliveryRoute? Route { get; set; }
 
     // Navigation properties
     public ICollection<TrackingEvent> TrackingEvents { get; set; } = new List<TrackingEvent>();
@@ -86,27 +91,29 @@ public class Parcel : BaseAuditableEntity, IAuditTracked
             throw new InvalidStatusTransitionException(Status, newStatus);
 
         var previousStatus = Status;
+        var transitionedAt = DateTimeOffset.UtcNow;
         Status = newStatus;
+        CurrentStatusChangedAt = transitionedAt;
 
         // Record tracking event for status change
         var trackingEvent = new TrackingEvent
         {
             ParcelId = Id,
-            Timestamp = DateTimeOffset.UtcNow,
+            Timestamp = transitionedAt,
             EventType = MapStatusToEventType(newStatus),
             Description = $"Status changed from {previousStatus} to {newStatus}",
             LocationCity = locationCity,
             LocationState = locationState,
             LocationCountryCode = locationCountryCode,
             Operator = operatorName,
-            CreatedAt = DateTimeOffset.UtcNow
+            CreatedAt = transitionedAt
         };
 
         TrackingEvents.Add(trackingEvent);
 
         // Update timestamps for specific statuses
         if (newStatus == ParcelStatus.Delivered)
-            ActualDeliveryDate = DateTimeOffset.UtcNow;
+            ActualDeliveryDate = transitionedAt;
     }
 
     public void IncrementDeliveryAttempts()
@@ -168,7 +175,7 @@ public class Parcel : BaseAuditableEntity, IAuditTracked
             ParcelStatus.ReceivedAtDepot => EventType.ArrivedAtFacility,
             ParcelStatus.Sorted => EventType.HeldAtFacility,
             ParcelStatus.Staged => EventType.HeldAtFacility,
-            ParcelStatus.Loaded => EventType.DepartedFacility,
+            ParcelStatus.Loaded => EventType.Loaded,
             ParcelStatus.OutForDelivery => EventType.OutForDelivery,
             ParcelStatus.Delivered => EventType.Delivered,
             ParcelStatus.FailedAttempt => EventType.DeliveryAttempted,

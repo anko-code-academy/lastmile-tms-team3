@@ -61,6 +61,14 @@ public class ParcelConfiguration : IEntityTypeConfiguration<Parcel>
             .HasForeignKey(p => p.CurrentBinId)
             .OnDelete(DeleteBehavior.SetNull)
             .IsRequired(false);
+
+        // Route relationship (optional)
+        builder.HasOne(p => p.Route)
+            .WithMany(r => r.Parcels)
+            .HasForeignKey(p => p.RouteId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
+
         // Physical properties
         builder.Property(p => p.Weight)
             .HasPrecision(10, 3);
@@ -91,6 +99,8 @@ public class ParcelConfiguration : IEntityTypeConfiguration<Parcel>
         // Dates
         builder.Property(p => p.EstimatedDeliveryDate);
         builder.Property(p => p.ActualDeliveryDate);
+        builder.Property(p => p.CurrentStatusChangedAt)
+            .IsRequired();
 
         // Delivery tracking
         builder.Property(p => p.DeliveryAttempts)
@@ -106,10 +116,12 @@ public class ParcelConfiguration : IEntityTypeConfiguration<Parcel>
 
         // Indexes
         builder.HasIndex(p => p.Status);
+        builder.HasIndex(p => new { p.Status, p.CurrentStatusChangedAt });
         builder.HasIndex(p => p.CreatedAt);
         builder.HasIndex(p => p.EstimatedDeliveryDate);
         builder.HasIndex(p => p.ParcelType);
         builder.HasIndex(p => p.ZoneId);
         builder.HasIndex(p => p.CurrentBinId);
+        builder.HasIndex(p => p.RouteId);
     }
 }

@@ -34,12 +34,14 @@ public class ApplicationDbSeeder(
         await SeedAdminUserAsync();
         await SeedDepotsAsync(cancellationToken);
         await SeedOperationsManagerUserAsync();
+        await SeedDepotOperatorUsersAsync(cancellationToken);
         await SeedWarehouseManagerUsersAsync(cancellationToken);
         await SeedVehiclesAsync(cancellationToken);
         await SeedZonesAsync(cancellationToken);
         await SeedAislesAndBinsAsync(cancellationToken);
-        await SeedParcelsAsync(cancellationToken);
         await SeedDriversAsync(cancellationToken);
+        await SeedDeliveryRoutesAsync(cancellationToken);
+        await SeedParcelsAsync(cancellationToken);
     }
 
     private async Task SeedDepotsAsync(CancellationToken cancellationToken)
@@ -624,8 +626,23 @@ public class ApplicationDbSeeder(
         if (await dbContext.Parcels.AnyAsync(cancellationToken))
             return;
 
-        var depots = await dbContext.Depots.ToListAsync(cancellationToken);
-        var zones = await dbContext.Zones.ToListAsync(cancellationToken);
+        var depots = await dbContext.Depots
+            .OrderBy(d => d.Name)
+            .ToListAsync(cancellationToken);
+        var zones = await dbContext.Zones
+            .OrderBy(z => z.Name)
+            .ToListAsync(cancellationToken);
+        var routes = await dbContext.DeliveryRoutes
+            .AsNoTracking()
+            .Where(route => route.ZoneId.HasValue)
+            .OrderBy(route => route.Name)
+            .ToListAsync(cancellationToken);
+        var zonesByDepotId = zones
+            .GroupBy(zone => zone.DepotId)
+            .ToDictionary(group => group.Key, group => group.ToList());
+        var routesByDepotId = routes
+            .GroupBy(route => route.DepotId)
+            .ToDictionary(group => group.Key, group => group.ToList());
         var binsByZone = await dbContext.Bins
             .AsNoTracking()
             .Include(b => b.Aisle)
@@ -651,19 +668,6 @@ public class ApplicationDbSeeder(
             ("Clarksville", "TN", "37040", -87.36, 36.53),
             ("Bowling Green", "KY", "42101", -86.44, 37.00),
             ("Huntsville", "AL", "35801", -86.59, 34.73),
-        };
-
-        var statuses = new[]
-        {
-            (ParcelStatus.Registered, 6),
-            (ParcelStatus.ReceivedAtDepot, 5),
-            (ParcelStatus.Sorted, 25),
-            (ParcelStatus.Staged, 4),
-            (ParcelStatus.Loaded, 2),
-            (ParcelStatus.OutForDelivery, 4),
-            (ParcelStatus.Delivered, 2),
-            (ParcelStatus.FailedAttempt, 1),
-            (ParcelStatus.Exception, 1),
         };
 
         var serviceTypes = Enum.GetValues<ServiceType>();
@@ -739,10 +743,20 @@ public class ApplicationDbSeeder(
         };
 
         var i = 1;
-        foreach (var (status, count) in statuses)
+        foreach (var (depot, depotIndex) in depots.Select((value, index) => (value, index)))
         {
-            for (var j = 0; j < count; j++)
+            zonesByDepotId.TryGetValue(depot.Id, out var depotZones);
+            depotZones ??= new List<Zone>();
+            var statusPlan = GetStatusPlanForDepot(depotIndex);
+
+            var statusOccurrences = new Dictionary<ParcelStatus, int>();
+
+            foreach (var status in statusPlan)
             {
+                statusOccurrences.TryGetValue(status, out var statusOccurrenceIndex);
+                statusOccurrenceIndex += 1;
+                statusOccurrences[status] = statusOccurrenceIndex;
+
                 var cityInfo = cities[random.Next(cities.Length)];
                 var recipientAddress = new Address
                 {
@@ -761,7 +775,15 @@ public class ApplicationDbSeeder(
                 };
 
                 var shipper = shipperAddresses[random.Next(shipperAddresses.Count)];
-                var zone = zones.Count > 0 && random.Next(3) > 0 ? zones[random.Next(zones.Count)] : null;
+                var zone = depotZones.Count > 0
+                    ? depotZones[random.Next(depotZones.Count)]
+                    : null;
+                var assignedRouteId = SelectSeedRouteId(
+                    status,
+                    statusOccurrenceIndex,
+                    depot.Id,
+                    zone?.Id,
+                    routesByDepotId);
                 Bin? currentBin = null;
                 if (zone is not null && (status == ParcelStatus.Sorted || status == ParcelStatus.Staged) && binsByZone.TryGetValue(zone.Id, out var zoneBins) && zoneBins.Count > 0)
                 {
@@ -769,7 +791,10 @@ public class ApplicationDbSeeder(
                 }
                 var serviceType = serviceTypes[random.Next(serviceTypes.Length)];
                 var parcelType = parcelTypes[random.Next(parcelTypes.Length)];
-                var createdAt = DateTimeOffset.UtcNow.AddHours(-random.Next(1, 720));
+                var now = DateTimeOffset.UtcNow;
+                var currentStatusAgeHours = GetSeededCurrentStatusAgeHours(status, statusOccurrenceIndex, depotIndex);
+                var createdAt = now.AddHours(-(currentStatusAgeHours + random.Next(12, 168)));
+                var currentStatusChangedAt = now.AddHours(-currentStatusAgeHours);
                 var eventDescs = eventDescriptions[status];
 
                 var trackingEvents = new List<TrackingEvent>();
@@ -789,18 +814,25 @@ public class ApplicationDbSeeder(
                 };
 
                 var parcelEventTypes = eventTypesForStatus[status];
-                for (var k = 0; k < eventDescs.Length && k < parcelEventTypes.Length; k++)
+                var eventCount = Math.Min(eventDescs.Length, parcelEventTypes.Length);
+                var timelineHours = Math.Max(0, (currentStatusChangedAt - createdAt).TotalHours);
+                var eventStepHours = eventCount > 1 ? timelineHours / (eventCount - 1) : 0;
+                for (var k = 0; k < eventCount; k++)
                 {
+                    var eventTimestamp = k == eventCount - 1
+                        ? currentStatusChangedAt
+                        : createdAt.AddHours(eventStepHours * k);
+
                     trackingEvents.Add(new TrackingEvent
                     {
                         Id = Guid.NewGuid(),
-                        Timestamp = createdAt.AddHours(k * 4),
+                        Timestamp = eventTimestamp,
                         EventType = parcelEventTypes[k],
                         Description = eventDescs[k],
                         LocationCity = cityInfo.Item1,
                         LocationState = cityInfo.Item2,
                         LocationCountryCode = "US",
-                        CreatedAt = createdAt.AddHours(k * 4),
+                        CreatedAt = eventTimestamp,
                     });
                 }
 
@@ -838,13 +870,15 @@ public class ApplicationDbSeeder(
                     DeclaredValue = Math.Round((decimal)(random.NextDouble() * 500 + 10), 2),
                     Currency = "USD",
                     EstimatedDeliveryDate = createdAt.AddDays(random.Next(1, 7)),
-                    ActualDeliveryDate = status == ParcelStatus.Delivered ? createdAt.AddDays(random.Next(1, 5)) : null,
+                    ActualDeliveryDate = status == ParcelStatus.Delivered ? currentStatusChangedAt : null,
                     DeliveryAttempts = status == ParcelStatus.FailedAttempt ? random.Next(1, 3) : 0,
                     ParcelType = parcelType,
                     ZoneId = zone?.Id,
                     CurrentBinId = currentBin?.Id,
+                    RouteId = assignedRouteId,
                     CreatedAt = createdAt,
-                    LastModifiedAt = createdAt.AddHours(random.Next(1, 48)),
+                    CurrentStatusChangedAt = currentStatusChangedAt,
+                    LastModifiedAt = currentStatusChangedAt.AddMinutes(random.Next(15, 180)),
                 };
 
                 parcels.Add(parcel);
@@ -855,5 +889,283 @@ public class ApplicationDbSeeder(
         await dbContext.Parcels.AddRangeAsync(parcels, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
         logger.LogInformation("Seeded {Count} parcel records", parcels.Count);
+    }
+
+    private static Guid? SelectSeedRouteId(
+        ParcelStatus status,
+        int statusOccurrenceIndex,
+        Guid depotId,
+        Guid? zoneId,
+        IReadOnlyDictionary<Guid, List<DeliveryRoute>> routesByDepotId)
+    {
+        if (status != ParcelStatus.Staged || statusOccurrenceIndex % 2 == 0)
+            return null;
+
+        if (!routesByDepotId.TryGetValue(depotId, out var depotRoutes) || depotRoutes.Count == 0)
+            return null;
+
+        var matchingRoutes = zoneId.HasValue
+            ? depotRoutes.Where(route => route.ZoneId == zoneId).ToList()
+            : depotRoutes;
+
+        if (matchingRoutes.Count == 0)
+            matchingRoutes = depotRoutes;
+
+        return matchingRoutes[(statusOccurrenceIndex - 1) % matchingRoutes.Count].Id;
+    }
+
+    private static ParcelStatus[] GetStatusPlanForDepot(int depotIndex) => (depotIndex % 3) switch
+    {
+        0 =>
+        [
+            ParcelStatus.Registered,
+            ParcelStatus.Registered,
+            ParcelStatus.ReceivedAtDepot,
+            ParcelStatus.ReceivedAtDepot,
+            ParcelStatus.ReceivedAtDepot,
+            ParcelStatus.Sorted,
+            ParcelStatus.Sorted,
+            ParcelStatus.Sorted,
+            ParcelStatus.Staged,
+            ParcelStatus.Staged,
+            ParcelStatus.Staged,
+            ParcelStatus.Loaded,
+            ParcelStatus.Loaded,
+            ParcelStatus.OutForDelivery,
+            ParcelStatus.OutForDelivery,
+            ParcelStatus.Delivered,
+            ParcelStatus.Delivered,
+            ParcelStatus.FailedAttempt,
+            ParcelStatus.FailedAttempt,
+            ParcelStatus.ReturnedToDepot,
+            ParcelStatus.Cancelled,
+            ParcelStatus.Exception,
+            ParcelStatus.Exception,
+        ],
+        1 =>
+        [
+            ParcelStatus.Registered,
+            ParcelStatus.ReceivedAtDepot,
+            ParcelStatus.ReceivedAtDepot,
+            ParcelStatus.ReceivedAtDepot,
+            ParcelStatus.ReceivedAtDepot,
+            ParcelStatus.Sorted,
+            ParcelStatus.Sorted,
+            ParcelStatus.Sorted,
+            ParcelStatus.Sorted,
+            ParcelStatus.Staged,
+            ParcelStatus.Staged,
+            ParcelStatus.Loaded,
+            ParcelStatus.Loaded,
+            ParcelStatus.Loaded,
+            ParcelStatus.OutForDelivery,
+            ParcelStatus.Delivered,
+            ParcelStatus.Delivered,
+            ParcelStatus.Delivered,
+            ParcelStatus.FailedAttempt,
+            ParcelStatus.ReturnedToDepot,
+            ParcelStatus.Cancelled,
+            ParcelStatus.Exception,
+        ],
+        _ =>
+        [
+            ParcelStatus.Registered,
+            ParcelStatus.Registered,
+            ParcelStatus.Registered,
+            ParcelStatus.ReceivedAtDepot,
+            ParcelStatus.ReceivedAtDepot,
+            ParcelStatus.Sorted,
+            ParcelStatus.Sorted,
+            ParcelStatus.Staged,
+            ParcelStatus.Staged,
+            ParcelStatus.Staged,
+            ParcelStatus.Staged,
+            ParcelStatus.Loaded,
+            ParcelStatus.OutForDelivery,
+            ParcelStatus.OutForDelivery,
+            ParcelStatus.Delivered,
+            ParcelStatus.FailedAttempt,
+            ParcelStatus.FailedAttempt,
+            ParcelStatus.ReturnedToDepot,
+            ParcelStatus.Cancelled,
+            ParcelStatus.Exception,
+            ParcelStatus.Exception,
+            ParcelStatus.Exception,
+        ],
+    };
+
+    private static double GetSeededCurrentStatusAgeHours(
+        ParcelStatus status,
+        int statusOccurrenceIndex,
+        int depotIndex)
+    {
+        var agePattern = (depotIndex % 3, status) switch
+        {
+            (0, ParcelStatus.Registered) => new[] { 5d, 32d },
+            (0, ParcelStatus.ReceivedAtDepot) => new[] { 6d, 28d, 76d },
+            (0, ParcelStatus.Sorted) => new[] { 8d, 30d, 54d },
+            (0, ParcelStatus.Staged) => new[] { 4d, 26d, 50d },
+            (0, ParcelStatus.Loaded) => new[] { 5d, 30d },
+            (0, ParcelStatus.OutForDelivery) => new[] { 3d, 18d },
+            (0, ParcelStatus.Delivered) => new[] { 7d, 42d },
+            (0, ParcelStatus.FailedAttempt) => new[] { 12d, 60d },
+            (0, ParcelStatus.ReturnedToDepot) => new[] { 36d },
+            (0, ParcelStatus.Cancelled) => new[] { 20d },
+            (0, ParcelStatus.Exception) => new[] { 16d, 84d },
+            (1, ParcelStatus.Registered) => new[] { 9d },
+            (1, ParcelStatus.ReceivedAtDepot) => new[] { 10d, 34d, 58d, 82d },
+            (1, ParcelStatus.Sorted) => new[] { 12d, 40d, 62d, 90d },
+            (1, ParcelStatus.Staged) => new[] { 6d, 27d },
+            (1, ParcelStatus.Loaded) => new[] { 9d, 36d, 70d },
+            (1, ParcelStatus.OutForDelivery) => new[] { 5d },
+            (1, ParcelStatus.Delivered) => new[] { 9d, 30d, 66d },
+            (1, ParcelStatus.FailedAttempt) => new[] { 20d },
+            (1, ParcelStatus.ReturnedToDepot) => new[] { 88d },
+            (1, ParcelStatus.Cancelled) => new[] { 14d },
+            (1, ParcelStatus.Exception) => new[] { 22d },
+            (2, ParcelStatus.Registered) => new[] { 4d, 18d, 44d },
+            (2, ParcelStatus.ReceivedAtDepot) => new[] { 8d, 24d },
+            (2, ParcelStatus.Sorted) => new[] { 11d, 52d },
+            (2, ParcelStatus.Staged) => new[] { 5d, 22d, 44d, 76d },
+            (2, ParcelStatus.Loaded) => new[] { 14d },
+            (2, ParcelStatus.OutForDelivery) => new[] { 7d, 26d },
+            (2, ParcelStatus.Delivered) => new[] { 15d },
+            (2, ParcelStatus.FailedAttempt) => new[] { 17d, 58d },
+            (2, ParcelStatus.ReturnedToDepot) => new[] { 42d },
+            (2, ParcelStatus.Cancelled) => new[] { 12d },
+            (2, ParcelStatus.Exception) => new[] { 20d, 46d, 88d },
+            _ => new[] { 24d },
+        };
+
+        return agePattern[Math.Min(statusOccurrenceIndex - 1, agePattern.Length - 1)];
+    }
+
+    private async Task SeedDepotOperatorUsersAsync(CancellationToken cancellationToken)
+    {
+        var depots = await dbContext.Depots
+            .OrderBy(d => d.Name)
+            .Select(d => new { d.Id, d.Name })
+            .ToListAsync(cancellationToken);
+
+        if (depots.Count == 0)
+            return;
+
+        var depotOperators = new[]
+        {
+            new
+            {
+                Email = "depot.operator@lastmile.local",
+                Password = "DepotOp@123456",
+                FirstName = "Depot",
+                LastName = "Operator",
+                AssignedDepotId = depots[0].Id,
+                DepotName = depots[0].Name,
+            },
+            new
+            {
+                Email = "depot.operator2@lastmile.local",
+                Password = "DepotOp2@123456",
+                FirstName = "Depot",
+                LastName = "Operator Two",
+                AssignedDepotId = depots.Count > 1 ? depots[1].Id : depots[0].Id,
+                DepotName = depots.Count > 1 ? depots[1].Name : depots[0].Name,
+            },
+            new
+            {
+                Email = "depot.operator3@lastmile.local",
+                Password = "DepotOp3@123456",
+                FirstName = "Depot",
+                LastName = "Operator Three",
+                AssignedDepotId = depots.Count > 2 ? depots[2].Id : depots[0].Id,
+                DepotName = depots.Count > 2 ? depots[2].Name : depots[0].Name,
+            }
+        };
+
+        foreach (var depotOperator in depotOperators)
+        {
+            var existing = await userManager.FindByEmailAsync(depotOperator.Email);
+            if (existing != null)
+                continue;
+
+            var user = new AppUser
+            {
+                Id = Guid.NewGuid(),
+                UserName = depotOperator.Email,
+                Email = depotOperator.Email,
+                EmailConfirmed = true,
+                FirstName = depotOperator.FirstName,
+                LastName = depotOperator.LastName,
+                Role = UserRole.DepotOperator,
+                AssignedDepotId = depotOperator.AssignedDepotId,
+                IsActive = true,
+                CreatedAt = DateTimeOffset.UtcNow
+            };
+
+            var createResult = await userManager.CreateAsync(user, depotOperator.Password);
+            if (!createResult.Succeeded)
+            {
+                logger.LogError("Failed to create depot operator user {Email}: {Errors}",
+                    depotOperator.Email,
+                    string.Join(", ", createResult.Errors.Select(e => e.Description)));
+                continue;
+            }
+
+            var roleResult = await userManager.AddToRoleAsync(user, nameof(UserRole.DepotOperator));
+            if (roleResult.Succeeded)
+                logger.LogInformation("Depot Operator user seeded: {Email} for depot {DepotName}", depotOperator.Email, depotOperator.DepotName);
+            else
+                logger.LogError("Failed to assign DepotOperator role to {Email}: {Errors}",
+                    depotOperator.Email,
+                    string.Join(", ", roleResult.Errors.Select(e => e.Description)));
+        }
+    }
+
+    private async Task SeedDeliveryRoutesAsync(CancellationToken cancellationToken)
+    {
+        if (await dbContext.DeliveryRoutes.AnyAsync(cancellationToken))
+            return;
+
+        var depots = await dbContext.Depots.ToListAsync(cancellationToken);
+        if (depots.Count == 0) return;
+
+        var drivers = await dbContext.Drivers.ToListAsync(cancellationToken);
+        var zones = await dbContext.Zones.ToListAsync(cancellationToken);
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var routes = new List<DeliveryRoute>();
+
+        foreach (var depot in depots)
+        {
+            var depotDrivers = drivers.Where(d => d.DepotId == depot.Id).Take(4).ToList();
+            var depotZones = zones.Where(z => z.DepotId == depot.Id).ToList();
+
+            if (depotDrivers.Count == 0 || depotZones.Count == 0) continue;
+
+            var routeNames = new[] { "Morning Run", "Midday Run", "Afternoon Run", "Evening Run" };
+
+            for (var r = 0; r < Math.Min(4, depotDrivers.Count); r++)
+            {
+                var zone = depotZones[r % depotZones.Count];
+                var driver = depotDrivers[r];
+
+                var route = new DeliveryRoute
+                {
+                    Id = Guid.NewGuid(),
+                    Name = $"{depot.Name} — {routeNames[r]}",
+                    DepotId = depot.Id,
+                    DriverId = driver.Id,
+                    ZoneId = zone.Id,
+                    Date = today,
+                    Status = RouteStatus.Draft,
+                    CreatedAt = DateTimeOffset.UtcNow,
+                };
+
+                routes.Add(route);
+            }
+        }
+
+        await dbContext.DeliveryRoutes.AddRangeAsync(routes, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation("Seeded {RouteCount} delivery routes", routes.Count);
     }
 }

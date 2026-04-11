@@ -180,6 +180,7 @@ public sealed class AuditSaveChangesInterceptor(IHttpContextAccessor httpContext
             Driver => AuditResourceType.Driver,
             Aisle => AuditResourceType.Aisle,
             Bin => AuditResourceType.Bin,
+            DeliveryRoute => AuditResourceType.DeliveryRoute,
             _ => throw new InvalidOperationException($"Unsupported audited entity type: {entity.GetType().Name}")
         };
     }
@@ -196,6 +197,9 @@ public sealed class AuditSaveChangesInterceptor(IHttpContextAccessor httpContext
             return AuditActionType.StatusTransition;
 
         if (entry.Entity is Vehicle && entry.Property(nameof(Vehicle.Status)).IsModified)
+            return AuditActionType.StatusTransition;
+
+        if (entry.Entity is DeliveryRoute && entry.Property(nameof(DeliveryRoute.Status)).IsModified)
             return AuditActionType.StatusTransition;
 
         if (HasModifiedIsActiveProperty(entry))
@@ -340,6 +344,9 @@ public sealed class AuditSaveChangesInterceptor(IHttpContextAccessor httpContext
             (AuditResourceType.Bin, AuditActionType.Update) => "Bin updated",
             (AuditResourceType.Bin, AuditActionType.Activate) => "Bin activated",
             (AuditResourceType.Bin, AuditActionType.Deactivate) => "Bin deactivated",
+            (AuditResourceType.DeliveryRoute, AuditActionType.Create) => "Delivery route created",
+            (AuditResourceType.DeliveryRoute, AuditActionType.Update) => "Delivery route updated",
+            (AuditResourceType.DeliveryRoute, AuditActionType.StatusTransition) => BuildDeliveryRouteStatusTransitionSummary(entry),
             _ => $"{resourceType} {actionType}"
         };
     }
@@ -364,6 +371,14 @@ public sealed class AuditSaveChangesInterceptor(IHttpContextAccessor httpContext
         var previousStatus = statusProperty.OriginalValue?.ToString() ?? "Unknown";
         var currentStatus = statusProperty.CurrentValue?.ToString() ?? "Unknown";
         return $"Vehicle status changed from {previousStatus} to {currentStatus}";
+    }
+
+    private static string BuildDeliveryRouteStatusTransitionSummary(EntityEntry entry)
+    {
+        var statusProperty = entry.Property(nameof(DeliveryRoute.Status));
+        var previousStatus = statusProperty.OriginalValue?.ToString() ?? "Unknown";
+        var currentStatus = statusProperty.CurrentValue?.ToString() ?? "Unknown";
+        return $"Delivery route status changed from {previousStatus} to {currentStatus}";
     }
 
     private sealed record AuditGeometrySnapshot(string Type, int Srid, string Wkt);

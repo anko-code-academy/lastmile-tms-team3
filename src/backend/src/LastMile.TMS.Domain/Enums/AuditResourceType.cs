@@ -9,5 +9,6 @@ public enum AuditResourceType
     Zone = 4,
     Driver = 5,
     Aisle = 6,
-    Bin = 7
+    Bin = 7,
+    DeliveryRoute = 8
 }

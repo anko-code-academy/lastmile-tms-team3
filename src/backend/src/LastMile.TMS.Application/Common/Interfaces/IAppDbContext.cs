@@ -13,6 +13,8 @@ public interface IAppDbContext : IDisposable
     DbSet<Parcel> Parcels { get; }
     DbSet<Driver> Drivers { get; }
     DbSet<Vehicle> Vehicles { get; }
+    DbSet<DeliveryRoute> DeliveryRoutes { get; }
+    DbSet<ParcelImportHistory> ParcelImportHistories { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 

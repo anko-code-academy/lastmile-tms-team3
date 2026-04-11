@@ -5,7 +5,9 @@ using LastMile.TMS.Api.GraphQL.ErrorFilters;
 using LastMile.TMS.Api.GraphQL.Mutations;
 using LastMile.TMS.Api.GraphQL.Queries;
 using LastMile.TMS.Api.GraphQL.Types;
+using LastMile.TMS.Api.Hubs;
 using LastMile.TMS.Application;
+using LastMile.TMS.Application.Services;
 using LastMile.TMS.Infrastructure;
 using LastMile.TMS.Persistence;
 using LastMile.TMS.Persistence.Identity;
@@ -128,6 +130,7 @@ try
         .AddSorting()
         .AddPagingArguments()
         .AddDataLoader<AisleBinsDataLoader>()
+        .AddDataLoader<DepotParcelDashboardDataLoader>()
         .AddDataLoader<ParcelContentItemsCountDataLoader>()
         .RegisterDbContextFactory<AppDbContext>()
         .AddQueryType<Query>()
@@ -149,6 +152,8 @@ try
         .AddType<UserQuery>()
         .AddType<UserMutation>()
         .AddType<AuditLogQuery>()
+        .AddType<DeliveryRouteQuery>()
+        .AddType<DeliveryRouteMutation>()
         .AddType<AddressType>()
         .AddType<DepotType>()
         .AddType<VehicleType>()
@@ -166,6 +171,7 @@ try
         .AddType<DeliveryConfirmationType>()
         .AddType<ParcelContentItemType>()
         .AddType<ParcelWatcherType>()
+        .AddType<DeliveryRouteType>()
         .AddErrorFilter<ValidationErrorFilter>()
         .ModifyCostOptions(options =>
         {
@@ -195,6 +201,7 @@ try
         });
     });
     builder.Services.AddSignalR();
+    builder.Services.AddScoped<IImportProgressNotifier, SignalRImportProgressNotifier>();
     builder.Services.AddCors(options =>
     {
         options.AddDefaultPolicy(policy =>
@@ -223,6 +230,7 @@ try
     app.UseAuthentication();
     app.UseAuthorization();
     app.MapControllers();
+    app.MapHub<ImportProgressHub>("/hubs/import-progress");
     app.MapGraphQL("/graphql");
     app.UseHangfireDashboard("/hangfire");
 

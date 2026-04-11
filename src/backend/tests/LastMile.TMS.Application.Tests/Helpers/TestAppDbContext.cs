@@ -29,10 +29,12 @@ public class TestAppDbContext : DbContext, IAppDbContext, IAppDbContextFactory
     public DbSet<Parcel> Parcels => Set<Parcel>();
     public DbSet<Driver> Drivers => Set<Driver>();
     public DbSet<Vehicle> Vehicles => Set<Vehicle>();
+    public DbSet<DeliveryRoute> DeliveryRoutes => Set<DeliveryRoute>();
     public DbSet<TrackingEvent> TrackingEvents => Set<TrackingEvent>();
     public DbSet<ParcelContentItem> ParcelContentItems => Set<ParcelContentItem>();
     public DbSet<ParcelWatcher> ParcelWatchers => Set<ParcelWatcher>();
     public DbSet<DeliveryConfirmation> DeliveryConfirmations => Set<DeliveryConfirmation>();
+    public DbSet<ParcelImportHistory> ParcelImportHistories => Set<ParcelImportHistory>();
 
     public new Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
@@ -143,6 +145,15 @@ public class TestAppDbContext : DbContext, IAppDbContext, IAppDbContextFactory
             });
         });
 
+        modelBuilder.Entity<DeliveryRoute>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.Depot).WithMany().HasForeignKey(e => e.DepotId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.Driver).WithMany().HasForeignKey(e => e.DriverId).OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(e => e.Zone).WithMany().HasForeignKey(e => e.ZoneId).OnDelete(DeleteBehavior.SetNull);
+            entity.Ignore(e => e.Parcels);
+        });
+
         modelBuilder.Entity<Parcel>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -150,6 +161,7 @@ public class TestAppDbContext : DbContext, IAppDbContext, IAppDbContextFactory
             entity.HasOne(p => p.RecipientAddress).WithMany().HasForeignKey(p => p.RecipientAddressId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(p => p.Zone).WithMany().HasForeignKey(p => p.ZoneId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(p => p.CurrentBin).WithMany(b => b.Parcels).HasForeignKey(p => p.CurrentBinId).OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(p => p.Route).WithMany(r => r.Parcels).HasForeignKey(p => p.RouteId).OnDelete(DeleteBehavior.SetNull);
             entity.HasMany(p => p.Watchers).WithMany(w => w.Parcels);
         });
 
@@ -175,6 +187,12 @@ public class TestAppDbContext : DbContext, IAppDbContext, IAppDbContextFactory
             entity.HasKey(e => e.Id);
             entity.HasOne(e => e.Parcel).WithOne(p => p.DeliveryConfirmation).HasForeignKey<DeliveryConfirmation>(e => e.ParcelId).OnDelete(DeleteBehavior.Cascade);
             entity.Ignore(e => e.DeliveryGeoLocation);
+        });
+
+        modelBuilder.Entity<ParcelImportHistory>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Ignore(e => e.RowErrorsData);
         });
     }
 
