@@ -47,6 +47,8 @@ public static class CreateRoute
             var route = new DeliveryRoute
             {
                 Id = Guid.NewGuid(),
+                Name = $"Route {request.Dto.Date:yyyy-MM-dd}",
+                DepotId = zone.DepotId,
                 Date = request.Dto.Date,
                 ZoneId = request.Dto.ZoneId,
                 Zone = zone,

@@ -675,7 +675,7 @@ public class ApplicationDbSeeder(
             .ToListAsync(cancellationToken);
         var routes = await dbContext.DeliveryRoutes
             .AsNoTracking()
-            .Where(route => route.ZoneId.HasValue)
+            .Where(route => route.ZoneId != Guid.Empty)
             .OrderBy(route => route.Name)
             .ToListAsync(cancellationToken);
         var zonesByDepotId = zones

@@ -383,6 +383,9 @@ namespace LastMile.TMS.Persistence.Migrations
                     b.Property<DateOnly>("Date")
                         .HasColumnType("date");
 
+                    b.Property<Guid>("DepotId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid?>("DriverId")
                         .HasColumnType("uuid");
 
@@ -399,6 +402,14 @@ namespace LastMile.TMS.Persistence.Migrations
                     b.Property<string>("LastModifiedBy")
                         .HasColumnType("text");
 
+                    b.Property<DateTimeOffset?>("LoadedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("text");
@@ -413,7 +424,11 @@ namespace LastMile.TMS.Persistence.Migrations
 
                     b.HasIndex("Date");
 
+                    b.HasIndex("DepotId");
+
                     b.HasIndex("DriverId");
+
+                    b.HasIndex("Name");
 
                     b.HasIndex("Status");
 
@@ -689,6 +704,9 @@ namespace LastMile.TMS.Persistence.Migrations
                     b.Property<Guid?>("CurrentBinId")
                         .HasColumnType("uuid");
 
+                    b.Property<DateTimeOffset>("CurrentStatusChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<decimal>("DeclaredValue")
                         .HasPrecision(15, 2)
                         .HasColumnType("numeric(15,2)");
@@ -734,6 +752,9 @@ namespace LastMile.TMS.Persistence.Migrations
                     b.Property<Guid>("RecipientAddressId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("RouteId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("ServiceType")
                         .IsRequired()
                         .HasColumnType("text");
@@ -777,6 +798,8 @@ namespace LastMile.TMS.Persistence.Migrations
 
                     b.HasIndex("RecipientAddressId");
 
+                    b.HasIndex("RouteId");
+
                     b.HasIndex("ShipperAddressId");
 
                     b.HasIndex("Status");
@@ -785,6 +808,8 @@ namespace LastMile.TMS.Persistence.Migrations
                         .IsUnique();
 
                     b.HasIndex("ZoneId");
+
+                    b.HasIndex("Status", "CurrentStatusChangedAt");
 
                     b.HasIndex(new[] { "TrackingNumber" }, "IX_Parcels_TrackingNumber_Trgm");
 
@@ -1728,6 +1753,12 @@ namespace LastMile.TMS.Persistence.Migrations
 
             modelBuilder.Entity("LastMile.TMS.Domain.Entities.DeliveryRoute", b =>
                 {
+                    b.HasOne("LastMile.TMS.Domain.Entities.Depot", "Depot")
+                        .WithMany()
+                        .HasForeignKey("DepotId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("LastMile.TMS.Domain.Entities.Driver", "Driver")
                         .WithMany()
                         .HasForeignKey("DriverId")
@@ -1743,6 +1774,8 @@ namespace LastMile.TMS.Persistence.Migrations
                         .HasForeignKey("ZoneId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Depot");
 
                     b.Navigation("Driver");
 
@@ -1873,6 +1906,11 @@ namespace LastMile.TMS.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("LastMile.TMS.Domain.Entities.DeliveryRoute", "Route")
+                        .WithMany("Parcels")
+                        .HasForeignKey("RouteId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("LastMile.TMS.Domain.Entities.Address", "ShipperAddress")
                         .WithMany()
                         .HasForeignKey("ShipperAddressId")
@@ -1887,6 +1925,8 @@ namespace LastMile.TMS.Persistence.Migrations
                     b.Navigation("CurrentBin");
 
                     b.Navigation("RecipientAddress");
+
+                    b.Navigation("Route");
 
                     b.Navigation("ShipperAddress");
 
@@ -2058,6 +2098,8 @@ namespace LastMile.TMS.Persistence.Migrations
 
             modelBuilder.Entity("LastMile.TMS.Domain.Entities.DeliveryRoute", b =>
                 {
+                    b.Navigation("Parcels");
+
                     b.Navigation("RouteParcels");
                 });
 

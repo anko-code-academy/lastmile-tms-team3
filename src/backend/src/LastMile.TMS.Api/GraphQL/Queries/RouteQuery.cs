@@ -29,8 +29,8 @@ public class RouteQuery
     [Authorize(Policy = "AdminOrDispatcher")]
     [UsePaging(IncludeTotalCount = true, MaxPageSize = 100)]
     [UseProjection]
-    [UseFiltering(typeof(RouteFilterInput))]
-    [UseSorting(typeof(RouteSortInput))]
+    [UseFiltering(typeof(DeliveryRouteFilterInput))]
+    [UseSorting(typeof(DeliveryRouteSortInput))]
     public IQueryable<DeliveryRoute> GetRoutes(
         AppDbContext context,
         string? search = null)

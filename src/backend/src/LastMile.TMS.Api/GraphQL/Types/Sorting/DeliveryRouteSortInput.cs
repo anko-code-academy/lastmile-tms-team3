@@ -12,5 +12,6 @@ public class DeliveryRouteSortInput : SortInputType<DeliveryRoute>
         descriptor.Field(x => x.Name);
         descriptor.Field(x => x.Date);
         descriptor.Field(x => x.Status);
+        descriptor.Field(x => x.CreatedAt);
     }
 }
