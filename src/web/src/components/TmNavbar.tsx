@@ -4,8 +4,7 @@ import { useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
 
 export default function TmNavbar() {
-  const { data: session, status } = useSession();
-  const loading = status === "loading";
+  const { data: session } = useSession();
   const pathname = usePathname();
   const isAdmin = session?.user?.role === "Admin";
   const isWarehouseManager = session?.user?.role === "WarehouseManager";
@@ -16,14 +15,13 @@ export default function TmNavbar() {
     session?.user?.role === "DepotOperator" ||
     session?.user?.role === "WarehouseOperator";
   const canManageBins = isAdmin || isWarehouseManager;
-  const canLoadOut = isAdmin || isDepotOperator;
 
   const navItems = [
     { label: "Dashboard", href: "/" },
     { label: "Parcels", href: "/parcels" },
     { label: "Routes", href: "#" },
     ...(isDepotOperator ? [{ label: "Sort", href: "/depot/sort" }] : []),
-    ...(canLoadOut ? [{ label: "Load Out", href: "/load-out" }] : []),
+    ...(isDepotOperator ? [{ label: "Load Out", href: "/load-out" }] : []),
     ...(canManageBins ? [{ label: "Warehouse", href: "/warehouse" }] : []),
     ...(isAdminOrOm
       ? [{ label: "Depot Dashboard", href: "/admin/depot-dashboard" }]

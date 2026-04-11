@@ -57,25 +57,15 @@ public static class SortParcel
                 return BuildResult(parcel, bin: null, isMissort: true, isUnsortable: false);
             }
 
-            // Find an available bin in the parcel's zone (two-step to support EF InMemory in tests)
-            var aisleIdsInZone = await context.Aisles
-                .Where(a => a.IsActive && a.ZoneId == parcel.ZoneId.Value)
-                .Select(a => a.Id)
-                .ToListAsync(cancellationToken);
-
-            var binsInZone = await context.Bins
-                .Where(b => b.IsActive && aisleIdsInZone.Contains(b.AisleId))
+            // Find the first available bin in the parcel's zone with capacity remaining
+            var bin = await context.Bins
+                .Where(b =>
+                    b.IsActive &&
+                    b.Aisle.IsActive &&
+                    b.Aisle.ZoneId == parcel.ZoneId.Value &&
+                    b.Parcels.Count() < b.CapacityParcelCount)
                 .OrderBy(b => b.Code)
-                .ToListAsync(cancellationToken);
-
-            var occupiedCounts = await context.Parcels
-                .Where(p => p.CurrentBinId != null)
-                .GroupBy(p => p.CurrentBinId!.Value)
-                .Select(g => new { BinId = g.Key, Count = g.Count() })
-                .ToDictionaryAsync(g => g.BinId, g => g.Count, cancellationToken);
-
-            var bin = binsInZone.FirstOrDefault(b =>
-                occupiedCounts.GetValueOrDefault(b.Id, 0) < b.CapacityParcelCount);
+                .FirstOrDefaultAsync(cancellationToken);
 
             if (bin is not null)
                 parcel.AssignToBin(bin);

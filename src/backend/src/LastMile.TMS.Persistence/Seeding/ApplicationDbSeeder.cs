@@ -42,6 +42,7 @@ public class ApplicationDbSeeder(
         await SeedDriversAsync(cancellationToken);
         await SeedDeliveryRoutesAsync(cancellationToken);
         await SeedParcelsAsync(cancellationToken);
+        await SeedSortDemoParcelsAsync(cancellationToken);
     }
 
     private async Task SeedDepotsAsync(CancellationToken cancellationToken)
@@ -1167,5 +1168,141 @@ public class ApplicationDbSeeder(
         await dbContext.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation("Seeded {RouteCount} delivery routes", routes.Count);
+    }
+
+    private async Task SeedSortDemoParcelsAsync(CancellationToken cancellationToken)
+    {
+        const string trackingPrefix = "LM-SORT-";
+        if (await dbContext.Parcels.AnyAsync(p => p.TrackingNumber.StartsWith(trackingPrefix), cancellationToken))
+            return;
+
+        var zones = await dbContext.Zones
+            .Where(z => z.IsActive)
+            .OrderBy(z => z.Name)
+            .ToListAsync(cancellationToken);
+
+        if (zones.Count == 0)
+            return;
+
+        var geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
+
+        var shipperAddress = new Address
+        {
+            Id = Guid.NewGuid(),
+            Street1 = "100 Sort Demo Drive",
+            City = "Nashville",
+            State = "TN",
+            PostalCode = "37201",
+            CountryCode = "US",
+            IsResidential = false,
+            CompanyName = "Sort Demo Shipper Co",
+            ContactName = "Demo Shipper",
+            GeoLocation = geometryFactory.CreatePoint(new Coordinate(-86.78, 36.17)),
+            CreatedAt = DateTimeOffset.UtcNow,
+        };
+
+        await dbContext.Addresses.AddAsync(shipperAddress, cancellationToken);
+
+        var recipientNames = new[]
+        {
+            "Alice Johnson", "Bob Smith", "Carol Williams", "David Brown",
+            "Emma Davis", "Frank Miller", "Grace Wilson", "Henry Moore",
+            "Iris Taylor", "Jack Anderson", "Karen Thomas", "Leo Jackson",
+        };
+
+        var cities = new[]
+        {
+            ("Nashville",   "TN", "37201", -86.78, 36.17),
+            ("Louisville",  "KY", "40201", -85.74, 38.25),
+            ("Birmingham",  "AL", "35201", -86.80, 33.52),
+        };
+
+        var recipients = new List<Address>();
+        var parcels = new List<Parcel>();
+
+        for (var i = 1; i <= 12; i++)
+        {
+            var zone = zones[(i - 1) % zones.Count];
+            var cityInfo = cities[(i - 1) % cities.Length];
+            var now = DateTimeOffset.UtcNow;
+            var createdAt = now.AddHours(-(i * 3));
+
+            var recipient = new Address
+            {
+                Id = Guid.NewGuid(),
+                Street1 = $"{100 + i * 7} Demo Street",
+                City = cityInfo.Item1,
+                State = cityInfo.Item2,
+                PostalCode = cityInfo.Item3,
+                CountryCode = "US",
+                IsResidential = true,
+                ContactName = recipientNames[(i - 1) % recipientNames.Length],
+                Email = $"sort.demo{i}@example.com",
+                GeoLocation = geometryFactory.CreatePoint(new Coordinate(cityInfo.Item4, cityInfo.Item5)),
+                CreatedAt = createdAt,
+            };
+            recipients.Add(recipient);
+
+            var parcel = new Parcel
+            {
+                Id = Guid.NewGuid(),
+                TrackingNumber = $"{trackingPrefix}{i:D5}",
+                Description = "Sort demo shipment",
+                ServiceType = ServiceType.Standard,
+                Status = ParcelStatus.ReceivedAtDepot,
+                RecipientAddressId = recipient.Id,
+                RecipientAddress = recipient,
+                ShipperAddressId = shipperAddress.Id,
+                ShipperAddress = shipperAddress,
+                Weight = Math.Round(1.5m + i * 0.3m, 1),
+                WeightUnit = WeightUnit.Kg,
+                Length = 20,
+                Width = 15,
+                Height = 10,
+                DimensionUnit = DimensionUnit.Cm,
+                DeclaredValue = 50m + i * 10m,
+                Currency = "USD",
+                EstimatedDeliveryDate = now.AddDays(3),
+                ParcelType = "Standard",
+                ZoneId = zone.Id,
+                CreatedAt = createdAt,
+                CurrentStatusChangedAt = createdAt.AddHours(1),
+                LastModifiedAt = createdAt.AddHours(1),
+            };
+
+            parcel.TrackingEvents.Add(new TrackingEvent
+            {
+                Id = Guid.NewGuid(),
+                ParcelId = parcel.Id,
+                Timestamp = createdAt,
+                EventType = EventType.LabelCreated,
+                Description = "Label created and registered",
+                LocationCity = "Nashville",
+                LocationState = "TN",
+                LocationCountryCode = "US",
+                CreatedAt = createdAt,
+            });
+
+            parcel.TrackingEvents.Add(new TrackingEvent
+            {
+                Id = Guid.NewGuid(),
+                ParcelId = parcel.Id,
+                Timestamp = createdAt.AddHours(1),
+                EventType = EventType.ArrivedAtFacility,
+                Description = "Package received at depot",
+                LocationCity = "Nashville",
+                LocationState = "TN",
+                LocationCountryCode = "US",
+                CreatedAt = createdAt.AddHours(1),
+            });
+
+            parcels.Add(parcel);
+        }
+
+        await dbContext.Addresses.AddRangeAsync(recipients, cancellationToken);
+        await dbContext.Parcels.AddRangeAsync(parcels, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation("Seeded {Count} sort demo parcels (ReceivedAtDepot + zone)", parcels.Count);
     }
 }
