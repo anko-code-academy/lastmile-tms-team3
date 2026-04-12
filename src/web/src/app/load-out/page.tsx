@@ -176,7 +176,7 @@ export default function LoadOutPage() {
                 marginBottom: ".375rem",
               }}
             >
-              Operations
+              Depot Operations
             </p>
             <h1
               style={{
