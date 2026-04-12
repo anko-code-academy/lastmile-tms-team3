@@ -8,6 +8,11 @@ namespace LastMile.TMS.Application.Features.Routes.Helpers;
 /// </summary>
 public static class NearestNeighborFallback
 {
+    /// <summary>
+    /// Average driving speed in meters per second used for duration estimation.
+    /// 8.33 m/s ≈ 30 km/h — typical for urban delivery routes with stops.
+    /// </summary>
+    private const double AverageSpeedMps = 8.33;
     public static OptimizedRoute Optimize(StopLocation depot, IReadOnlyList<StopLocation> stops)
     {
         if (stops.Count == 0)
@@ -50,7 +55,7 @@ public static class NearestNeighborFallback
             optimizedOrder[stops[order[i].OriginalIndex].ParcelId] = i + 1;
         }
 
-        return new OptimizedRoute(optimizedOrder, totalDistance, totalDistance / 11.0);
+        return new OptimizedRoute(optimizedOrder, totalDistance, totalDistance / AverageSpeedMps);
     }
 
     /// <summary>

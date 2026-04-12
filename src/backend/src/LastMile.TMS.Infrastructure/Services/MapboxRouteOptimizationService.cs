@@ -82,6 +82,9 @@ public class MapboxRouteOptimizationService : IRouteOptimizationService
 
         // Parse trip distance and duration
         var trips = doc.RootElement.GetProperty("trips");
+        if (trips.GetArrayLength() == 0)
+            throw new InvalidOperationException("Mapbox Optimization API returned no trips.");
+
         var trip = trips[0];
         var totalDistance = trip.GetProperty("distance").GetDouble();
         var totalDuration = trip.GetProperty("duration").GetDouble();

@@ -245,4 +245,30 @@ public class DeliveryRouteOptimizationTests
         route.RouteParcels.Should().BeEmpty();
         route.EstimatedDistance.Should().Be(0m);
     }
+
+    [Fact]
+    public void ApplyOptimizedStopOrder_WhenNegativeDistance_Throws()
+    {
+        // Arrange
+        var route = CreateDraftRoute();
+
+        // Act
+        var act = () => route.ApplyOptimizedStopOrder([], -1m);
+
+        // Assert
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void ApplyOptimizedStopOrder_WhenNegativeDuration_Throws()
+    {
+        // Arrange
+        var route = CreateDraftRoute();
+
+        // Act
+        var act = () => route.ApplyOptimizedStopOrder([], 0m, -100);
+
+        // Assert
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
 }

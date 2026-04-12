@@ -176,8 +176,17 @@ function SortableStopItem({
           opacity: disabled ? 0.3 : 0.6,
         }}
         onClick={(e) => e.stopPropagation()}
+        aria-label="Drag to reorder"
+        role="button"
       >
-        ⠿
+        <svg width="12" height="16" viewBox="0 0 12 16" fill="currentColor" aria-hidden="true">
+          <circle cx="4" cy="2" r="1.5" />
+          <circle cx="8" cy="2" r="1.5" />
+          <circle cx="4" cy="8" r="1.5" />
+          <circle cx="8" cy="8" r="1.5" />
+          <circle cx="4" cy="14" r="1.5" />
+          <circle cx="8" cy="14" r="1.5" />
+        </svg>
       </span>
 
       {/* Stop number */}

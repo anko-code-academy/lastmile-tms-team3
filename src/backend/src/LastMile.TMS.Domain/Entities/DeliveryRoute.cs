@@ -133,6 +133,10 @@ public class DeliveryRoute : BaseAuditableEntity, IAuditTracked
         if (Status != RouteStatus.Draft)
             throw new InvalidOperationException("Stop order can only be optimized for a route in Draft status.");
 
+        ArgumentOutOfRangeException.ThrowIfNegative(totalDistanceMeters);
+        if (totalDurationSeconds.HasValue)
+            ArgumentOutOfRangeException.ThrowIfNegative(totalDurationSeconds.Value);
+
         EstimatedDistance = totalDistanceMeters;
         EstimatedDuration = totalDurationSeconds;
 

@@ -78,8 +78,10 @@ public static class OptimizeRouteStops
                 .OrderBy(rp => rp.StopOrder)
                 .Select(rp => new StopLocation(
                     rp.ParcelId,
-                    rp.Parcel!.RecipientAddress!.GeoLocation!.Y,
-                    rp.Parcel!.RecipientAddress!.GeoLocation!.X))
+                    rp.Parcel?.RecipientAddress?.GeoLocation?.Y ?? throw new RouteOptimizationException(
+                        $"Parcel '{rp.ParcelId}' is missing geocoded address data."),
+                    rp.Parcel?.RecipientAddress?.GeoLocation?.X ?? throw new RouteOptimizationException(
+                        $"Parcel '{rp.ParcelId}' is missing geocoded address data.")))
                 .ToList();
 
             // Optimize with fallback

@@ -655,6 +655,7 @@ namespace LastMile.TMS.Persistence.Migrations
                     VehicleId = table.Column<Guid>(type: "uuid", nullable: true),
                     Status = table.Column<string>(type: "text", nullable: false),
                     EstimatedDistance = table.Column<decimal>(type: "numeric(10,2)", precision: 10, scale: 2, nullable: true),
+                    EstimatedDuration = table.Column<int>(type: "integer", nullable: true),
                     EstimatedStops = table.Column<int>(type: "integer", nullable: false),
                     LoadedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                     CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),

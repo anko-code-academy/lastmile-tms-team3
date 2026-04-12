@@ -134,7 +134,7 @@ namespace LastMile.TMS.Persistence.Migrations
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex(new[] { "City" }, "IX_Addresses_City_Trgm"), "GIN");
                     NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex(new[] { "City" }, "IX_Addresses_City_Trgm"), new[] { "gin_trgm_ops" });
 
-                    b.ToTable("Addresses");
+                    b.ToTable("Addresses", (string)null);
                 });
 
             modelBuilder.Entity("LastMile.TMS.Domain.Entities.Aisle", b =>
@@ -187,7 +187,7 @@ namespace LastMile.TMS.Persistence.Migrations
 
                     b.HasIndex("ZoneId", "IsActive");
 
-                    b.ToTable("Aisles");
+                    b.ToTable("Aisles", (string)null);
                 });
 
             modelBuilder.Entity("LastMile.TMS.Domain.Entities.AuditLog", b =>
@@ -253,7 +253,7 @@ namespace LastMile.TMS.Persistence.Migrations
 
                     b.HasIndex("ResourceType", "ResourceId");
 
-                    b.ToTable("AuditLogs");
+                    b.ToTable("AuditLogs", (string)null);
                 });
 
             modelBuilder.Entity("LastMile.TMS.Domain.Entities.Bin", b =>
@@ -314,7 +314,7 @@ namespace LastMile.TMS.Persistence.Migrations
 
                     b.HasIndex("AisleId", "IsActive");
 
-                    b.ToTable("Bins");
+                    b.ToTable("Bins", (string)null);
                 });
 
             modelBuilder.Entity("LastMile.TMS.Domain.Entities.DeliveryConfirmation", b =>
@@ -365,7 +365,7 @@ namespace LastMile.TMS.Persistence.Migrations
                     b.HasIndex("ParcelId")
                         .IsUnique();
 
-                    b.ToTable("DeliveryConfirmations");
+                    b.ToTable("DeliveryConfirmations", (string)null);
                 });
 
             modelBuilder.Entity("LastMile.TMS.Domain.Entities.DeliveryRoute", b =>
@@ -392,6 +392,9 @@ namespace LastMile.TMS.Persistence.Migrations
                     b.Property<decimal?>("EstimatedDistance")
                         .HasPrecision(10, 2)
                         .HasColumnType("numeric(10,2)");
+
+                    b.Property<int?>("EstimatedDuration")
+                        .HasColumnType("integer");
 
                     b.Property<int>("EstimatedStops")
                         .HasColumnType("integer");
@@ -625,7 +628,7 @@ namespace LastMile.TMS.Persistence.Migrations
 
                     b.HasIndex("DepotId", "Status");
 
-                    b.ToTable("InboundManifests");
+                    b.ToTable("InboundManifests", (string)null);
                 });
 
             modelBuilder.Entity("LastMile.TMS.Domain.Entities.InboundReceivingSession", b =>
@@ -672,7 +675,7 @@ namespace LastMile.TMS.Persistence.Migrations
 
                     b.HasIndex("Status");
 
-                    b.ToTable("InboundReceivingSessions");
+                    b.ToTable("InboundReceivingSessions", (string)null);
                 });
 
             modelBuilder.Entity("LastMile.TMS.Domain.Entities.Parcel", b =>
@@ -816,7 +819,7 @@ namespace LastMile.TMS.Persistence.Migrations
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex(new[] { "TrackingNumber" }, "IX_Parcels_TrackingNumber_Trgm"), "GIN");
                     NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex(new[] { "TrackingNumber" }, "IX_Parcels_TrackingNumber_Trgm"), new[] { "gin_trgm_ops" });
 
-                    b.ToTable("Parcels");
+                    b.ToTable("Parcels", (string)null);
                 });
 
             modelBuilder.Entity("LastMile.TMS.Domain.Entities.ParcelContentItem", b =>
@@ -885,7 +888,7 @@ namespace LastMile.TMS.Persistence.Migrations
 
                     b.HasIndex("ParcelId");
 
-                    b.ToTable("ParcelContentItems");
+                    b.ToTable("ParcelContentItems", (string)null);
                 });
 
             modelBuilder.Entity("LastMile.TMS.Domain.Entities.ParcelImportHistory", b =>
@@ -991,7 +994,7 @@ namespace LastMile.TMS.Persistence.Migrations
 
                     b.HasIndex("Email");
 
-                    b.ToTable("ParcelWatchers");
+                    b.ToTable("ParcelWatchers", (string)null);
                 });
 
             modelBuilder.Entity("LastMile.TMS.Domain.Entities.RouteParcel", b =>
@@ -1080,7 +1083,7 @@ namespace LastMile.TMS.Persistence.Migrations
 
                     b.HasIndex("Timestamp");
 
-                    b.ToTable("TrackingEvents");
+                    b.ToTable("TrackingEvents", (string)null);
                 });
 
             modelBuilder.Entity("LastMile.TMS.Domain.Entities.User", b =>
@@ -1130,7 +1133,7 @@ namespace LastMile.TMS.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("User");
+                    b.ToTable("User", (string)null);
                 });
 
             modelBuilder.Entity("LastMile.TMS.Domain.Entities.Vehicle", b =>
@@ -1700,7 +1703,7 @@ namespace LastMile.TMS.Persistence.Migrations
 
                     b.HasIndex("ParcelId");
 
-                    b.ToTable("ParcelWatcherParcel");
+                    b.ToTable("ParcelWatcherParcel", (string)null);
                 });
 
             modelBuilder.Entity("InboundManifestParcel", b =>
@@ -1809,7 +1812,7 @@ namespace LastMile.TMS.Persistence.Migrations
 
                             b1.HasKey("DepotId");
 
-                            b1.ToTable("Depots");
+                            b1.ToTable("Depots", (string)null);
 
                             b1.WithOwner()
                                 .HasForeignKey("DepotId");
@@ -1855,7 +1858,7 @@ namespace LastMile.TMS.Persistence.Migrations
 
                             b1.HasKey("DriverId");
 
-                            b1.ToTable("Drivers");
+                            b1.ToTable("Drivers", (string)null);
 
                             b1.WithOwner()
                                 .HasForeignKey("DriverId");
