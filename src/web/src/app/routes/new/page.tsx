@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import TmNavbar from "@/components/TmNavbar";
 import { createRouteAction, addParcelsToRouteAction, autoAssignParcelsAction, removeParcelFromRouteAction, deleteRouteAction } from "@/lib/actions/routes";
@@ -114,6 +115,7 @@ const GET_STAGED_PARCELS = `
 
 export default function NewRoutePage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -211,6 +213,8 @@ export default function NewRoutePage() {
     }
 
     if (result.routeId) {
+      // Invalidate routes list so it refreshes when user navigates back
+      queryClient.invalidateQueries({ queryKey: ["routes"] });
       // Route created — now fetch it for the parcel assignment step
       const { getRouteAction } = await import("@/lib/actions/routes");
       const route = await getRouteAction(result.routeId);
@@ -628,6 +632,7 @@ export default function NewRoutePage() {
                   onClick={async () => {
                     if (createdRoute && confirm("Delete this draft route and go back?")) {
                       await deleteRouteAction(createdRoute.id);
+                      queryClient.invalidateQueries({ queryKey: ["routes"] });
                     }
                     router.push("/routes");
                   }}
@@ -642,7 +647,10 @@ export default function NewRoutePage() {
                 </button>
               </div>
               <button
-                onClick={() => router.push("/routes")}
+                onClick={() => {
+                  queryClient.invalidateQueries({ queryKey: ["routes"] });
+                  router.push("/routes");
+                }}
                 style={{
                   padding: ".5rem 1.25rem", borderRadius: 6,
                   background: "rgba(245,158,11,.1)", border: "1px solid rgba(245,158,11,.3)",
