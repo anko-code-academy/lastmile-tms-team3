@@ -52,4 +52,40 @@ public class RouteMutation
     {
         return await mediator.Send(new DeleteRoute.Command(routeId), cancellationToken);
     }
+
+    [Authorize(Policy = "AdminOrDispatcher")]
+    public async Task<RouteDto> AssignDriverToRoute(
+        [Service] IMediator mediator,
+        AssignDriverToRouteDto input,
+        CancellationToken cancellationToken = default)
+    {
+        return await mediator.Send(new AssignDriverToRoute.Command(input), cancellationToken);
+    }
+
+    [Authorize(Policy = "AdminOrDispatcher")]
+    public async Task<RouteDto> AssignVehicleToRoute(
+        [Service] IMediator mediator,
+        AssignVehicleToRouteDto input,
+        CancellationToken cancellationToken = default)
+    {
+        return await mediator.Send(new AssignVehicleToRoute.Command(input), cancellationToken);
+    }
+
+    [Authorize(Policy = "AdminOrDispatcher")]
+    public async Task<RouteDto> UnassignDriverFromRoute(
+        [Service] IMediator mediator,
+        UnassignFromRouteDto input,
+        CancellationToken cancellationToken = default)
+    {
+        return await mediator.Send(new UnassignDriverFromRoute.Command(input), cancellationToken);
+    }
+
+    [Authorize(Policy = "AdminOrDispatcher")]
+    public async Task<RouteDto> UnassignVehicleFromRoute(
+        [Service] IMediator mediator,
+        UnassignFromRouteDto input,
+        CancellationToken cancellationToken = default)
+    {
+        return await mediator.Send(new UnassignVehicleFromRoute.Command(input), cancellationToken);
+    }
 }

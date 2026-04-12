@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import TmNavbar from "@/components/TmNavbar";
 import RouteStatusBadge from "@/components/routes/RouteStatusBadge";
@@ -39,6 +40,7 @@ const COLS: { label: string; sortKey: SortKey | null }[] = [
 
 export default function RoutesPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<RouteStatus | "">("");
   const [after, setAfter] = useState<string | undefined>(undefined);
   const [before, setBefore] = useState<string | undefined>(undefined);
@@ -49,7 +51,7 @@ export default function RoutesPage() {
 
   const [filters, setFilters] = useState<RouteFilter>({});
 
-  const { data, isLoading, error: queryError, refetch } = useSearchRoutes({
+  const { data, isLoading, error: queryError } = useSearchRoutes({
     filter: filters,
     sortField: sortColumn,
     sortDirection: sortDir.toUpperCase() as "ASC" | "DESC",
@@ -68,9 +70,9 @@ export default function RoutesPage() {
     if (result.error) {
       alert(result.error);
     } else {
-      refetch();
+      queryClient.invalidateQueries({ queryKey: ["routes"] });
     }
-  }, [refetch]);
+  }, [queryClient]);
 
   function handleSearch() {
     const f: RouteFilter = {};

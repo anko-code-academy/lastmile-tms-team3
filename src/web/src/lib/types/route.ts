@@ -114,3 +114,23 @@ export interface RemoveParcelFromRouteInput {
   routeId: string;
   parcelId: string;
 }
+
+export interface AssignDriverToRouteInput {
+  routeId: string;
+  driverId: string;
+}
+
+export interface AssignVehicleToRouteInput {
+  routeId: string;
+  vehicleId: string;
+}
+
+export interface UnassignFromRouteInput {
+  routeId: string;
+}
+
+export interface AvailableDriver {
+  id: string;
+  fullName: string;
+  routeCount: number;
+}

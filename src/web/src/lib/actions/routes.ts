@@ -8,11 +8,20 @@ import {
   REMOVE_PARCEL_FROM_ROUTE,
   AUTO_ASSIGN_PARCELS,
   DELETE_ROUTE,
+  ASSIGN_DRIVER_TO_ROUTE,
+  ASSIGN_VEHICLE_TO_ROUTE,
+  UNASSIGN_DRIVER_FROM_ROUTE,
+  UNASSIGN_VEHICLE_FROM_ROUTE,
+  GET_AVAILABLE_DRIVERS,
 } from "@/lib/graphql/queries/routes";
 import type {
   CreateRouteInput,
   AddParcelsToRouteInput,
   RemoveParcelFromRouteInput,
+  AssignDriverToRouteInput,
+  AssignVehicleToRouteInput,
+  UnassignFromRouteInput,
+  AvailableDriver,
   RouteStatus,
 } from "@/lib/types/route";
 
@@ -174,6 +183,99 @@ export async function deleteRouteAction(
   } catch (err) {
     return {
       error: err instanceof Error ? err.message : "Failed to delete route",
+    };
+  }
+}
+
+export async function assignDriverToRouteAction(
+  input: AssignDriverToRouteInput
+): Promise<{ error?: string }> {
+  try {
+    await gqlFetch<{ assignDriverToRoute: DeliveryRoute }>(
+      ASSIGN_DRIVER_TO_ROUTE,
+      { input }
+    );
+    return {};
+  } catch (err) {
+    return {
+      error:
+        err instanceof Error ? err.message : "Failed to assign driver to route",
+    };
+  }
+}
+
+export async function assignVehicleToRouteAction(
+  input: AssignVehicleToRouteInput
+): Promise<{ error?: string }> {
+  try {
+    await gqlFetch<{ assignVehicleToRoute: DeliveryRoute }>(
+      ASSIGN_VEHICLE_TO_ROUTE,
+      { input }
+    );
+    return {};
+  } catch (err) {
+    return {
+      error:
+        err instanceof Error
+          ? err.message
+          : "Failed to assign vehicle to route",
+    };
+  }
+}
+
+export async function unassignDriverFromRouteAction(
+  input: UnassignFromRouteInput
+): Promise<{ error?: string }> {
+  try {
+    await gqlFetch<{ unassignDriverFromRoute: DeliveryRoute }>(
+      UNASSIGN_DRIVER_FROM_ROUTE,
+      { input }
+    );
+    return {};
+  } catch (err) {
+    return {
+      error:
+        err instanceof Error
+          ? err.message
+          : "Failed to unassign driver from route",
+    };
+  }
+}
+
+export async function unassignVehicleFromRouteAction(
+  input: UnassignFromRouteInput
+): Promise<{ error?: string }> {
+  try {
+    await gqlFetch<{ unassignVehicleFromRoute: DeliveryRoute }>(
+      UNASSIGN_VEHICLE_FROM_ROUTE,
+      { input }
+    );
+    return {};
+  } catch (err) {
+    return {
+      error:
+        err instanceof Error
+          ? err.message
+          : "Failed to unassign vehicle from route",
+    };
+  }
+}
+
+export async function getAvailableDriversAction(
+  date: string
+): Promise<{ error?: string; drivers?: AvailableDriver[] }> {
+  try {
+    const data = await gqlFetch<{ availableDrivers: AvailableDriver[] }>(
+      GET_AVAILABLE_DRIVERS,
+      { date }
+    );
+    return { drivers: data.availableDrivers };
+  } catch (err) {
+    return {
+      error:
+        err instanceof Error
+          ? err.message
+          : "Failed to fetch available drivers",
     };
   }
 }

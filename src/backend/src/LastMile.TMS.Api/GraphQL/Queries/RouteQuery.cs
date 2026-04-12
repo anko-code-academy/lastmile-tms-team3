@@ -3,8 +3,11 @@ using HotChocolate.Data;
 using HotChocolate.Types;
 using LastMile.TMS.Api.GraphQL.Types.Filters;
 using LastMile.TMS.Api.GraphQL.Types.Sorting;
+using LastMile.TMS.Application.Features.Routes.DTOs;
+using LastMile.TMS.Application.Features.Routes.Queries;
 using LastMile.TMS.Domain.Entities;
 using LastMile.TMS.Persistence;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 
 namespace LastMile.TMS.Api.GraphQL.Queries;
@@ -38,4 +41,13 @@ public class RouteQuery
             .Include(r => r.Driver)
             .Include(r => r.Vehicle)
             .Include(r => r.RouteParcels);
+
+    [Authorize(Policy = "AdminOrDispatcher")]
+    public async Task<IReadOnlyList<AvailableDriverDto>> GetAvailableDrivers(
+        [Service] IMediator mediator,
+        DateOnly date,
+        CancellationToken cancellationToken = default)
+    {
+        return await mediator.Send(new GetAvailableDrivers.Query(date), cancellationToken);
+    }
 }

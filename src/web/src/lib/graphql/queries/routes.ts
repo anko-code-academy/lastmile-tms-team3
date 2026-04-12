@@ -117,3 +117,97 @@ export const DELETE_ROUTE = `
     deleteRoute(routeId: $routeId)
   }
 `;
+
+export const ASSIGN_DRIVER_TO_ROUTE = `
+  mutation AssignDriverToRoute($input: AssignDriverToRouteDtoInput!) {
+    assignDriverToRoute(input: $input) {
+      id
+      date
+      zoneId
+      zoneName
+      driverId
+      driverName
+      vehicleId
+      vehiclePlate
+      status
+      parcelCount
+      estimatedStops
+      estimatedDistance
+      createdAt
+      lastModifiedAt
+    }
+  }
+`;
+
+export const ASSIGN_VEHICLE_TO_ROUTE = `
+  mutation AssignVehicleToRoute($input: AssignVehicleToRouteDtoInput!) {
+    assignVehicleToRoute(input: $input) {
+      id
+      date
+      zoneId
+      zoneName
+      driverId
+      driverName
+      vehicleId
+      vehiclePlate
+      status
+      parcelCount
+      estimatedStops
+      estimatedDistance
+      createdAt
+      lastModifiedAt
+    }
+  }
+`;
+
+export const UNASSIGN_DRIVER_FROM_ROUTE = `
+  mutation UnassignDriverFromRoute($input: UnassignFromRouteDtoInput!) {
+    unassignDriverFromRoute(input: $input) {
+      id
+      date
+      zoneId
+      zoneName
+      driverId
+      driverName
+      vehicleId
+      vehiclePlate
+      status
+      parcelCount
+      estimatedStops
+      estimatedDistance
+      createdAt
+      lastModifiedAt
+    }
+  }
+`;
+
+export const UNASSIGN_VEHICLE_FROM_ROUTE = `
+  mutation UnassignVehicleFromRoute($input: UnassignFromRouteDtoInput!) {
+    unassignVehicleFromRoute(input: $input) {
+      id
+      date
+      zoneId
+      zoneName
+      driverId
+      driverName
+      vehicleId
+      vehiclePlate
+      status
+      parcelCount
+      estimatedStops
+      estimatedDistance
+      createdAt
+      lastModifiedAt
+    }
+  }
+`;
+
+export const GET_AVAILABLE_DRIVERS = `
+  query GetAvailableDrivers($date: LocalDate!) {
+    availableDrivers(date: $date) {
+      id
+      fullName
+      routeCount
+    }
+  }
+`;
