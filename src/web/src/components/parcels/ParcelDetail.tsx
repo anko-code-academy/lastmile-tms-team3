@@ -150,7 +150,7 @@ export function ParcelDetail({ parcel: initialParcel }: { parcel: Parcel }) {
           </p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: ".75rem", flexWrap: "wrap", justifyContent: "flex-end" }}>
-          <ParcelStatusBadge status={parcel.status} />
+          <ParcelStatusBadge status={parcel.status} size="md" />
           {canEdit && (
             <>
               <button
@@ -402,17 +402,31 @@ function PrintLabelMenu({ parcelId, trackingNumber }: { parcelId: string; tracki
   }
 
   return (
-    <div className="relative">
+    <div style={{ position: "relative" }}>
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-medium hover:bg-accent transition-colors"
         disabled={loading !== null}
+        style={{
+          display: "flex", alignItems: "center", gap: ".375rem",
+          padding: ".4rem .875rem",
+          background: "rgba(255,255,255,.06)",
+          border: "1px solid rgba(255,255,255,.15)",
+          borderRadius: 6,
+          color: S.text,
+          fontSize: ".8rem",
+          fontFamily: S.mono,
+          cursor: loading ? "default" : "pointer",
+          opacity: loading ? .6 : 1,
+          transition: "background .15s",
+        }}
+        onMouseEnter={e => { if (!loading) (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,.1)"; }}
+        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,.06)"; }}
       >
         {loading ? (
-          <span className="text-xs">Downloading...</span>
+          <span>Downloading...</span>
         ) : (
           <>
-            <Printer className="h-4 w-4" />
+            <Printer size={13} />
             Print Label
           </>
         )}
@@ -420,20 +434,30 @@ function PrintLabelMenu({ parcelId, trackingNumber }: { parcelId: string; tracki
 
       {open && (
         <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-1 z-20 w-48 rounded-lg border border-border bg-card shadow-lg py-1">
-            <button
-              onClick={() => handlePrint("pdf")}
-              className="w-full px-3 py-2 text-left text-sm hover:bg-accent transition-colors"
-            >
-              A4 PDF
-            </button>
-            <button
-              onClick={() => handlePrint("zpl")}
-              className="w-full px-3 py-2 text-left text-sm hover:bg-accent transition-colors"
-            >
-              4x6 Thermal (ZPL)
-            </button>
+          <div style={{ position: "fixed", inset: 0, zIndex: 10 }} onClick={() => setOpen(false)} />
+          <div style={{
+            position: "absolute", right: 0, top: "calc(100% + 4px)", zIndex: 20,
+            width: 160, borderRadius: 8,
+            border: "1px solid rgba(255,255,255,.12)",
+            background: "#0d1627",
+            boxShadow: "0 8px 24px rgba(0,0,0,.5)",
+            padding: "4px 0",
+          }}>
+            {(["pdf", "zpl"] as const).map(fmt => (
+              <button
+                key={fmt}
+                onClick={() => handlePrint(fmt)}
+                style={{
+                  display: "block", width: "100%", padding: ".5rem .875rem",
+                  textAlign: "left", background: "none", border: "none",
+                  color: S.text, fontSize: ".8rem", fontFamily: S.mono, cursor: "pointer",
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,.06)"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "none"; }}
+              >
+                {fmt === "pdf" ? "A4 PDF" : "4×6 Thermal (ZPL)"}
+              </button>
+            ))}
           </div>
         </>
       )}

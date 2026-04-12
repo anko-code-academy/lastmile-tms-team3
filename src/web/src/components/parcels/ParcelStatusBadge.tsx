@@ -18,17 +18,19 @@ const STATUS_CONFIG: Record<ParcelStatus, { label: string; color: string; bg: st
 
 const MONO = "var(--font-geist-mono, monospace)";
 
-export function ParcelStatusBadge({ status }: { status: ParcelStatus }) {
+export function ParcelStatusBadge({ status, size = "sm" }: { status: ParcelStatus; size?: "sm" | "md" }) {
   const cfg = STATUS_CONFIG[status] ?? { label: status, color: "#94a3b8", bg: "rgba(148,163,184,.1)", border: "rgba(148,163,184,.25)" };
+  const isMd = size === "md";
   return (
     <span style={{
       display: "inline-block",
       fontFamily: MONO,
-      fontSize: "9px",
-      letterSpacing: ".1em",
+      fontSize: isMd ? "11px" : "9px",
+      letterSpacing: isMd ? ".12em" : ".1em",
+      fontWeight: isMd ? 700 : 600,
       textTransform: "uppercase",
-      padding: ".2rem .5rem",
-      borderRadius: 4,
+      padding: isMd ? ".35rem .75rem" : ".2rem .5rem",
+      borderRadius: isMd ? 6 : 4,
       border: `1px solid ${cfg.border}`,
       background: cfg.bg,
       color: cfg.color,
