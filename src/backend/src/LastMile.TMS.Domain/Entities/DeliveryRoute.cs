@@ -67,7 +67,8 @@ public class DeliveryRoute : BaseAuditableEntity, IAuditTracked
         var routeParcel = RouteParcels.FirstOrDefault(rp => rp.ParcelId == parcelId)
             ?? throw new InvalidOperationException($"Parcel '{parcelId}' not found on this route.");
 
-        RouteParcels.Remove(routeParcel);
+        if (routeParcel.Parcel is not null)
+            RouteParcels.Remove(routeParcel);
         ReorderStops();
         RecalculateEstimatedStops();
     }

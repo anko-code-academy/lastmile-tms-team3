@@ -12,7 +12,7 @@ public class DeliveryRouteType : ObjectType<DeliveryRoute>
         descriptor.Field(x => x.Id);
         descriptor.Field(x => x.Name);
         descriptor.Field(x => x.DepotId);
-        descriptor.Field(x => x.Depot).Type<NonNullType<DepotType>>();
+        descriptor.Field(x => x.Depot).Type<DepotType>();
         descriptor.Field(x => x.DriverId);
         descriptor.Field(x => x.Driver).Type<DriverType>();
         descriptor.Field(x => x.ZoneId);

@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import TmNavbar from "@/components/TmNavbar";
 import RouteStatusBadge from "@/components/routes/RouteStatusBadge";
 import { useSearchRoutes } from "@/lib/hooks/useRoutes";
+import { deleteRouteAction } from "@/lib/actions/routes";
 import { RouteStatus } from "@/lib/types/route";
 import type { RouteFilter } from "@/lib/actions/routes";
 
@@ -16,6 +17,7 @@ const S = {
   text: "#e2e8f0" as const,
   muted: "#4a5f7a" as const,
   accent: "#f59e0b" as const,
+  red: "#ef4444" as const,
   inputBg: "rgba(255,255,255,.05)" as const,
   inputBorder: "rgba(255,255,255,.1)" as const,
 };
@@ -32,6 +34,7 @@ const COLS: { label: string; sortKey: SortKey | null }[] = [
   { label: "Stops", sortKey: null },
   { label: "Status", sortKey: "status" },
   { label: "Created", sortKey: "createdAt" },
+  { label: "", sortKey: null },
 ];
 
 export default function RoutesPage() {
@@ -42,10 +45,11 @@ export default function RoutesPage() {
   const [direction, setDirection] = useState<"forward" | "backward" | undefined>(undefined);
   const [sortColumn, setSortColumn] = useState<SortKey>("createdAt");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   const [filters, setFilters] = useState<RouteFilter>({});
 
-  const { data, isLoading } = useSearchRoutes({
+  const { data, isLoading, error: queryError, refetch } = useSearchRoutes({
     filter: filters,
     sortField: sortColumn,
     sortDirection: sortDir.toUpperCase() as "ASC" | "DESC",
@@ -54,6 +58,19 @@ export default function RoutesPage() {
     last: direction === "backward" ? 20 : undefined,
     before: direction === "backward" ? before : undefined,
   });
+
+  const handleDelete = useCallback(async (e: React.MouseEvent, routeId: string) => {
+    e.stopPropagation();
+    if (!confirm("Delete this draft route?")) return;
+    setDeleting(routeId);
+    const result = await deleteRouteAction(routeId);
+    setDeleting(null);
+    if (result.error) {
+      alert(result.error);
+    } else {
+      refetch();
+    }
+  }, [refetch]);
 
   function handleSearch() {
     const f: RouteFilter = {};
@@ -87,8 +104,8 @@ export default function RoutesPage() {
   }
 
   function getSortIndicator(key: SortKey) {
-    if (sortColumn !== key) return "↕";
-    return sortDir === "asc" ? "↑" : "↓";
+    if (sortColumn !== key) return "\u2195";
+    return sortDir === "asc" ? "\u2191" : "\u2193";
   }
 
   const routes = data?.items ?? [];
@@ -106,6 +123,7 @@ export default function RoutesPage() {
         .tm-select { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); color: #e2e8f0; border-radius: 6px; padding: .5rem .75rem; font-size: .875rem; width: 100%; outline: none; }
         .tm-select:focus { border-color: rgba(245,158,11,.45); }
         .tm-select option { background: #0f1929; color: #e2e8f0; }
+        .del-btn:hover { opacity: 1 !important; }
       `}</style>
       <div style={{ minHeight: "100vh", background: S.bg, color: S.text, position: "relative", overflow: "hidden" }}>
         <div
@@ -192,6 +210,13 @@ export default function RoutesPage() {
               </button>
             </div>
 
+            {/* Error */}
+            {queryError && (
+              <div style={{ marginBottom: "1rem", padding: ".75rem", borderRadius: 6, background: "rgba(239,68,68,.1)", border: "1px solid rgba(239,68,68,.3)", color: S.red, fontSize: ".85rem" }}>
+                {queryError.message}
+              </div>
+            )}
+
             {/* Table */}
             <div style={{ border: `1px solid ${S.border}`, borderRadius: 8, overflow: "hidden" }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -263,6 +288,28 @@ export default function RoutesPage() {
                         <td style={{ padding: ".75rem 1rem", fontSize: ".8rem", color: S.muted }}>
                           {new Date(route.createdAt).toLocaleDateString()}
                         </td>
+                        <td style={{ padding: ".5rem .5rem", textAlign: "center" }}>
+                          {route.status === "DRAFT" && (
+                            <button
+                              className="del-btn"
+                              onClick={(e) => handleDelete(e, route.id)}
+                              disabled={deleting === route.id}
+                              title="Delete draft route"
+                              style={{
+                                background: "none",
+                                border: "none",
+                                color: S.red,
+                                cursor: deleting === route.id ? "not-allowed" : "pointer",
+                                fontSize: ".8rem",
+                                opacity: deleting === route.id ? 0.4 : 0.5,
+                                padding: ".25rem",
+                                borderRadius: 3,
+                              }}
+                            >
+                              {"\u2715"}
+                            </button>
+                          )}
+                        </td>
                       </tr>
                     ))
                   )}
@@ -293,7 +340,7 @@ export default function RoutesPage() {
                     fontSize: ".8rem",
                   }}
                 >
-                  ← Prev
+                  {"\u2190"} Prev
                 </button>
                 <button
                   disabled={!hasNext}
@@ -312,7 +359,7 @@ export default function RoutesPage() {
                     fontSize: ".8rem",
                   }}
                 >
-                  Next →
+                  Next {"\u2192"}
                 </button>
               </div>
             </div>

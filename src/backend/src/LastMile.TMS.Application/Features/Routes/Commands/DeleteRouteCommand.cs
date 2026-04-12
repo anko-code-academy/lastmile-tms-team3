@@ -7,11 +7,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LastMile.TMS.Application.Features.Routes.Commands;
 
-public static class AutoAssignParcels
+public static class DeleteRoute
 {
-    public record Command(Guid RouteId) : IRequest<RouteDto>;
+    public record Command(Guid RouteId) : IRequest<bool>;
 
-    public class Handler : IRequestHandler<Command, RouteDto>
+    public class Handler : IRequestHandler<Command, bool>
     {
         private readonly IAppDbContextFactory _contextFactory;
 
@@ -20,34 +20,28 @@ public static class AutoAssignParcels
             _contextFactory = contextFactory;
         }
 
-        public async Task<RouteDto> Handle(Command request, CancellationToken cancellationToken)
+        public async Task<bool> Handle(Command request, CancellationToken cancellationToken)
         {
             using var context = _contextFactory.CreateDbContext();
 
             var route = await context.DeliveryRoutes
                 .Include(r => r.RouteParcels)
-                .Include(r => r.Zone)
-                .Include(r => r.Driver)
-                .Include(r => r.Vehicle)
                 .FirstOrDefaultAsync(r => r.Id == request.RouteId, cancellationToken)
                 ?? throw new InvalidOperationException($"Route with ID '{request.RouteId}' was not found.");
 
-            var existingParcelIds = route.RouteParcels.Select(rp => rp.ParcelId).ToHashSet();
+            if (route.Status != RouteStatus.Draft)
+                throw new InvalidOperationException("Only draft routes can be deleted.");
 
-            var stagedParcels = await context.Parcels
-                .Where(p => p.ZoneId == route.ZoneId
-                    && p.Status == ParcelStatus.Sorted
-                    && !existingParcelIds.Contains(p.Id))
-                .ToListAsync(cancellationToken);
-
-            foreach (var parcel in stagedParcels)
+            // Remove all RouteParcel join entries
+            foreach (var rp in route.RouteParcels.ToList())
             {
-                route.AddParcel(parcel);
+                context.RouteParcels.Remove(rp);
             }
 
+            context.DeliveryRoutes.Remove(route);
             await context.SaveChangesAsync(cancellationToken);
 
-            return RouteMapper.ToDto(route);
+            return true;
         }
     }
 }

@@ -28,15 +28,14 @@ public class RouteQuery
 
     [Authorize(Policy = "AdminOrDispatcher")]
     [UsePaging(IncludeTotalCount = true, MaxPageSize = 100)]
-    [UseProjection]
     [UseFiltering(typeof(DeliveryRouteFilterInput))]
     [UseSorting(typeof(DeliveryRouteSortInput))]
     public IQueryable<DeliveryRoute> GetRoutes(
-        AppDbContext context,
-        string? search = null)
+        AppDbContext context)
         => context.DeliveryRoutes
             .AsNoTracking()
             .Include(r => r.Zone)
             .Include(r => r.Driver)
-            .Include(r => r.Vehicle);
+            .Include(r => r.Vehicle)
+            .Include(r => r.RouteParcels);
 }

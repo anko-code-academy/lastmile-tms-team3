@@ -1,7 +1,6 @@
 using LastMile.TMS.Application.Common.Interfaces;
 using LastMile.TMS.Application.Features.Routes.DTOs;
 using LastMile.TMS.Application.Features.Routes.Mappers;
-using LastMile.TMS.Domain.Entities;
 using LastMile.TMS.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -33,8 +32,16 @@ public static class AddParcelsToRoute
                 .FirstOrDefaultAsync(r => r.Id == request.Dto.RouteId, cancellationToken)
                 ?? throw new InvalidOperationException($"Route with ID '{request.Dto.RouteId}' was not found.");
 
+            // Only add parcels that are Sorted and not already on any route
+            var alreadyRoutedParcelIds = await context.RouteParcels
+                .Where(rp => request.Dto.ParcelIds.Contains(rp.ParcelId))
+                .Select(rp => rp.ParcelId)
+                .ToHashSetAsync(cancellationToken);
+
             var parcels = await context.Parcels
-                .Where(p => request.Dto.ParcelIds.Contains(p.Id))
+                .Where(p => request.Dto.ParcelIds.Contains(p.Id)
+                    && p.Status == ParcelStatus.Sorted
+                    && !alreadyRoutedParcelIds.Contains(p.Id))
                 .ToListAsync(cancellationToken);
 
             foreach (var parcel in parcels)

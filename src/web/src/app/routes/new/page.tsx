@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import TmNavbar from "@/components/TmNavbar";
-import { createRouteAction, addParcelsToRouteAction, autoAssignParcelsAction } from "@/lib/actions/routes";
+import { createRouteAction, addParcelsToRouteAction, autoAssignParcelsAction, removeParcelFromRouteAction, deleteRouteAction } from "@/lib/actions/routes";
 import { useZones } from "@/lib/hooks/useZones";
 import { useSearchVehicles } from "@/lib/hooks/useVehicles";
 import { useDepotNames } from "@/lib/hooks/useDepots";
@@ -81,6 +81,7 @@ interface DriverOption {
 interface StagedParcel {
   id: string;
   trackingNumber: string;
+  routeAssignments: { routeId: string }[];
 }
 
 const GET_DRIVERS = `
@@ -103,6 +104,9 @@ const GET_STAGED_PARCELS = `
       nodes {
         id
         trackingNumber
+        routeAssignments {
+          routeId
+        }
       }
     }
   }
@@ -151,6 +155,11 @@ export default function NewRoutePage() {
       .catch((err) => setDriverError(err.message));
   }, []);
 
+  // Filter: only show parcels not already on any route
+  function filterAvailable(parcels: StagedParcel[]): StagedParcel[] {
+    return parcels.filter((p) => p.routeAssignments.length === 0);
+  }
+
   // When zone is selected, fetch staged parcels for that zone
   useEffect(() => {
     if (!form.zoneId) {
@@ -158,11 +167,11 @@ export default function NewRoutePage() {
       return;
     }
     graphql<{ parcels: { nodes: StagedParcel[] } }>(GET_STAGED_PARCELS, {
-      first: 200,
-      where: { status: { eq: "STAGED" }, zoneId: { eq: form.zoneId } },
+      first: 50,
+      where: { status: { eq: "SORTED" }, zoneId: { eq: form.zoneId } },
     })
-      .then((data) => setStagedParcels(data.parcels.nodes))
-      .catch(() => setStagedParcels([]));
+      .then((data) => { setStagedParcels(filterAvailable(data.parcels.nodes)); })
+      .catch((err) => { console.error("Failed to fetch staged parcels:", err); setStagedParcels([]); });
   }, [form.zoneId]);
 
   // Filter vehicles: only AVAILABLE
@@ -225,10 +234,10 @@ export default function NewRoutePage() {
       // Refresh staged parcels list (remove already assigned)
       if (form.zoneId) {
         const data = await graphql<{ parcels: { nodes: StagedParcel[] } }>(GET_STAGED_PARCELS, {
-          first: 200,
-          where: { status: { eq: "STAGED" }, zoneId: { eq: form.zoneId } },
+          first: 50,
+          where: { status: { eq: "SORTED" }, zoneId: { eq: form.zoneId } },
         });
-        setStagedParcels(data.parcels.nodes);
+        setStagedParcels(filterAvailable(data.parcels.nodes));
       }
     }
   }
@@ -249,6 +258,42 @@ export default function NewRoutePage() {
       const { getRouteAction } = await import("@/lib/actions/routes");
       const route = await getRouteAction(createdRoute.id);
       setCreatedRoute(route);
+      // Refresh staged parcels list to remove already-assigned ones
+      if (form.zoneId) {
+        graphql<{ parcels: { nodes: StagedParcel[] } }>(GET_STAGED_PARCELS, {
+          first: 50,
+          where: { status: { eq: "SORTED" }, zoneId: { eq: form.zoneId } },
+        })
+          .then((data) => setStagedParcels(filterAvailable(data.parcels.nodes)))
+          .catch(() => {});
+      }
+    }
+  }
+
+  async function handleRemoveParcel(parcelId: string) {
+    if (!createdRoute) return;
+    setAssigning(true);
+    setError(null);
+    const result = await removeParcelFromRouteAction({
+      routeId: createdRoute.id,
+      parcelId,
+    });
+    setAssigning(false);
+    if (result.error) {
+      setError(result.error);
+    } else {
+      const { getRouteAction } = await import("@/lib/actions/routes");
+      const route = await getRouteAction(createdRoute.id);
+      setCreatedRoute(route);
+      // Refresh staged parcels so the removed one reappears
+      if (form.zoneId) {
+        graphql<{ parcels: { nodes: StagedParcel[] } }>(GET_STAGED_PARCELS, {
+          first: 50,
+          where: { status: { eq: "SORTED" }, zoneId: { eq: form.zoneId } },
+        })
+          .then((data) => setStagedParcels(filterAvailable(data.parcels.nodes)))
+          .catch(() => {});
+      }
     }
   }
 
@@ -347,7 +392,7 @@ export default function NewRoutePage() {
 
                   {form.zoneId && stagedParcels.length > 0 && (
                     <div style={{ padding: ".5rem .75rem", borderRadius: 6, background: "rgba(245,158,11,.06)", border: "1px solid rgba(245,158,11,.15)", fontSize: ".8rem", color: S.accent }}>
-                      {stagedParcels.length} staged parcel{stagedParcels.length !== 1 ? "s" : ""} available in this zone &mdash; you can assign them in step 2
+                      {stagedParcels.length} sorted parcel{stagedParcels.length !== 1 ? "s" : ""} available in this zone &mdash; you can assign them in step 2
                     </div>
                   )}
 
@@ -399,6 +444,7 @@ export default function NewRoutePage() {
         .tm-select:focus { border-color: rgba(245,158,11,.45); }
         .tm-select option { background: #0f1929; color: #e2e8f0; }
         .parcel-row:hover { background: rgba(255,255,255,.03); }
+        .parcel-row:hover .remove-btn { opacity: 1 !important; }
         .tm-btn-primary:hover { border-color: rgba(245,158,11,.6) !important; background: rgba(245,158,11,.18) !important; }
       `}</style>
       <div style={{ minHeight: "100vh", background: S.bg, color: S.text, position: "relative", overflow: "hidden" }}>
@@ -434,7 +480,7 @@ export default function NewRoutePage() {
               {/* Available staged parcels */}
               <div style={{ border: `1px solid ${S.border}`, borderRadius: 8, overflow: "hidden" }}>
                 <div style={{ padding: ".75rem 1rem", borderBottom: `1px solid ${S.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontWeight: 600, fontSize: ".875rem" }}>Staged Parcels ({stagedParcels.length})</span>
+                  <span style={{ fontWeight: 600, fontSize: ".875rem" }}>Available Parcels ({stagedParcels.length})</span>
                   <button
                     onClick={handleAutoAssign}
                     disabled={assigning || stagedParcels.length === 0}
@@ -451,7 +497,7 @@ export default function NewRoutePage() {
                 <div style={{ maxHeight: 400, overflow: "auto" }}>
                   {stagedParcels.length === 0 ? (
                     <div style={{ padding: "1.5rem", textAlign: "center", color: S.muted, fontSize: ".8rem" }}>
-                      No staged parcels available for this zone
+                      No sorted parcels available for this zone
                     </div>
                   ) : (
                     stagedParcels.map((p) => (
@@ -469,12 +515,27 @@ export default function NewRoutePage() {
                           background: selectedParcelIds.has(p.id) ? "rgba(245,158,11,.06)" : "transparent",
                         }}
                       >
-                        <input
-                          type="checkbox"
-                          checked={selectedParcelIds.has(p.id)}
-                          onChange={() => toggleParcel(p.id)}
-                          style={{ accentColor: "#f59e0b" }}
-                        />
+                        <span
+                          onClick={(e) => { e.stopPropagation(); toggleParcel(p.id); }}
+                          style={{
+                            width: 16,
+                            height: 16,
+                            borderRadius: 3,
+                            border: `1.5px solid ${selectedParcelIds.has(p.id) ? S.accent : "rgba(255,255,255,.2)"}`,
+                            background: selectedParcelIds.has(p.id) ? S.accent : "transparent",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            cursor: "pointer",
+                            flexShrink: 0,
+                            fontSize: 11,
+                            color: "#080c14",
+                            fontWeight: 700,
+                            lineHeight: 1,
+                          }}
+                        >
+                          {selectedParcelIds.has(p.id) ? "\u2713" : ""}
+                        </span>
                         <span style={{ fontFamily: S.mono, fontSize: ".8rem" }}>{p.trackingNumber}</span>
                       </div>
                     ))
@@ -513,6 +574,7 @@ export default function NewRoutePage() {
                     Array.isArray(assignedParcels) && assignedParcels.map((rp, i) => (
                       <div
                         key={rp.parcelId}
+                        className="parcel-row"
                         style={{
                           padding: ".5rem 1rem",
                           borderBottom: `1px solid ${S.border}`,
@@ -524,9 +586,29 @@ export default function NewRoutePage() {
                         <span style={{ color: S.accent, fontSize: ".75rem", fontWeight: 600, minWidth: 24 }}>
                           #{rp.stopOrder || i + 1}
                         </span>
-                        <span style={{ fontFamily: S.mono, fontSize: ".8rem" }}>
+                        <span style={{ fontFamily: S.mono, fontSize: ".8rem", flex: 1 }}>
                           {rp.parcel?.trackingNumber ?? rp.parcelId.slice(0, 8)}
                         </span>
+                        <button
+                          className="remove-btn"
+                          onClick={() => handleRemoveParcel(rp.parcelId)}
+                          disabled={assigning}
+                          title="Remove parcel from route"
+                          style={{
+                            background: "none",
+                            border: "none",
+                            color: S.red,
+                            cursor: assigning ? "not-allowed" : "pointer",
+                            fontSize: ".85rem",
+                            padding: ".15rem .35rem",
+                            borderRadius: 3,
+                            opacity: assigning ? 0.4 : 0.7,
+                            lineHeight: 1,
+                            transition: "opacity .15s",
+                          }}
+                        >
+                          &times;
+                        </button>
                       </div>
                     ))
                   )}
@@ -540,7 +622,25 @@ export default function NewRoutePage() {
               </div>
             )}
 
-            <div style={{ marginTop: "1.5rem", display: "flex", justifyContent: "flex-end", gap: ".75rem" }}>
+            <div style={{ marginTop: "1.5rem", display: "flex", justifyContent: "space-between", gap: ".75rem" }}>
+              <div style={{ display: "flex", gap: ".75rem" }}>
+                <button
+                  onClick={async () => {
+                    if (createdRoute && confirm("Delete this draft route and go back?")) {
+                      await deleteRouteAction(createdRoute.id);
+                    }
+                    router.push("/routes");
+                  }}
+                  style={{
+                    padding: ".5rem 1.25rem", borderRadius: 6,
+                    background: "transparent", border: `1px solid rgba(239,68,68,.3)`,
+                    color: S.red, fontWeight: 600, fontSize: ".875rem",
+                    cursor: "pointer",
+                  }}
+                >
+                  &larr; Delete &amp; Back
+                </button>
+              </div>
               <button
                 onClick={() => router.push("/routes")}
                 style={{

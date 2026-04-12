@@ -205,24 +205,23 @@ public class RouteCommandTests : IDisposable
         var dto1 = new AddParcelsToRouteDto(route.Id, [parcel.Id]);
         await _addParcelsHandler.Handle(new AddParcelsToRoute.Command(dto1), CancellationToken.None);
 
-        // Act — try adding same parcel again
+        // Act — try adding same parcel again (it's now Staged, not Sorted, so handler filters it out)
         var dto2 = new AddParcelsToRouteDto(route.Id, [parcel.Id]);
-        var act = () => _addParcelsHandler.Handle(new AddParcelsToRoute.Command(dto2), CancellationToken.None);
+        var result = await _addParcelsHandler.Handle(new AddParcelsToRoute.Command(dto2), CancellationToken.None);
 
-        // Assert — domain throws for duplicate
-        await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*already assigned*");
+        // Assert — parcel was skipped, count stays at 1
+        result.ParcelCount.Should().Be(1);
     }
 
     [Fact]
-    public async Task AutoAssignParcels_AddsAllStagedParcelsForZone()
+    public async Task AutoAssignParcels_AddsAllSortedParcelsForZone()
     {
         // Arrange
         var route = await CreateTestRoute();
-        var parcel1 = CreateTestParcel("TRK-A1", ParcelStatus.Staged, _zone.Id);
-        var parcel2 = CreateTestParcel("TRK-A2", ParcelStatus.Staged, _zone.Id);
-        var parcel3 = CreateTestParcel("TRK-A3", ParcelStatus.Sorted, _zone.Id); // Not staged
-        var parcel4 = CreateTestParcel("TRK-A4", ParcelStatus.Staged, Guid.NewGuid()); // Different zone
+        var parcel1 = CreateTestParcel("TRK-A1", ParcelStatus.Sorted, _zone.Id);
+        var parcel2 = CreateTestParcel("TRK-A2", ParcelStatus.Sorted, _zone.Id);
+        var parcel3 = CreateTestParcel("TRK-A3", ParcelStatus.Staged, _zone.Id); // Already staged, not eligible
+        var parcel4 = CreateTestParcel("TRK-A4", ParcelStatus.Sorted, Guid.NewGuid()); // Different zone
         _context.Parcels.AddRange(parcel1, parcel2, parcel3, parcel4);
         _context.SaveChanges();
 
@@ -230,7 +229,7 @@ public class RouteCommandTests : IDisposable
         var result = await _autoAssignHandler.Handle(
             new AutoAssignParcels.Command(route.Id), CancellationToken.None);
 
-        // Assert — only staged parcels in matching zone
+        // Assert — only sorted parcels in matching zone
         result.ParcelCount.Should().Be(2);
         result.EstimatedStops.Should().Be(2);
     }
@@ -268,7 +267,7 @@ public class RouteCommandTests : IDisposable
         return await _createHandler.Handle(new CreateRoute.Command(dto), CancellationToken.None);
     }
 
-    private Parcel CreateTestParcel(string trackingNumber, ParcelStatus status = ParcelStatus.Staged, Guid? zoneId = null)
+    private Parcel CreateTestParcel(string trackingNumber, ParcelStatus status = ParcelStatus.Sorted, Guid? zoneId = null)
     {
         var address = new Address
         {

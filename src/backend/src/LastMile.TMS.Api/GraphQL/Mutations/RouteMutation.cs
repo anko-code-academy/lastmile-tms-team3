@@ -43,4 +43,13 @@ public class RouteMutation
     {
         return await mediator.Send(new AutoAssignParcels.Command(routeId), cancellationToken);
     }
+
+    [Authorize(Policy = "AdminOrDispatcher")]
+    public async Task<bool> DeleteRoute(
+        [Service] IMediator mediator,
+        Guid routeId,
+        CancellationToken cancellationToken = default)
+    {
+        return await mediator.Send(new DeleteRoute.Command(routeId), cancellationToken);
+    }
 }

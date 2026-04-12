@@ -7,6 +7,7 @@ import {
   ADD_PARCELS_TO_ROUTE,
   REMOVE_PARCEL_FROM_ROUTE,
   AUTO_ASSIGN_PARCELS,
+  DELETE_ROUTE,
 } from "@/lib/graphql/queries/routes";
 import type {
   CreateRouteInput,
@@ -160,6 +161,19 @@ export async function autoAssignParcelsAction(
         err instanceof Error
           ? err.message
           : "Failed to auto-assign parcels",
+    };
+  }
+}
+
+export async function deleteRouteAction(
+  routeId: string
+): Promise<{ error?: string }> {
+  try {
+    await gqlFetch<{ deleteRoute: boolean }>(DELETE_ROUTE, { routeId });
+    return {};
+  } catch (err) {
+    return {
+      error: err instanceof Error ? err.message : "Failed to delete route",
     };
   }
 }

@@ -20,7 +20,7 @@ public class RouteParcelConfiguration : IEntityTypeConfiguration<RouteParcel>
 
         // Relationships
         builder.HasOne(rp => rp.Parcel)
-            .WithMany()
+            .WithMany(p => p.RouteAssignments)
             .HasForeignKey(rp => rp.ParcelId)
             .OnDelete(DeleteBehavior.Cascade);
 

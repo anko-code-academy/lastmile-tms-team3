@@ -1,5 +1,5 @@
 export const GET_ROUTES = `
-  query GetRoutes($first: Int, $after: String, $last: Int, $before: String, $where: RouteFilterInput, $order: [RouteSortInput!]) {
+  query GetRoutes($first: Int, $after: String, $last: Int, $before: String, $where: DeliveryRouteFilterInput, $order: [DeliveryRouteSortInput!]) {
     routes(first: $first, after: $after, last: $last, before: $before, where: $where, order: $order) {
       nodes {
         id
@@ -109,5 +109,11 @@ export const AUTO_ASSIGN_PARCELS = `
       parcelCount
       estimatedStops
     }
+  }
+`;
+
+export const DELETE_ROUTE = `
+  mutation DeleteRoute($routeId: UUID!) {
+    deleteRoute(routeId: $routeId)
   }
 `;

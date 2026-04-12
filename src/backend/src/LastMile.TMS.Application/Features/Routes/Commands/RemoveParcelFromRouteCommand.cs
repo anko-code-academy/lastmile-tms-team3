@@ -1,6 +1,7 @@
 using LastMile.TMS.Application.Common.Interfaces;
 using LastMile.TMS.Application.Features.Routes.DTOs;
 using LastMile.TMS.Application.Features.Routes.Mappers;
+using LastMile.TMS.Domain.Entities;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -32,6 +33,14 @@ public static class RemoveParcelFromRoute
                 ?? throw new InvalidOperationException($"Route with ID '{request.Dto.RouteId}' was not found.");
 
             route.RemoveParcel(request.Dto.ParcelId);
+
+            // Also remove from DbSet to ensure EF Core deletes the join entity
+            var routeParcel = await context.RouteParcels
+                .FirstOrDefaultAsync(rp => rp.RouteId == request.Dto.RouteId && rp.ParcelId == request.Dto.ParcelId, cancellationToken);
+            if (routeParcel is not null)
+            {
+                context.RouteParcels.Remove(routeParcel);
+            }
 
             await context.SaveChangesAsync(cancellationToken);
 
