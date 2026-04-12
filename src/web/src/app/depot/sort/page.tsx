@@ -193,65 +193,183 @@ export default function SortScanPage() {
         minHeight: "100vh",
         background: "#080c14",
         color: "#e2e8f0",
-        position: "relative",
-        overflow: "hidden",
         fontFamily: mono,
       }}
     >
+      <TmNavbar />
+
       <div
-        style={{
-          position: "fixed",
-          inset: 0,
-          zIndex: 0,
-          backgroundImage:
-            "linear-gradient(rgba(30,42,66,.45) 1px,transparent 1px),linear-gradient(90deg,rgba(30,42,66,.45) 1px,transparent 1px)",
-          backgroundSize: "52px 52px",
-          pointerEvents: "none",
-        }}
-      />
-      <div style={{ position: "relative", zIndex: 1 }}>
-        <TmNavbar />
-
-        <div
-          style={{ padding: "2rem", maxWidth: "1200px", margin: "0 auto" }}
-        >
-          {/* Header */}
-          <div style={{ marginBottom: "2rem" }}>
-            <p
-              style={{
-                fontFamily: mono,
-                fontSize: "10px",
-                letterSpacing: ".2em",
-                color: "#f59e0b",
-                textTransform: "uppercase",
-                marginBottom: ".375rem",
-              }}
-            >
-              Depot Operations
-            </p>
-            <h1
-              style={{
-                fontFamily: mono,
-                fontSize: "1.5rem",
-                fontWeight: 800,
-                color: "#e2e8f0",
-                letterSpacing: "-.02em",
-                lineHeight: 1,
-              }}
-            >
-              Sort &amp; Zone Assignment
-            </h1>
-          </div>
-
-          <div
+        style={{ padding: "2rem", maxWidth: 1360, margin: "0 auto" }}
+      >
+        {/* Header */}
+        <div style={{ marginBottom: "1.5rem" }}>
+          <p
             style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 380px",
-              gap: "1.5rem",
-              alignItems: "start",
+              fontFamily: mono,
+              fontSize: "10px",
+              letterSpacing: ".2em",
+              color: "#f59e0b",
+              textTransform: "uppercase",
+              marginBottom: ".375rem",
             }}
           >
-            {/* ── Left: Scan Panel ───────────────────────────────── */}
+            Depot Operations
+          </p>
+          <h1
+            style={{
+              fontFamily: mono,
+              fontSize: "1.5rem",
+              fontWeight: 800,
+              margin: 0,
+            }}
+          >
+            Sort &amp; Zone Assignment
+          </h1>
+          <p
+            style={{
+              margin: ".55rem 0 0",
+              fontFamily: mono,
+              fontSize: "11px",
+              letterSpacing: ".06em",
+              color: "#4a5f7a",
+            }}
+          >
+            Scan parcels to assign zones and bins for delivery.
+          </p>
+        </div>
+
+        <div
+          style={{
+            fontSize: "10px",
+            letterSpacing: ".14em",
+            color: "#475569",
+            textTransform: "uppercase",
+            marginBottom: ".5rem",
+          }}
+        >
+          Parcels
+          {listResult && (
+            <span style={{ color: "#334155", marginLeft: ".5rem" }}>
+              ({listResult.totalCount})
+            </span>
+          )}
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "340px 1fr",
+            gap: "1.25rem",
+            alignItems: "start",
+          }}
+        >
+            {/* ── Left: Parcel Pick-List ─────────────────────────── */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: ".5rem",
+              }}
+            >
+              {/* Search */}
+              <input
+                value={listSearch}
+                onChange={(e) => setListSearch(e.target.value)}
+                placeholder="Search tracking number…"
+                className="tm-input"
+                style={{
+                  width: "100%",
+                  background: "rgba(255,255,255,.05)",
+                  border: "1px solid rgba(255,255,255,.1)",
+                  borderRadius: 6,
+                  color: "#e2e8f0",
+                  fontFamily: mono,
+                  fontSize: "12px",
+                  padding: ".55rem .7rem",
+                  outline: "none",
+                  boxSizing: "border-box",
+                }}
+              />
+
+              {/* List */}
+              <div
+                style={{
+                  maxHeight: 480,
+                  overflowY: "auto",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: ".35rem",
+                }}
+              >
+                {listLoading && (
+                  <p
+                    style={{
+                      fontSize: "11px",
+                      color: "#334155",
+                      textAlign: "center",
+                      padding: "2rem 0",
+                    }}
+                  >
+                    Loading…
+                  </p>
+                )}
+                {!listLoading &&
+                  listResult &&
+                  listResult.items.length === 0 && (
+                    <p
+                      style={{
+                        fontSize: "11px",
+                        color: "#334155",
+                        textAlign: "center",
+                        padding: "2rem 0",
+                      }}
+                    >
+                      No parcels awaiting sort.
+                    </p>
+                  )}
+                {!listLoading &&
+                  listResult?.items.map((item) => (
+                    <ParcelPickRow
+                      key={item.id}
+                      item={item}
+                      isActive={item.trackingNumber === trackingInput}
+                      onSelect={handleSelectParcel}
+                    />
+                  ))}
+              </div>
+
+              {/* Pagination */}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginTop: ".5rem",
+                }}
+              >
+                <button
+                  onClick={handleListPrev}
+                  disabled={pageHistory.length <= 1 || listLoading}
+                  style={paginationBtn(pageHistory.length <= 1 || listLoading)}
+                >
+                  ← Prev
+                </button>
+                <span
+                  style={{ fontSize: "10px", color: "#334155", fontFamily: mono }}
+                >
+                  Page {pageHistory.length}
+                </span>
+                <button
+                  onClick={handleListNext}
+                  disabled={!listResult?.hasNextPage || listLoading}
+                  style={paginationBtn(!listResult?.hasNextPage || listLoading)}
+                >
+                  Next →
+                </button>
+              </div>
+            </div>
+
+            {/* ── Right: Scan Panel ───────────────────────────────── */}
             <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
               {/* Scan input */}
               <div
@@ -420,134 +538,8 @@ export default function SortScanPage() {
                 )}
               </div>
             </div>
-
-            {/* ── Right: Parcel Pick-List ─────────────────────────── */}
-            <div
-              style={{
-                background: "rgba(255,255,255,.03)",
-                border: "1px solid rgba(255,255,255,.06)",
-                borderRadius: "12px",
-                padding: "1rem",
-              }}
-            >
-              <p
-                style={{
-                  fontSize: "10px",
-                  letterSpacing: ".16em",
-                  color: "#475569",
-                  textTransform: "uppercase",
-                  marginBottom: ".75rem",
-                }}
-              >
-                Awaiting Sort
-                {listResult && (
-                  <span style={{ color: "#334155", marginLeft: ".5rem" }}>
-                    ({listResult.totalCount})
-                  </span>
-                )}
-              </p>
-
-              {/* Search */}
-              <input
-                value={listSearch}
-                onChange={(e) => setListSearch(e.target.value)}
-                placeholder="Search tracking number…"
-                style={{
-                  width: "100%",
-                  background: "rgba(255,255,255,.05)",
-                  border: "1px solid rgba(255,255,255,.1)",
-                  borderRadius: "6px",
-                  padding: ".4rem .75rem",
-                  color: "#e2e8f0",
-                  fontFamily: mono,
-                  fontSize: "12px",
-                  outline: "none",
-                  boxSizing: "border-box",
-                  marginBottom: ".75rem",
-                }}
-              />
-
-              {/* List */}
-              <div
-                style={{
-                  minHeight: "280px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: ".35rem",
-                }}
-              >
-                {listLoading && (
-                  <p
-                    style={{
-                      fontSize: "11px",
-                      color: "#334155",
-                      textAlign: "center",
-                      padding: "2rem 0",
-                    }}
-                  >
-                    Loading…
-                  </p>
-                )}
-                {!listLoading &&
-                  listResult &&
-                  listResult.items.length === 0 && (
-                    <p
-                      style={{
-                        fontSize: "11px",
-                        color: "#334155",
-                        textAlign: "center",
-                        padding: "2rem 0",
-                      }}
-                    >
-                      No parcels awaiting sort.
-                    </p>
-                  )}
-                {!listLoading &&
-                  listResult?.items.map((item) => (
-                    <ParcelPickRow
-                      key={item.id}
-                      item={item}
-                      isActive={item.trackingNumber === trackingInput}
-                      onSelect={handleSelectParcel}
-                    />
-                  ))}
-              </div>
-
-              {/* Pagination */}
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginTop: ".75rem",
-                  paddingTop: ".75rem",
-                  borderTop: "1px solid rgba(255,255,255,.06)",
-                }}
-              >
-                <button
-                  onClick={handleListPrev}
-                  disabled={pageHistory.length <= 1 || listLoading}
-                  style={paginationBtn(pageHistory.length <= 1 || listLoading)}
-                >
-                  ← Prev
-                </button>
-                <span
-                  style={{ fontSize: "10px", color: "#334155", fontFamily: mono }}
-                >
-                  Page {pageHistory.length}
-                </span>
-                <button
-                  onClick={handleListNext}
-                  disabled={!listResult?.hasNextPage || listLoading}
-                  style={paginationBtn(!listResult?.hasNextPage || listLoading)}
-                >
-                  Next →
-                </button>
-              </div>
-            </div>
           </div>
         </div>
-      </div>
     </div>
   );
 }

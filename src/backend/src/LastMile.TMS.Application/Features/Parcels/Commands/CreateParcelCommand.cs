@@ -19,13 +19,15 @@ public static class CreateParcel
         private readonly ICurrentUserService _currentUser;
         private readonly IZoneMatchingService _zoneMatchingService;
         private readonly IGeocodingService _geocodingService;
+        private readonly IManifestAssignmentService _manifestAssignmentService;
 
-        public Handler(IAppDbContextFactory contextFactory, ICurrentUserService currentUser, IZoneMatchingService zoneMatchingService, IGeocodingService geocodingService)
+        public Handler(IAppDbContextFactory contextFactory, ICurrentUserService currentUser, IZoneMatchingService zoneMatchingService, IGeocodingService geocodingService, IManifestAssignmentService manifestAssignmentService)
         {
             _contextFactory = contextFactory;
             _currentUser = currentUser;
             _zoneMatchingService = zoneMatchingService;
             _geocodingService = geocodingService;
+            _manifestAssignmentService = manifestAssignmentService;
         }
 
         public async Task<ParcelDto> Handle(Command request, CancellationToken cancellationToken)
@@ -138,6 +140,17 @@ public static class CreateParcel
             };
 
             context.Parcels.Add(parcel);
+
+            // Assign parcel to inbound manifest based on depot
+            if (zoneId.HasValue)
+            {
+                var zone = await context.Zones.FindAsync(new object[] { zoneId.Value }, cancellationToken);
+                if (zone is not null)
+                {
+                    await _manifestAssignmentService.AssignParcelToManifestAsync(context, parcel.Id, zone.DepotId, cancellationToken);
+                }
+            }
+
             await context.SaveChangesAsync(cancellationToken);
 
             return ParcelMapper.ToDto(parcel);

@@ -16,6 +16,7 @@ public class ParcelImportService : IParcelImportService
     private readonly ICurrentUserService _currentUser;
     private readonly IGeocodingService _geocodingService;
     private readonly IZoneMatchingService _zoneMatchingService;
+    private readonly IManifestAssignmentService _manifestAssignmentService;
     private readonly IImportProgressNotifier _notifier;
     private readonly ILogger<ParcelImportService> _logger;
     private readonly RowValidator _validator;
@@ -25,6 +26,7 @@ public class ParcelImportService : IParcelImportService
         ICurrentUserService currentUser,
         IGeocodingService geocodingService,
         IZoneMatchingService zoneMatchingService,
+        IManifestAssignmentService manifestAssignmentService,
         IImportProgressNotifier notifier,
         ILogger<ParcelImportService> logger)
     {
@@ -32,6 +34,7 @@ public class ParcelImportService : IParcelImportService
         _currentUser = currentUser;
         _geocodingService = geocodingService;
         _zoneMatchingService = zoneMatchingService;
+        _manifestAssignmentService = manifestAssignmentService;
         _notifier = notifier;
         _logger = logger;
         _validator = new RowValidator();
@@ -108,6 +111,7 @@ public class ParcelImportService : IParcelImportService
 
         var createdTrackingNumbers = new List<string>();
         var errors = new List<ParcelImportRowDto>();
+        var manifestAssignments = new List<(Guid ParcelId, Guid DepotId)>();
         var now = DateTimeOffset.UtcNow;
 
         for (var i = 0; i < rows.Count; i++)
@@ -205,6 +209,16 @@ public class ParcelImportService : IParcelImportService
 
                 context.Parcels.Add(parcel);
                 createdTrackingNumbers.Add(trackingNumber);
+
+                // Collect manifest assignment for batch processing
+                if (zoneId.HasValue)
+                {
+                    var zone = await context.Zones.FindAsync(new object[] { zoneId.Value }, cancellationToken);
+                    if (zone is not null)
+                    {
+                        manifestAssignments.Add((parcel.Id, zone.DepotId));
+                    }
+                }
             }
             catch (Exception ex) when (ex is not OutOfMemoryException)
             {
@@ -219,6 +233,12 @@ public class ParcelImportService : IParcelImportService
                 createdTrackingNumbers.Count > 0 ? createdTrackingNumbers[^1] : "",
                 createdTrackingNumbers.Count,
                 cancellationToken);
+        }
+
+        // Batch-assign all parcels to manifests (one query per depot instead of per parcel)
+        if (manifestAssignments.Count > 0)
+        {
+            await _manifestAssignmentService.AssignParcelsToManifestsAsync(context, manifestAssignments, cancellationToken);
         }
 
         import.Status = ImportStatus.Completed;
