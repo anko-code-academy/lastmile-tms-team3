@@ -33,6 +33,9 @@ public static class AssignDriverToRoute
             var driver = await context.Drivers.FirstOrDefaultAsync(d => d.Id == request.Dto.DriverId, cancellationToken)
                 ?? throw new InvalidOperationException($"Driver with ID '{request.Dto.DriverId}' was not found.");
 
+            if (!driver.IsActive)
+                throw new InvalidOperationException($"Driver '{driver.FullName}' is not active and cannot be assigned.");
+
             route.AssignDriver(driver);
 
             await context.SaveChangesAsync(cancellationToken);

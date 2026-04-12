@@ -1,6 +1,7 @@
 using LastMile.TMS.Application.Common.Interfaces;
 using LastMile.TMS.Application.Features.Routes.DTOs;
 using LastMile.TMS.Application.Features.Routes.Mappers;
+using LastMile.TMS.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -32,6 +33,9 @@ public static class AssignVehicleToRoute
 
             var vehicle = await context.Vehicles.FirstOrDefaultAsync(v => v.Id == request.Dto.VehicleId, cancellationToken)
                 ?? throw new InvalidOperationException($"Vehicle with ID '{request.Dto.VehicleId}' was not found.");
+
+            if (vehicle.Status != VehicleStatus.Available)
+                throw new InvalidOperationException($"Vehicle '{vehicle.RegistrationPlate}' is not available (status: {vehicle.Status}).");
 
             route.AssignVehicle(vehicle);
 

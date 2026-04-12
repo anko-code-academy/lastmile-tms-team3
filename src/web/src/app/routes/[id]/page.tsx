@@ -118,7 +118,7 @@ export default function RouteDetailPage({
         setAvailableDrivers(result.drivers);
       }
     });
-  }, [route?.date, route?.driverId]);
+  }, [route?.date]);
 
   // Load staged parcels when route is loaded (for draft routes)
   useEffect(() => {

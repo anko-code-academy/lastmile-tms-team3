@@ -120,6 +120,25 @@ public class AssignDriverToRouteTests : IDisposable
     }
 
     [Fact]
+    public async Task AssignDriver_Throws_WhenDriverNotActive()
+    {
+        // Arrange
+        _driver1.Deactivate();
+        await _context.SaveChangesAsync();
+
+        var route = await CreateTestRoute(driverId: null);
+        var dto = new AssignDriverToRouteDto(route.Id, _driver1.Id);
+
+        // Act
+        var act = () => _assignDriverHandler.Handle(
+            new AssignDriverToRoute.Command(dto), CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*not active*");
+    }
+
+    [Fact]
     public async Task AssignDriver_Throws_WhenRouteNotDraft()
     {
         // Arrange — create and dispatch a route

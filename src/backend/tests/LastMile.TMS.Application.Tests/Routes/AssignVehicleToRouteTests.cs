@@ -136,6 +136,25 @@ public class AssignVehicleToRouteTests : IDisposable
     }
 
     [Fact]
+    public async Task AssignVehicle_Throws_WhenVehicleNotAvailable()
+    {
+        // Arrange
+        _vehicle1.Status = VehicleStatus.Maintenance;
+        await _context.SaveChangesAsync();
+
+        var route = await CreateTestRoute(vehicleId: null);
+        var dto = new AssignVehicleToRouteDto(route.Id, _vehicle1.Id);
+
+        // Act
+        var act = () => _assignVehicleHandler.Handle(
+            new AssignVehicleToRoute.Command(dto), CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*not available*");
+    }
+
+    [Fact]
     public async Task AssignVehicle_Throws_WhenRouteNotDraft()
     {
         // Arrange
