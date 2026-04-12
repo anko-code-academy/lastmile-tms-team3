@@ -1,4 +1,5 @@
-import { auth, signOut } from "@/auth";
+import { auth } from "@/auth";
+import TmNavbar from "@/components/TmNavbar";
 
 export default async function Home() {
   const session = await auth();
@@ -76,42 +77,6 @@ export default async function Home() {
     },
   ];
 
-  const isAdmin = session?.user?.role === "Admin";
-  const isOperationsManager = session?.user?.role === "OperationsManager";
-  const isWarehouseManager = session?.user?.role === "WarehouseManager";
-  const isDepotOperator = session?.user?.role === "DepotOperator";
-
-  const navItems = [
-    { label: "Dashboard", href: "/" },
-    { label: "Parcels", href: "/parcels" },
-    { label: "Routes", href: "#" },
-    ...(isAdmin || isDepotOperator
-      ? [{ label: "Load Out", href: "/load-out" }]
-      : []),
-    ...(isAdmin || isWarehouseManager
-      ? [{ label: "Warehouse", href: "/warehouse" }]
-      : []),
-    ...(isAdmin || isOperationsManager
-      ? [{ label: "Depot Dashboard", href: "/admin/depot-dashboard" }]
-      : []),
-    ...(isAdmin || isOperationsManager
-      ? [{ label: "Depots", href: "/admin/depots" }]
-      : []),
-    ...(isAdmin ? [{ label: "Zones", href: "/admin/zones" }] : []),
-    ...(isAdmin || isOperationsManager
-      ? [
-          { label: "Drivers", href: "/admin/drivers" },
-          { label: "Vehicles", href: "/admin/vehicles" },
-        ]
-      : []),
-    ...(isAdmin
-      ? [
-          { label: "Users", href: "/admin/users" },
-          { label: "Audit Logs", href: "/admin/audit-logs" },
-        ]
-      : []),
-  ];
-
   return (
     <>
       <style>{`
@@ -145,16 +110,6 @@ export default async function Home() {
         .fu-5 { animation: fadeUp .5s .44s both ease; }
         .fu-6 { animation: fadeUp .5s .52s both ease; }
         .pulse-dot { animation: pulseDot 2.2s ease-in-out infinite; }
-        .nav-link {
-          font-family: var(--font-geist-mono, monospace);
-          font-size: 11px; letter-spacing: .14em;
-          color: #3d4f6b; text-decoration: none;
-          text-transform: uppercase; padding: .375rem .5rem;
-          border-radius: 4px;
-          transition: color .15s, background .15s;
-        }
-        .nav-link:hover { color: #e2e8f0; background: rgba(255,255,255,.04); }
-        .nav-link.active { color: #f59e0b; }
         .kpi-card {
           flex: 1; min-width: 0;
           padding: 1.5rem;
@@ -196,22 +151,6 @@ export default async function Home() {
           background: rgba(255,255,255,.06);
           overflow: hidden; margin-top: .625rem;
         }
-        .signout-btn {
-          font-family: var(--font-geist-mono, monospace);
-          font-size: 10px; letter-spacing: .14em;
-          text-transform: uppercase;
-          padding: .375rem .875rem;
-          background: rgba(255,255,255,.04);
-          border: 1px solid rgba(255,255,255,.08);
-          border-radius: 6px; color: #4a5f7a;
-          cursor: pointer;
-          transition: border-color .15s, color .15s, background .15s;
-        }
-        .signout-btn:hover {
-          border-color: rgba(239,68,68,.3);
-          color: #fca5a5;
-          background: rgba(239,68,68,.06);
-        }
       `}</style>
 
       {/* Scanline */}
@@ -241,119 +180,7 @@ export default async function Home() {
 
         {/* Content */}
         <div style={{ position: "relative", zIndex: 1 }}>
-          {/* ── Navbar ── */}
-          <nav
-            className="fu-0"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              padding: "0 2rem",
-              height: "56px",
-              borderBottom: "1px solid rgba(255,255,255,.06)",
-              background: "rgba(8,12,20,.85)",
-              backdropFilter: "blur(12px)",
-              position: "sticky",
-              top: 0,
-              zIndex: 10,
-              gap: "2rem",
-            }}
-          >
-            {/* Logo */}
-            <span
-              style={{
-                fontFamily: "var(--font-geist-mono, monospace)",
-                fontSize: ".875rem",
-                fontWeight: 800,
-                letterSpacing: "-.01em",
-                color: "#e2e8f0",
-                flexShrink: 0,
-              }}
-            >
-              LAST <span style={{ color: "#f59e0b" }}>MILE</span> TMS
-            </span>
-
-            {/* Live indicator */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: ".375rem",
-                flexShrink: 0,
-              }}
-            >
-              <span
-                className="pulse-dot"
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: "50%",
-                  background: "#22c55e",
-                  boxShadow: "0 0 6px #22c55e",
-                  display: "inline-block",
-                }}
-              />
-              <span
-                style={{
-                  fontFamily: "var(--font-geist-mono, monospace)",
-                  fontSize: "9px",
-                  color: "#3a9e5c",
-                  letterSpacing: ".15em",
-                }}
-              >
-                LIVE
-              </span>
-            </div>
-
-            {/* Nav items */}
-            <div style={{ display: "flex", gap: ".25rem", flex: 1 }}>
-              {navItems.map((item) => (
-                <a
-                  key={item.label}
-                  href={item.href}
-                  className={`nav-link${item.label === "Dashboard" ? " active" : ""}`}
-                >
-                  {item.label}
-                </a>
-              ))}
-            </div>
-
-            {/* User + signout */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "1rem",
-                flexShrink: 0,
-              }}
-            >
-              {session?.user?.email && (
-                <span
-                  style={{
-                    fontFamily: "var(--font-geist-mono, monospace)",
-                    fontSize: "10px",
-                    color: "#3d4f6b",
-                    letterSpacing: ".08em",
-                    maxWidth: "200px",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {session.user.email}
-                </span>
-              )}
-              <form
-                action={async () => {
-                  "use server";
-                  await signOut({ redirectTo: "/login" });
-                }}
-              >
-                <button type="submit" className="signout-btn">
-                  Sign out
-                </button>
-              </form>
-            </div>
-          </nav>
+          <TmNavbar />
 
           {/* ── Page body ── */}
           <div

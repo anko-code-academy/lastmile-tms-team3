@@ -3,6 +3,7 @@ using LastMile.TMS.Application.Common.Interfaces;
 using LastMile.TMS.Application.Features.Parcels.Mappers;
 using LastMile.TMS.Application.Services;
 using LastMile.TMS.Application.Tests.Helpers;
+using LastMile.TMS.Application.Tests.Parcels;
 using LastMile.TMS.Domain.Entities;
 using LastMile.TMS.Domain.Enums;
 using Microsoft.Extensions.Logging;
@@ -107,7 +108,7 @@ public class ParcelImportProgressTests : IDisposable
     {
         var logger = Substitute.For<ILogger<ParcelImportService>>();
         return new ParcelImportService(
-            _context, _currentUser, new StubGeocodingService(), new StubZoneMatchingService(), notifier ?? _notifier, logger);
+            _context, _currentUser, new StubGeocodingService(), new StubZoneMatchingService(), new StubManifestAssignmentService(), notifier ?? _notifier, logger);
     }
 
     private static List<ParcelImportRow> CreateValidImportRows(int count)

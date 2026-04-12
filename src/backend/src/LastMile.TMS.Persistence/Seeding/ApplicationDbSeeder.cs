@@ -43,6 +43,7 @@ public class ApplicationDbSeeder(
         await SeedDeliveryRoutesAsync(cancellationToken);
         await SeedParcelsAsync(cancellationToken);
         await SeedSortDemoParcelsAsync(cancellationToken);
+        await SeedInboundManifestsAsync(cancellationToken);
     }
 
     private async Task SeedDepotsAsync(CancellationToken cancellationToken)
@@ -1304,5 +1305,238 @@ public class ApplicationDbSeeder(
         await dbContext.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation("Seeded {Count} sort demo parcels (ReceivedAtDepot + zone)", parcels.Count);
+    }
+
+    private async Task SeedInboundManifestsAsync(CancellationToken cancellationToken)
+    {
+        if (await dbContext.InboundManifests.AnyAsync(cancellationToken))
+            return;
+
+        var depots = await dbContext.Depots
+            .OrderBy(d => d.Name)
+            .ToListAsync(cancellationToken);
+        var zones = await dbContext.Zones
+            .OrderBy(z => z.Name)
+            .ToListAsync(cancellationToken);
+        var zonesByDepotId = zones
+            .GroupBy(z => z.DepotId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        if (depots.Count == 0) return;
+
+        var geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
+        var random = new Random(99);
+
+        var cities = new[]
+        {
+            ("Nashville", "TN", "37201", -86.78, 36.17),
+            ("Louisville", "KY", "40201", -85.74, 38.25),
+            ("Birmingham", "AL", "35201", -86.80, 33.52),
+            ("Memphis", "TN", "38101", -90.03, 35.15),
+            ("Chattanooga", "TN", "37402", -85.31, 35.05),
+            ("Huntsville", "AL", "35801", -86.59, 34.73),
+        };
+
+        var firstNames = new[] { "Alex", "Jordan", "Taylor", "Morgan", "Casey", "Riley", "Quinn", "Avery", "Skyler", "Dakota", "Reese", "Finley" };
+        var lastNames = new[] { "Nguyen", "Patel", "Kim", "Chen", "Singh", "Ross", "Cook", "Morgan", "Bell", "Ward", "Torres", "Peterson" };
+
+        var shipperAddress = new Address
+        {
+            Id = Guid.NewGuid(),
+            Street1 = "500 Manifest Way",
+            City = "Nashville",
+            State = "TN",
+            PostalCode = "37201",
+            CountryCode = "US",
+            IsResidential = false,
+            CompanyName = "Manifest Demo Shipper",
+            ContactName = "Demo Shipper",
+            GeoLocation = geometryFactory.CreatePoint(new Coordinate(-86.78, 36.17)),
+            CreatedAt = DateTimeOffset.UtcNow,
+        };
+
+        await dbContext.Addresses.AddAsync(shipperAddress, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        var allParcels = new List<Parcel>();
+        var allManifests = new List<InboundManifest>();
+        var manifestSeq = 1;
+        var now = DateTimeOffset.UtcNow;
+        var totalTarget = 52; // ~17 per depot
+
+        foreach (var depot in depots)
+        {
+            zonesByDepotId.TryGetValue(depot.Id, out var depotZones);
+            depotZones ??= new List<Zone>();
+
+            var parcelsForDepot = totalTarget / depots.Count;
+            var parcelsCreated = 0;
+            var manifestParcels = new List<Parcel>();
+
+            while (parcelsCreated < parcelsForDepot)
+            {
+                var cityInfo = cities[random.Next(cities.Length)];
+                var zone = depotZones.Count > 0 ? depotZones[random.Next(depotZones.Count)] : null;
+
+                var recipientAddress = new Address
+                {
+                    Id = Guid.NewGuid(),
+                    Street1 = $"{random.Next(100, 9999)} {new[] { "Main", "Oak", "Maple", "Cedar", "Elm" }[random.Next(5)]} St",
+                    City = cityInfo.Item1,
+                    State = cityInfo.Item2,
+                    PostalCode = cityInfo.Item3,
+                    CountryCode = "US",
+                    IsResidential = true,
+                    ContactName = $"{firstNames[random.Next(firstNames.Length)]} {lastNames[random.Next(lastNames.Length)]}",
+                    Phone = $"615-{random.Next(100, 999)}-{random.Next(1000, 9999)}",
+                    GeoLocation = geometryFactory.CreatePoint(new Coordinate(cityInfo.Item4, cityInfo.Item5)),
+                    CreatedAt = now,
+                };
+
+                await dbContext.Addresses.AddAsync(recipientAddress, cancellationToken);
+
+                var parcel = new Parcel
+                {
+                    Id = Guid.NewGuid(),
+                    TrackingNumber = $"LM-MFT-{manifestSeq:D5}-{parcelsCreated + 1:D2}",
+                    BarcodeData = $"LM-MFT-{manifestSeq:D5}-{parcelsCreated + 1:D2}",
+                    Description = "Inbound manifest parcel",
+                    ServiceType = ServiceType.Standard,
+                    Status = ParcelStatus.Registered,
+                    RecipientAddressId = recipientAddress.Id,
+                    RecipientAddress = recipientAddress,
+                    ShipperAddressId = shipperAddress.Id,
+                    ShipperAddress = shipperAddress,
+                    Weight = Math.Round((decimal)(random.NextDouble() * 15 + 0.5), 2),
+                    WeightUnit = WeightUnit.Kg,
+                    Length = random.Next(15, 60),
+                    Width = random.Next(10, 40),
+                    Height = random.Next(5, 30),
+                    DimensionUnit = DimensionUnit.Cm,
+                    DeclaredValue = Math.Round((decimal)(random.NextDouble() * 300 + 10), 2),
+                    Currency = "USD",
+                    ParcelType = "Standard",
+                    ZoneId = zone?.Id,
+                    DeliveryAttempts = 0,
+                    CreatedAt = now,
+                    CurrentStatusChangedAt = now,
+                };
+
+                parcel.TrackingEvents.Add(new TrackingEvent
+                {
+                    Id = Guid.NewGuid(),
+                    ParcelId = parcel.Id,
+                    Timestamp = now,
+                    EventType = EventType.LabelCreated,
+                    Description = "Label created and registered",
+                    LocationCity = cityInfo.Item1,
+                    LocationState = cityInfo.Item2,
+                    LocationCountryCode = "US",
+                    CreatedAt = now,
+                });
+
+                allParcels.Add(parcel);
+                manifestParcels.Add(parcel);
+                parcelsCreated++;
+
+                // When we hit the manifest cap (8-10), create the manifest
+                var maxParcels = random.Next(8, 11);
+                if (manifestParcels.Count >= maxParcels || parcelsCreated >= parcelsForDepot)
+                {
+                    var manifestNumber = $"MFT-{now:yyyyMMdd}-{manifestSeq:D3}";
+                    var manifest = new InboundManifest
+                    {
+                        Id = Guid.NewGuid(),
+                        ManifestNumber = manifestNumber,
+                        DepotId = depot.Id,
+                        Status = manifestParcels.Count >= maxParcels
+                            ? InboundManifestStatus.Sealed
+                            : InboundManifestStatus.Open,
+                        MaxParcels = maxParcels,
+                        Parcels = manifestParcels.ToList(),
+                        CreatedAt = now,
+                    };
+
+                    allManifests.Add(manifest);
+                    manifestSeq++;
+                    manifestParcels.Clear();
+                }
+            }
+        }
+
+        // Add a few walk-in parcels (no manifest) for testing
+        for (var w = 0; w < 6; w++)
+        {
+            var depot = depots[w % depots.Count];
+            zonesByDepotId.TryGetValue(depot.Id, out var depotZones);
+            depotZones ??= new List<Zone>();
+            var zone = depotZones.Count > 0 ? depotZones[w % depotZones.Count] : null;
+            var cityInfo = cities[w % cities.Length];
+
+            var recipientAddress = new Address
+            {
+                Id = Guid.NewGuid(),
+                Street1 = $"{random.Next(100, 9999)} Walk-in St",
+                City = cityInfo.Item1,
+                State = cityInfo.Item2,
+                PostalCode = cityInfo.Item3,
+                CountryCode = "US",
+                IsResidential = true,
+                ContactName = $"Walk-in Customer {w + 1}",
+                GeoLocation = geometryFactory.CreatePoint(new Coordinate(cityInfo.Item4, cityInfo.Item5)),
+                CreatedAt = now,
+            };
+
+            await dbContext.Addresses.AddAsync(recipientAddress, cancellationToken);
+
+            var parcel = new Parcel
+            {
+                Id = Guid.NewGuid(),
+                TrackingNumber = $"LM-WALK-{w + 1:D5}",
+                BarcodeData = $"LM-WALK-{w + 1:D5}",
+                Description = "Walk-in parcel (no manifest)",
+                ServiceType = ServiceType.Express,
+                Status = ParcelStatus.Registered,
+                RecipientAddressId = recipientAddress.Id,
+                RecipientAddress = recipientAddress,
+                ShipperAddressId = shipperAddress.Id,
+                ShipperAddress = shipperAddress,
+                Weight = Math.Round((decimal)(random.NextDouble() * 5 + 0.5), 2),
+                WeightUnit = WeightUnit.Kg,
+                Length = 20,
+                Width = 15,
+                Height = 10,
+                DimensionUnit = DimensionUnit.Cm,
+                DeclaredValue = Math.Round((decimal)(random.NextDouble() * 100 + 10), 2),
+                Currency = "USD",
+                ParcelType = "Express",
+                ZoneId = zone?.Id,
+                DeliveryAttempts = 0,
+                CreatedAt = now,
+                CurrentStatusChangedAt = now,
+            };
+
+            parcel.TrackingEvents.Add(new TrackingEvent
+            {
+                Id = Guid.NewGuid(),
+                ParcelId = parcel.Id,
+                Timestamp = now,
+                EventType = EventType.LabelCreated,
+                Description = "Label created and registered",
+                LocationCity = cityInfo.Item1,
+                LocationState = cityInfo.Item2,
+                LocationCountryCode = "US",
+                CreatedAt = now,
+            });
+
+            allParcels.Add(parcel);
+        }
+
+        await dbContext.Parcels.AddRangeAsync(allParcels, cancellationToken);
+        await dbContext.InboundManifests.AddRangeAsync(allManifests, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation("Seeded {ParcelCount} inbound parcels in {ManifestCount} manifests + {WalkInCount} walk-in parcels",
+            totalTarget, allManifests.Count, 6);
     }
 }

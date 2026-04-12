@@ -172,6 +172,7 @@ try
         .AddType<ParcelContentItemType>()
         .AddType<ParcelWatcherType>()
         .AddType<DeliveryRouteType>()
+        .AddType<InboundManifestQuery>()
         .AddErrorFilter<ValidationErrorFilter>()
         .ModifyCostOptions(options =>
         {

@@ -87,7 +87,8 @@ public class ParcelCommandTests : IDisposable
             _context,
             _currentUser,
             mockZoneMatchingService,
-            mockGeocodingService
+            mockGeocodingService,
+            new StubManifestAssignmentService()
         );
 
         var command = new CreateParcel.Command(createDto);
@@ -138,7 +139,8 @@ public class ParcelCommandTests : IDisposable
             _context,
             _currentUser,
             mockZoneMatchingService,
-            mockGeocodingService
+            mockGeocodingService,
+            new StubManifestAssignmentService()
         );
 
         var command = new CreateParcel.Command(createDto);
@@ -217,7 +219,8 @@ public class ParcelCommandTests : IDisposable
             _context,
             _currentUser,
             mockZoneMatchingService,
-            mockGeocodingService
+            mockGeocodingService,
+            new StubManifestAssignmentService()
         );
 
         var command = new CreateParcel.Command(createDto);
@@ -258,7 +261,8 @@ public class ParcelCommandTests : IDisposable
             _context,
             _currentUser,
             mockZoneMatchingService,
-            mockGeocodingService
+            mockGeocodingService,
+            new StubManifestAssignmentService()
         );
 
         var command = new CreateParcel.Command(createDto);
@@ -858,4 +862,23 @@ public class FakeZoneMatchingService : LastMile.TMS.Application.Services.IZoneMa
 
     public Task<Guid?> FindMatchingZoneIdAsync(Point point, CancellationToken cancellationToken = default)
         => Task.FromResult(_zoneId);
+}
+
+public class StubManifestAssignmentService : LastMile.TMS.Application.Services.IManifestAssignmentService
+{
+    public Task<LastMile.TMS.Domain.Entities.InboundManifest> AssignParcelToManifestAsync(
+        LastMile.TMS.Application.Common.Interfaces.IAppDbContext context,
+        Guid parcelId, Guid depotId, CancellationToken cancellationToken = default)
+    {
+        // No-op for tests — does not actually assign manifests
+        return Task.FromResult(new LastMile.TMS.Domain.Entities.InboundManifest());
+    }
+
+    public Task AssignParcelsToManifestsAsync(
+        LastMile.TMS.Application.Common.Interfaces.IAppDbContext context,
+        IReadOnlyList<(Guid ParcelId, Guid DepotId)> parcelDepotPairs,
+        CancellationToken cancellationToken = default)
+    {
+        return Task.CompletedTask;
+    }
 }

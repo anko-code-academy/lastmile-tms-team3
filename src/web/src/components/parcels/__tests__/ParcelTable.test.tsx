@@ -88,7 +88,7 @@ describe("ParcelTable", () => {
         />,
       );
 
-      fireEvent.click(screen.getByText("Tracking number"));
+      fireEvent.click(screen.getByText((content) => content.includes("Tracking #")));
 
       expect(onSort).toHaveBeenCalledWith("trackingNumber");
     });
@@ -122,7 +122,7 @@ describe("ParcelTable", () => {
         />,
       );
 
-      fireEvent.click(screen.getByText("Created"));
+      fireEvent.click(screen.getByText((content) => content.startsWith("Created")));
 
       expect(onSort).toHaveBeenCalledWith("createdAt");
     });
@@ -139,11 +139,15 @@ describe("ParcelTable", () => {
         />,
       );
 
-      const sortableHeaders = ["Tracking number", "Status", "Created"];
+      const sortableHeaderMatchers = [
+        (c: string) => c.includes("Tracking #"),
+        (c: string) => c.startsWith("Status"),
+        (c: string) => c.startsWith("Created"),
+      ];
 
-      for (const header of sortableHeaders) {
+      for (const matcher of sortableHeaderMatchers) {
         onSort.mockClear();
-        fireEvent.click(screen.getByText(header));
+        fireEvent.click(screen.getByText(matcher));
         expect(onSort).toHaveBeenCalledTimes(1);
       }
     });
@@ -190,8 +194,7 @@ describe("ParcelTable", () => {
         />,
       );
 
-      // The sort icon (↑) should appear next to Tracking number column
-      expect(screen.getByText("↑")).toBeInTheDocument();
+      expect(screen.getByText((c) => c.includes("Tracking #") && c.includes("↑"))).toBeInTheDocument();
     });
 
     it("shows ↓ when sort direction is descending", () => {
@@ -205,7 +208,7 @@ describe("ParcelTable", () => {
         />,
       );
 
-      expect(screen.getByText("↓")).toBeInTheDocument();
+      expect(screen.getByText((c) => c.includes("Tracking #") && c.includes("↓"))).toBeInTheDocument();
     });
 
     it("does not show sort indicator for non-active columns", () => {
@@ -219,11 +222,9 @@ describe("ParcelTable", () => {
         />,
       );
 
-      // Should not have a sort indicator on Recipient column
-      const recipientSortIcons = screen.getAllByText(
-        (content) => content === "↑",
-      );
-      expect(recipientSortIcons).toHaveLength(1);
+      // Only the Tracking # column should have ↑, other sortable columns should have ↕
+      const ascHeaders = screen.getAllByText((c) => c.includes("↑"));
+      expect(ascHeaders).toHaveLength(1);
     });
   });
 });

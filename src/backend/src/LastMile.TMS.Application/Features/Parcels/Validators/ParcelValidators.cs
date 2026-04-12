@@ -84,3 +84,34 @@ public class SearchParcelDtoValidator : AbstractValidator<SearchParcelDto>
             .WithMessage("Parcel type must not exceed 100 characters");
     }
 }
+
+public class StartReceivingSessionValidator : AbstractValidator<StartReceivingSession.Command>
+{
+    public StartReceivingSessionValidator()
+    {
+        RuleFor(x => x.Dto.ManifestId)
+            .NotEmpty().WithMessage("Manifest ID is required");
+    }
+}
+
+public class ReceiveParcelValidator : AbstractValidator<ReceiveParcel.Command>
+{
+    public ReceiveParcelValidator()
+    {
+        RuleFor(x => x.Dto.TrackingNumber)
+            .NotEmpty().WithMessage("Tracking number is required")
+            .MaximumLength(50);
+
+        RuleFor(x => x.Dto.SessionId)
+            .NotEmpty().WithMessage("Session ID is required");
+    }
+}
+
+public class CompleteReceivingSessionValidator : AbstractValidator<CompleteReceivingSession.Command>
+{
+    public CompleteReceivingSessionValidator()
+    {
+        RuleFor(x => x.Dto.SessionId)
+            .NotEmpty().WithMessage("Session ID is required");
+    }
+}

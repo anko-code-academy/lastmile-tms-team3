@@ -19,6 +19,7 @@ public static class DependencyInjection
         services.AddScoped<IWarehouseCodeGenerator, WarehouseCodeGenerator>();
         services.AddScoped<IImportProgressNotifier, NullImportProgressNotifier>();
         services.AddScoped<IParcelImportService, ParcelImportService>();
+        services.AddScoped<IManifestAssignmentService, ManifestAssignmentService>();
 
         return services;
     }

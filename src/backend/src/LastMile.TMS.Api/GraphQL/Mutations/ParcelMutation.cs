@@ -53,4 +53,31 @@ public class ParcelMutation
     {
         return await mediator.Send(new LoadParcel.Command(input), cancellationToken);
     }
+
+    [Authorize(Policy = "AdminOrDepotOperator")]
+    public async Task<StartReceivingSessionResultDto> StartReceivingSession(
+        [Service] IMediator mediator,
+        StartReceivingSessionDto input,
+        CancellationToken cancellationToken = default)
+    {
+        return await mediator.Send(new StartReceivingSession.Command(input), cancellationToken);
+    }
+
+    [Authorize(Policy = "AdminOrDepotOperator")]
+    public async Task<ReceiveParcelResultDto> ReceiveParcel(
+        [Service] IMediator mediator,
+        ReceiveParcelDto input,
+        CancellationToken cancellationToken = default)
+    {
+        return await mediator.Send(new ReceiveParcel.Command(input), cancellationToken);
+    }
+
+    [Authorize(Policy = "AdminOrDepotOperator")]
+    public async Task<CompleteReceivingSessionResultDto> CompleteReceivingSession(
+        [Service] IMediator mediator,
+        CompleteReceivingSessionDto input,
+        CancellationToken cancellationToken = default)
+    {
+        return await mediator.Send(new CompleteReceivingSession.Command(input), cancellationToken);
+    }
 }

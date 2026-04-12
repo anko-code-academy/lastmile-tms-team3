@@ -3,6 +3,7 @@ using FluentAssertions;
 using LastMile.TMS.Application.Common.Interfaces;
 using LastMile.TMS.Application.Services;
 using LastMile.TMS.Application.Tests.Helpers;
+using LastMile.TMS.Application.Tests.Parcels;
 using LastMile.TMS.Domain.Enums;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
@@ -71,6 +72,7 @@ public class ParcelImportCsvErrorTests : IDisposable
             _currentUser,
             new StubGeocodingService(),
             new StubZoneMatchingService(),
+            new StubManifestAssignmentService(),
             new NullImportProgressNotifier(),
             logger);
     }

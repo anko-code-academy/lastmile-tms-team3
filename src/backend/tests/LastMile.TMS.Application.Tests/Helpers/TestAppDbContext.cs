@@ -35,6 +35,8 @@ public class TestAppDbContext : DbContext, IAppDbContext, IAppDbContextFactory
     public DbSet<ParcelWatcher> ParcelWatchers => Set<ParcelWatcher>();
     public DbSet<DeliveryConfirmation> DeliveryConfirmations => Set<DeliveryConfirmation>();
     public DbSet<ParcelImportHistory> ParcelImportHistories => Set<ParcelImportHistory>();
+    public DbSet<InboundManifest> InboundManifests => Set<InboundManifest>();
+    public DbSet<InboundReceivingSession> InboundReceivingSessions => Set<InboundReceivingSession>();
 
     public new Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
@@ -193,6 +195,19 @@ public class TestAppDbContext : DbContext, IAppDbContext, IAppDbContextFactory
         {
             entity.HasKey(e => e.Id);
             entity.Ignore(e => e.RowErrorsData);
+        });
+
+        modelBuilder.Entity<InboundManifest>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.Depot).WithMany().HasForeignKey(e => e.DepotId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasMany(e => e.Parcels).WithMany().UsingEntity(join => join.ToTable("InboundManifestParcels"));
+            entity.HasMany(e => e.Sessions).WithOne(s => s.Manifest).HasForeignKey(s => s.ManifestId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<InboundReceivingSession>(entity =>
+        {
+            entity.HasKey(e => e.Id);
         });
     }
 
