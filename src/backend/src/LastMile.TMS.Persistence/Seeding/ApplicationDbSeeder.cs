@@ -132,7 +132,11 @@ public class ApplicationDbSeeder(
             ("AL-BKE-005", VehicleType.Bike, VehicleStatus.Maintenance,  5,  29, "South Fleet Yard"),
         };
 
-        var depotByName = depots.ToDictionary(d => d.Name);
+        var knownDepotNames = new HashSet<string> { "Central Hub", "North Distribution Center", "South Fleet Yard" };
+        var depotByName = depots
+            .Where(d => knownDepotNames.Contains(d.Name))
+            .GroupBy(d => d.Name)
+            .ToDictionary(g => g.Key, g => g.First());
         var toAdd = vehicleSpecs
             .Where(s => !existingPlates.Contains(s.Plate) && depotByName.ContainsKey(s.DepotName))
             .Select(s => new Vehicle
@@ -530,7 +534,10 @@ public class ApplicationDbSeeder(
 
     private async Task SeedZonesAsync(CancellationToken cancellationToken)
     {
-        var depots = await dbContext.Depots.ToListAsync(cancellationToken);
+        var knownDepotNames = new HashSet<string> { "Central Hub", "North Distribution Center", "South Fleet Yard" };
+        var depots = await dbContext.Depots
+            .Where(d => knownDepotNames.Contains(d.Name))
+            .ToListAsync(cancellationToken);
         if (depots.Count == 0) return;
 
         var existingZoneNames = await dbContext.Zones
