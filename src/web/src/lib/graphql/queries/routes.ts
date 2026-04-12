@@ -14,6 +14,7 @@ export const GET_ROUTES = `
         parcelCount
         estimatedStops
         estimatedDistance
+        estimatedDuration
         createdAt
       }
       pageInfo {
@@ -42,6 +43,15 @@ export const GET_ROUTE = `
       parcelCount
       estimatedStops
       estimatedDistance
+      estimatedDuration
+      depot {
+        id
+        name
+        address {
+          latitude
+          longitude
+        }
+      }
       routeParcels {
         parcelId
         stopOrder
@@ -50,6 +60,12 @@ export const GET_ROUTE = `
           id
           trackingNumber
           status
+          recipientAddress {
+            latitude
+            longitude
+            city
+            street1
+          }
         }
       }
       createdAt
@@ -133,6 +149,7 @@ export const ASSIGN_DRIVER_TO_ROUTE = `
       parcelCount
       estimatedStops
       estimatedDistance
+      estimatedDuration
       createdAt
       lastModifiedAt
     }
@@ -154,6 +171,7 @@ export const ASSIGN_VEHICLE_TO_ROUTE = `
       parcelCount
       estimatedStops
       estimatedDistance
+      estimatedDuration
       createdAt
       lastModifiedAt
     }
@@ -175,6 +193,7 @@ export const UNASSIGN_DRIVER_FROM_ROUTE = `
       parcelCount
       estimatedStops
       estimatedDistance
+      estimatedDuration
       createdAt
       lastModifiedAt
     }
@@ -196,6 +215,7 @@ export const UNASSIGN_VEHICLE_FROM_ROUTE = `
       parcelCount
       estimatedStops
       estimatedDistance
+      estimatedDuration
       createdAt
       lastModifiedAt
     }
@@ -208,6 +228,32 @@ export const GET_AVAILABLE_DRIVERS = `
       id
       fullName
       routeCount
+    }
+  }
+`;
+
+export const OPTIMIZE_ROUTE_STOPS = `
+  mutation OptimizeRouteStops($routeId: UUID!) {
+    optimizeRouteStops(routeId: $routeId) {
+      id
+      status
+      parcelCount
+      estimatedStops
+      estimatedDistance
+      estimatedDuration
+    }
+  }
+`;
+
+export const REORDER_ROUTE_STOPS = `
+  mutation ReorderRouteStops($input: ReorderStopsDtoInput!) {
+    reorderRouteStops(input: $input) {
+      id
+      status
+      parcelCount
+      estimatedStops
+      estimatedDistance
+      estimatedDuration
     }
   }
 `;

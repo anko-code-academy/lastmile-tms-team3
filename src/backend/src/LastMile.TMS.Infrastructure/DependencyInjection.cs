@@ -28,6 +28,13 @@ public static class DependencyInjection
             c.DefaultRequestHeaders.Add("User-Agent", "LastMileTMS/1.0 (LastMile TMS Team 3)");
         })
             .AddPolicyHandler(retryPolicy);
+
+        services.AddHttpClient<IRouteOptimizationService, MapboxRouteOptimizationService>(c =>
+        {
+            c.BaseAddress = new Uri("https://api.mapbox.com/");
+            c.Timeout = TimeSpan.FromSeconds(10);
+        })
+            .AddPolicyHandler(retryPolicy);
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<IEmailSender, LoggingEmailSender>();
         services.AddScoped<ILabelService, LabelService>();

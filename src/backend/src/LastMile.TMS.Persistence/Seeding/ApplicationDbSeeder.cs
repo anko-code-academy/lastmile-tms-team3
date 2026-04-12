@@ -44,6 +44,7 @@ public class ApplicationDbSeeder(
         await SeedDeliveryRoutesAsync(cancellationToken);
         await SeedParcelsAsync(cancellationToken);
         await SeedSortDemoParcelsAsync(cancellationToken);
+        await SeedRouteReadyParcelsAsync(cancellationToken);
         await SeedInboundManifestsAsync(cancellationToken);
     }
 
@@ -799,6 +800,9 @@ public class ApplicationDbSeeder(
                 statusOccurrences[status] = statusOccurrenceIndex;
 
                 var cityInfo = cities[random.Next(cities.Length)];
+                // Spread addresses within ~5km of city center
+                var latOffset = (random.NextDouble() - 0.5) * 0.08;
+                var lonOffset = (random.NextDouble() - 0.5) * 0.08;
                 var recipientAddress = new Address
                 {
                     Id = Guid.NewGuid(),
@@ -811,7 +815,7 @@ public class ApplicationDbSeeder(
                     ContactName = $"{firstNames[random.Next(firstNames.Length)]} {lastNames[random.Next(lastNames.Length)]}",
                     Phone = $"615-{random.Next(100, 999)}-{random.Next(1000, 9999)}",
                     Email = $"recipient{i}@example.com",
-                    GeoLocation = geometryFactory.CreatePoint(new Coordinate(cityInfo.Item4, cityInfo.Item5)),
+                    GeoLocation = geometryFactory.CreatePoint(new Coordinate(cityInfo.Item4 + lonOffset, cityInfo.Item5 + latOffset)),
                     CreatedAt = DateTimeOffset.UtcNow,
                 };
 
@@ -1171,36 +1175,55 @@ public class ApplicationDbSeeder(
 
         var drivers = await dbContext.Drivers.ToListAsync(cancellationToken);
         var zones = await dbContext.Zones.ToListAsync(cancellationToken);
+        var vehicles = await dbContext.Vehicles
+            .Where(v => v.Status == VehicleStatus.Available)
+            .ToListAsync(cancellationToken);
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var random = new Random(42);
         var routes = new List<DeliveryRoute>();
+
+        var routeNames = new[] { "Morning Run", "Midday Run", "Afternoon Run", "Evening Run", "Express Drop", "Priority Run" };
+        var statuses = new[] { RouteStatus.Draft, RouteStatus.Draft, RouteStatus.Draft, RouteStatus.Dispatched, RouteStatus.InProgress, RouteStatus.Completed };
 
         foreach (var depot in depots)
         {
-            var depotDrivers = drivers.Where(d => d.DepotId == depot.Id).Take(4).ToList();
+            var depotDrivers = drivers.Where(d => d.DepotId == depot.Id).ToList();
             var depotZones = zones.Where(z => z.DepotId == depot.Id).ToList();
+            var depotVehicles = vehicles.Where(v => v.DepotId == depot.Id).ToList();
 
             if (depotDrivers.Count == 0 || depotZones.Count == 0) continue;
 
-            var routeNames = new[] { "Morning Run", "Midday Run", "Afternoon Run", "Evening Run" };
-
-            for (var r = 0; r < Math.Min(4, depotDrivers.Count); r++)
+            // Generate routes across 3 days: yesterday, today, tomorrow
+            for (var dayOffset = -1; dayOffset <= 1; dayOffset++)
             {
-                var zone = depotZones[r % depotZones.Count];
-                var driver = depotDrivers[r];
+                var date = today.AddDays(dayOffset);
 
-                var route = new DeliveryRoute
+                for (var r = 0; r < Math.Min(routeNames.Length, depotDrivers.Count); r++)
                 {
-                    Id = Guid.NewGuid(),
-                    Name = $"{depot.Name} — {routeNames[r]}",
-                    DepotId = depot.Id,
-                    DriverId = driver.Id,
-                    ZoneId = zone.Id,
-                    Date = today,
-                    Status = RouteStatus.Draft,
-                    CreatedAt = DateTimeOffset.UtcNow,
-                };
+                    var zone = depotZones[r % depotZones.Count];
+                    var driver = depotDrivers[r % depotDrivers.Count];
+                    var vehicle = depotVehicles.Count > 0 ? depotVehicles[r % depotVehicles.Count] : null;
+                    var status = statuses[(dayOffset + 1) * 2 + r % 2];
 
-                routes.Add(route);
+                    // Only assign driver/vehicle to non-draft routes
+                    Guid? driverId = status != RouteStatus.Draft ? driver.Id : null;
+                    Guid? vehicleId = status != RouteStatus.Draft ? vehicle?.Id : null;
+
+                    var route = new DeliveryRoute
+                    {
+                        Id = Guid.NewGuid(),
+                        Name = $"{depot.Name} — {routeNames[r]}",
+                        DepotId = depot.Id,
+                        DriverId = driverId,
+                        ZoneId = zone.Id,
+                        VehicleId = vehicleId,
+                        Date = date,
+                        Status = status,
+                        CreatedAt = DateTimeOffset.UtcNow.AddHours(-random.Next(1, 72)),
+                    };
+
+                    routes.Add(route);
+                }
             }
         }
 
@@ -1344,6 +1367,187 @@ public class ApplicationDbSeeder(
         await dbContext.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation("Seeded {Count} sort demo parcels (ReceivedAtDepot + zone)", parcels.Count);
+    }
+
+    private async Task SeedRouteReadyParcelsAsync(CancellationToken cancellationToken)
+    {
+        const string trackingPrefix = "LM-RT-";
+        if (await dbContext.Parcels.AnyAsync(p => p.TrackingNumber.StartsWith(trackingPrefix), cancellationToken))
+            return;
+
+        var zones = await dbContext.Zones
+            .Where(z => z.IsActive)
+            .Include(z => z.Depot)
+                .ThenInclude(d => d!.Address)
+            .OrderBy(z => z.Name)
+            .ToListAsync(cancellationToken);
+
+        if (zones.Count == 0) return;
+
+        var geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
+        var random = new Random(123);
+
+        var cities = new[]
+        {
+            ("Nashville", "TN", "37201", -86.78, 36.17),
+            ("Louisville", "KY", "40201", -85.74, 38.25),
+            ("Birmingham", "AL", "35201", -86.80, 33.52),
+            ("Memphis", "TN", "38101", -90.03, 35.15),
+            ("Chattanooga", "TN", "37402", -85.31, 35.05),
+            ("Clarksville", "TN", "37040", -87.36, 36.53),
+            ("Bowling Green", "KY", "42101", -86.44, 37.00),
+            ("Huntsville", "AL", "35801", -86.59, 34.73),
+            ("Knoxville", "TN", "37902", -83.92, 35.96),
+            ("Lexington", "KY", "40507", -84.50, 38.05),
+            ("Montgomery", "AL", "36104", -86.30, 32.38),
+            ("Murfreesboro", "TN", "37130", -86.39, 35.85),
+        };
+
+        var serviceTypes = Enum.GetValues<ServiceType>();
+        var parcelTypes = new[] { "Standard", "Express", "Economy", "Overnight", "Fragile" };
+        var streetNames = new[] { "Main", "Oak", "Maple", "Cedar", "Elm", "Pine", "Market", "Commerce", "Walnut", "Cherry" };
+        var streetSuffixes = new[] { "St", "Ave", "Blvd", "Dr", "Ln", "Ct", "Way" };
+        var firstNames = new[] { "James", "Mary", "Robert", "Patricia", "John", "Jennifer", "Michael", "Linda", "David", "Barbara", "Carlos", "Maria", "Wei", "Mei", "Kofi", "Amara" };
+        var lastNames = new[] { "Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", "Rodriguez", "Wilson", "Anderson", "Taylor", "Moore", "Jackson", "Lee", "Harris" };
+
+        // Create one shared shipper address per zone's depot city
+        var shipperAddressesByZone = new Dictionary<Guid, Address>();
+        foreach (var zone in zones)
+        {
+            if (shipperAddressesByZone.ContainsKey(zone.Id)) continue;
+
+            var depotCity = zone.Depot?.Address?.City ?? "Nashville";
+            var cityMatch = cities.FirstOrDefault(c => c.Item1 == depotCity);
+            var cityInfo = cityMatch != default ? cityMatch : cities[0];
+
+            var shipperAddress = new Address
+            {
+                Id = Guid.NewGuid(),
+                Street1 = $"{random.Next(100, 999)} Shipper Plaza",
+                City = cityInfo.Item1,
+                State = cityInfo.Item2,
+                PostalCode = cityInfo.Item3,
+                CountryCode = "US",
+                IsResidential = false,
+                CompanyName = $"{zone.Name} Route Supplies",
+                GeoLocation = geometryFactory.CreatePoint(new Coordinate(cityInfo.Item4, cityInfo.Item5)),
+                CreatedAt = DateTimeOffset.UtcNow,
+            };
+            shipperAddressesByZone[zone.Id] = shipperAddress;
+        }
+
+        await dbContext.Addresses.AddRangeAsync(shipperAddressesByZone.Values, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        var parcelsPerZone = 15;
+        var parcels = new List<Parcel>();
+        var seq = 1;
+
+        foreach (var zone in zones)
+        {
+            var shipper = shipperAddressesByZone[zone.Id];
+
+            for (var i = 0; i < parcelsPerZone; i++)
+            {
+                var cityInfo = cities[random.Next(cities.Length)];
+                var latOffset = (random.NextDouble() - 0.5) * 0.08;
+                var lonOffset = (random.NextDouble() - 0.5) * 0.08;
+
+                var recipientAddress = new Address
+                {
+                    Id = Guid.NewGuid(),
+                    Street1 = $"{random.Next(100, 9999)} {streetNames[random.Next(streetNames.Length)]} {streetSuffixes[random.Next(streetSuffixes.Length)]}",
+                    City = cityInfo.Item1,
+                    State = cityInfo.Item2,
+                    PostalCode = cityInfo.Item3,
+                    CountryCode = "US",
+                    IsResidential = true,
+                    ContactName = $"{firstNames[random.Next(firstNames.Length)]} {lastNames[random.Next(lastNames.Length)]}",
+                    Phone = $"615-{random.Next(100, 999)}-{random.Next(1000, 9999)}",
+                    GeoLocation = geometryFactory.CreatePoint(new Coordinate(cityInfo.Item4 + lonOffset, cityInfo.Item5 + latOffset)),
+                    CreatedAt = DateTimeOffset.UtcNow,
+                };
+
+                var now = DateTimeOffset.UtcNow;
+                var createdAt = now.AddHours(-random.Next(2, 48));
+                var serviceType = serviceTypes[random.Next(serviceTypes.Length)];
+                var parcelType = parcelTypes[random.Next(parcelTypes.Length)];
+
+                var parcel = new Parcel
+                {
+                    Id = Guid.NewGuid(),
+                    TrackingNumber = $"{trackingPrefix}{seq:D5}",
+                    Description = $"{parcelType} shipment for route testing",
+                    ServiceType = serviceType,
+                    Status = ParcelStatus.Sorted,
+                    RecipientAddressId = recipientAddress.Id,
+                    RecipientAddress = recipientAddress,
+                    ShipperAddressId = shipper.Id,
+                    ShipperAddress = shipper,
+                    Weight = Math.Round((decimal)(random.NextDouble() * 15 + 0.5), 2),
+                    WeightUnit = random.Next(2) == 0 ? WeightUnit.Kg : WeightUnit.Lb,
+                    Length = random.Next(10, 60),
+                    Width = random.Next(10, 40),
+                    Height = random.Next(5, 30),
+                    DimensionUnit = DimensionUnit.Cm,
+                    DeclaredValue = Math.Round((decimal)(random.NextDouble() * 300 + 10), 2),
+                    Currency = "USD",
+                    EstimatedDeliveryDate = now.AddDays(random.Next(1, 5)),
+                    ParcelType = parcelType,
+                    ZoneId = zone.Id,
+                    CreatedAt = createdAt,
+                    CurrentStatusChangedAt = createdAt.AddHours(2),
+                    LastModifiedAt = createdAt.AddHours(2),
+                };
+
+                parcel.TrackingEvents.Add(new TrackingEvent
+                {
+                    Id = Guid.NewGuid(),
+                    ParcelId = parcel.Id,
+                    Timestamp = createdAt,
+                    EventType = EventType.LabelCreated,
+                    Description = "Label created and registered",
+                    LocationCity = zone.Depot?.Address?.City ?? "Nashville",
+                    LocationState = zone.Depot?.Address?.State ?? "TN",
+                    LocationCountryCode = "US",
+                    CreatedAt = createdAt,
+                });
+
+                parcel.TrackingEvents.Add(new TrackingEvent
+                {
+                    Id = Guid.NewGuid(),
+                    ParcelId = parcel.Id,
+                    Timestamp = createdAt.AddHours(1),
+                    EventType = EventType.ArrivedAtFacility,
+                    Description = "Package received at depot",
+                    LocationCity = zone.Depot?.Address?.City ?? "Nashville",
+                    LocationState = zone.Depot?.Address?.State ?? "TN",
+                    LocationCountryCode = "US",
+                    CreatedAt = createdAt.AddHours(1),
+                });
+
+                parcel.TrackingEvents.Add(new TrackingEvent
+                {
+                    Id = Guid.NewGuid(),
+                    ParcelId = parcel.Id,
+                    Timestamp = createdAt.AddHours(2),
+                    EventType = EventType.HeldAtFacility,
+                    Description = "Package sorted to zone",
+                    LocationCity = zone.Depot?.Address?.City ?? "Nashville",
+                    LocationState = zone.Depot?.Address?.State ?? "TN",
+                    LocationCountryCode = "US",
+                    CreatedAt = createdAt.AddHours(2),
+                });
+
+                parcels.Add(parcel);
+                seq++;
+            }
+        }
+
+        await dbContext.Parcels.AddRangeAsync(parcels, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation("Seeded {Count} route-ready parcels (Sorted, unassigned) across {ZoneCount} zones", parcels.Count, zones.Count);
     }
 
     private async Task SeedInboundManifestsAsync(CancellationToken cancellationToken)

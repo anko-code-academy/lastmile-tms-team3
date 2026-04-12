@@ -88,4 +88,24 @@ public class RouteMutation
     {
         return await mediator.Send(new UnassignVehicleFromRoute.Command(input), cancellationToken);
     }
+
+    [Authorize(Policy = "AdminOrDispatcher")]
+    public async Task<RouteDto> OptimizeRouteStops(
+        [Service] IMediator mediator,
+        Guid routeId,
+        CancellationToken cancellationToken = default)
+    {
+        return await mediator.Send(
+            new OptimizeRouteStops.Command(routeId), cancellationToken);
+    }
+
+    [Authorize(Policy = "AdminOrDispatcher")]
+    public async Task<RouteDto> ReorderRouteStops(
+        [Service] IMediator mediator,
+        ReorderStopsDto input,
+        CancellationToken cancellationToken = default)
+    {
+        return await mediator.Send(
+            new ReorderRouteStops.Command(input), cancellationToken);
+    }
 }

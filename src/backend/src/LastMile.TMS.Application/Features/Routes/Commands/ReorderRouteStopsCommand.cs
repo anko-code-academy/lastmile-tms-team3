@@ -7,9 +7,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LastMile.TMS.Application.Features.Routes.Commands;
 
-public static class AutoAssignParcels
+public static class ReorderRouteStops
 {
-    public record Command(Guid RouteId) : IRequest<RouteDto>;
+    public record Command(ReorderStopsDto Dto) : IRequest<RouteDto>;
 
     public class Handler : IRequestHandler<Command, RouteDto>
     {
@@ -26,25 +26,21 @@ public static class AutoAssignParcels
 
             var route = await context.DeliveryRoutes
                 .Include(r => r.RouteParcels)
-                    .ThenInclude(rp => rp.Parcel)
                 .Include(r => r.Zone)
                 .Include(r => r.Driver)
                 .Include(r => r.Vehicle)
-                .FirstOrDefaultAsync(r => r.Id == request.RouteId, cancellationToken)
-                ?? throw new InvalidOperationException($"Route with ID '{request.RouteId}' was not found.");
+                .FirstOrDefaultAsync(r => r.Id == request.Dto.RouteId, cancellationToken)
+                ?? throw new InvalidOperationException(
+                    $"Route with ID '{request.Dto.RouteId}' was not found.");
 
-            var existingParcelIds = route.RouteParcels.Select(rp => rp.ParcelId).ToHashSet();
+            if (route.Status != RouteStatus.Draft)
+                throw new InvalidOperationException(
+                    "Stops can only be reordered on a route in Draft status.");
 
-            var stagedParcels = await context.Parcels
-                .Where(p => p.ZoneId == route.ZoneId
-                    && p.Status == ParcelStatus.Sorted
-                    && !existingParcelIds.Contains(p.Id))
-                .ToListAsync(cancellationToken);
+            var newOrder = request.Dto.NewOrder
+                .ToDictionary(e => e.ParcelId, e => e.StopOrder);
 
-            foreach (var parcel in stagedParcels)
-            {
-                route.AddParcel(parcel);
-            }
+            route.ReorderStopsExplicit(newOrder);
 
             await context.SaveChangesAsync(cancellationToken);
 

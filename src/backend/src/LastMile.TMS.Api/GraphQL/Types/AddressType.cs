@@ -28,6 +28,12 @@ public class AddressType : ObjectType<Address>
                 var address = ctx.Parent<Address>();
                 return address.GeoLocation?.AsText();
             });
+        descriptor.Field("latitude")
+            .Type<FloatType>()
+            .Resolve(ctx => ctx.Parent<Address>().GeoLocation?.Y);
+        descriptor.Field("longitude")
+            .Type<FloatType>()
+            .Resolve(ctx => ctx.Parent<Address>().GeoLocation?.X);
         descriptor.Field(x => x.CreatedAt);
         descriptor.Field(x => x.LastModifiedAt);
     }

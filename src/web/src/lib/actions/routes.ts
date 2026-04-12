@@ -13,6 +13,8 @@ import {
   UNASSIGN_DRIVER_FROM_ROUTE,
   UNASSIGN_VEHICLE_FROM_ROUTE,
   GET_AVAILABLE_DRIVERS,
+  OPTIMIZE_ROUTE_STOPS,
+  REORDER_ROUTE_STOPS,
 } from "@/lib/graphql/queries/routes";
 import type {
   CreateRouteInput,
@@ -23,6 +25,7 @@ import type {
   UnassignFromRouteInput,
   AvailableDriver,
   RouteStatus,
+  ReorderStopsInput,
 } from "@/lib/types/route";
 
 export interface RouteFilter {
@@ -297,5 +300,39 @@ function buildRouteOrder(
     case "createdAt":
     default:
       return [{ createdAt: sortDirection }];
+  }
+}
+
+export async function optimizeRouteStopsAction(
+  routeId: string
+): Promise<{ error?: string }> {
+  try {
+    await gqlFetch<{ optimizeRouteStops: { id: string } }>(
+      OPTIMIZE_ROUTE_STOPS,
+      { routeId }
+    );
+    return {};
+  } catch (err) {
+    return {
+      error:
+        err instanceof Error ? err.message : "Failed to optimize route stops",
+    };
+  }
+}
+
+export async function reorderRouteStopsAction(
+  input: ReorderStopsInput
+): Promise<{ error?: string }> {
+  try {
+    await gqlFetch<{ reorderRouteStops: { id: string } }>(
+      REORDER_ROUTE_STOPS,
+      { input }
+    );
+    return {};
+  } catch (err) {
+    return {
+      error:
+        err instanceof Error ? err.message : "Failed to reorder route stops",
+    };
   }
 }

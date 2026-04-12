@@ -22,11 +22,14 @@ public class RouteQuery
         Guid id)
         => context.DeliveryRoutes
             .AsNoTracking()
+            .Include(r => r.Depot)
+                .ThenInclude(d => d!.Address)
             .Include(r => r.Zone)
             .Include(r => r.Driver)
             .Include(r => r.Vehicle)
             .Include(r => r.RouteParcels)
                 .ThenInclude(rp => rp.Parcel)
+                    .ThenInclude(p => p!.RecipientAddress)
             .Where(r => r.Id == id);
 
     [Authorize(Policy = "AdminOrDispatcher")]
@@ -37,6 +40,8 @@ public class RouteQuery
         AppDbContext context)
         => context.DeliveryRoutes
             .AsNoTracking()
+            .Include(r => r.Depot)
+                .ThenInclude(d => d!.Address)
             .Include(r => r.Zone)
             .Include(r => r.Driver)
             .Include(r => r.Vehicle)

@@ -6,6 +6,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import TmNavbar from "@/components/TmNavbar";
 import RouteStatusBadge from "@/components/routes/RouteStatusBadge";
+import RouteMap from "@/components/routes/RouteMap";
+import SortableStopList from "@/components/routes/SortableStopList";
 import {
   getRouteAction,
   assignDriverToRouteAction,
@@ -17,6 +19,8 @@ import {
   removeParcelFromRouteAction,
   autoAssignParcelsAction,
   getAvailableDriversAction,
+  optimizeRouteStopsAction,
+  reorderRouteStopsAction,
 } from "@/lib/actions/routes";
 import { useSearchVehicles } from "@/lib/hooks/useVehicles";
 import { graphql } from "@/lib/api/graphql";
@@ -83,6 +87,8 @@ export default function RouteDetailPage({
     new Set()
   );
   const [parcelLoading, setParcelLoading] = useState(false);
+  const [optimizing, setOptimizing] = useState(false);
+  const [selectedStopId, setSelectedStopId] = useState<string | null>(null);
 
   // Vehicles
   const { data: vehiclesData } = useSearchVehicles({
@@ -300,6 +306,31 @@ export default function RouteDetailPage({
     });
   }
 
+  async function handleOptimize() {
+    if (!routeId) return;
+    setOptimizing(true);
+    setError(null);
+    const result = await optimizeRouteStopsAction(routeId);
+    setOptimizing(false);
+    if (result.error) {
+      setError(result.error);
+    } else {
+      await loadRoute();
+    }
+  }
+
+  async function handleReorder(
+    newOrder: { parcelId: string; stopOrder: number }[]
+  ) {
+    if (!routeId) return;
+    setError(null);
+    const result = await reorderRouteStopsAction({ routeId, newOrder });
+    if (result.error) {
+      setError(result.error);
+    }
+    // Don't reload — the SortableStopList manages local state optimistically
+  }
+
   const isDraft = route?.status === RouteStatus.Draft;
   const assignedParcels = route?.routeParcels ?? [];
 
@@ -447,6 +478,28 @@ export default function RouteDetailPage({
                 <strong>{route.parcelCount}</strong> ({route.estimatedStops}{" "}
                 stops)
               </div>
+              {route.estimatedDistance != null && (
+                <div>
+                  <span style={{ color: S.muted, fontSize: ".75rem" }}>
+                    Distance
+                  </span>
+                  <br />
+                  <span style={{ fontFamily: S.mono, fontSize: ".85rem" }}>
+                    {(route.estimatedDistance / 1000).toFixed(1)} km
+                  </span>
+                </div>
+              )}
+              {route.estimatedDuration != null && (
+                <div>
+                  <span style={{ color: S.muted, fontSize: ".75rem" }}>
+                    Est. Duration
+                  </span>
+                  <br />
+                  <span style={{ fontFamily: S.mono, fontSize: ".85rem" }}>
+                    {Math.round(route.estimatedDuration / 60)} min
+                  </span>
+                </div>
+              )}
               <div>
                 <span style={{ color: S.muted, fontSize: ".75rem" }}>
                   Created
@@ -731,7 +784,82 @@ export default function RouteDetailPage({
 
             {/* Parcels (Draft routes) */}
             {isDraft && (
-              <div
+              <>
+                {/* Route Map + Optimize */}
+                {route.parcelCount > 0 && (
+                  <div style={{ marginBottom: "1.5rem" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        marginBottom: ".75rem",
+                      }}
+                    >
+                      <span style={{ fontWeight: 600, fontSize: ".875rem" }}>
+                        Route Map
+                      </span>
+                      <button
+                        onClick={handleOptimize}
+                        disabled={optimizing || parcelLoading}
+                        style={{
+                          padding: ".4rem .85rem",
+                          borderRadius: 4,
+                          background: "rgba(34,197,94,.1)",
+                          border: "1px solid rgba(34,197,94,.3)",
+                          color: S.green,
+                          fontSize: ".75rem",
+                          fontWeight: 600,
+                          cursor:
+                            optimizing || parcelLoading
+                              ? "not-allowed"
+                              : "pointer",
+                          opacity: optimizing || parcelLoading ? 0.5 : 1,
+                        }}
+                      >
+                        {optimizing
+                          ? "Optimizing..."
+                          : "Optimize Stop Order"}
+                      </button>
+                    </div>
+                    <RouteMap
+                      depotLocation={
+                        route.depot?.address?.latitude != null &&
+                        route.depot?.address?.longitude != null
+                          ? {
+                              latitude: route.depot.address.latitude,
+                              longitude: route.depot.address.longitude,
+                              name: route.depot.name ?? "Depot",
+                            }
+                          : null
+                      }
+                      stops={assignedParcels
+                        .filter(
+                          (rp) =>
+                            rp.parcel?.recipientAddress?.latitude != null &&
+                            rp.parcel?.recipientAddress?.longitude != null
+                        )
+                        .map((rp) => ({
+                          parcelId: rp.parcelId,
+                          stopOrder: rp.stopOrder,
+                          trackingNumber:
+                            rp.parcel?.trackingNumber ??
+                            rp.parcelId.slice(0, 8),
+                          latitude:
+                            rp.parcel?.recipientAddress?.latitude ?? 0,
+                          longitude:
+                            rp.parcel?.recipientAddress?.longitude ?? 0,
+                          address:
+                            rp.parcel?.recipientAddress?.city ??
+                            "Unknown",
+                        }))}
+                      selectedStopId={selectedStopId}
+                      onStopSelected={setSelectedStopId}
+                    />
+                  </div>
+                )}
+
+                <div
                 style={{
                   display: "grid",
                   gridTemplateColumns: "1fr 1fr",
@@ -905,67 +1033,30 @@ export default function RouteDetailPage({
                         No parcels assigned yet.
                       </div>
                     ) : (
-                      Array.isArray(assignedParcels) &&
-                      assignedParcels.map((rp, i) => (
-                        <div
-                          key={rp.parcelId}
-                          className="parcel-row"
-                          style={{
-                            padding: ".5rem 1rem",
-                            borderBottom: `1px solid ${S.border}`,
-                            display: "flex",
-                            alignItems: "center",
-                            gap: ".75rem",
-                          }}
-                        >
-                          <span
-                            style={{
-                              color: S.accent,
-                              fontSize: ".75rem",
-                              fontWeight: 600,
-                              minWidth: 24,
-                            }}
-                          >
-                            #{rp.stopOrder || i + 1}
-                          </span>
-                          <span
-                            style={{
-                              fontFamily: S.mono,
-                              fontSize: ".8rem",
-                              flex: 1,
-                            }}
-                          >
-                            {rp.parcel?.trackingNumber ??
-                              rp.parcelId.slice(0, 8)}
-                          </span>
-                          <button
-                            className="remove-btn"
-                            onClick={() => handleRemoveParcel(rp.parcelId)}
-                            disabled={parcelLoading}
-                            title="Remove parcel from route"
-                            style={{
-                              background: "none",
-                              border: "none",
-                              color: S.red,
-                              cursor: parcelLoading
-                                ? "not-allowed"
-                                : "pointer",
-                              fontSize: ".85rem",
-                              padding: ".15rem .35rem",
-                              borderRadius: 3,
-                              opacity: parcelLoading ? 0.4 : 0.7,
-                              lineHeight: 1,
-                              transition: "opacity .15s",
-                            }}
-                          >
-                            &times;
-                          </button>
-                        </div>
-                      ))
+                      <SortableStopList
+                        stops={assignedParcels
+                          .slice()
+                          .sort((a, b) => a.stopOrder - b.stopOrder)
+                          .map((rp) => ({
+                            parcelId: rp.parcelId,
+                            stopOrder: rp.stopOrder,
+                            trackingNumber:
+                              rp.parcel?.trackingNumber ??
+                              rp.parcelId.slice(0, 8),
+                            address:
+                              rp.parcel?.recipientAddress?.city ?? "",
+                          }))}
+                        selectedStopId={selectedStopId}
+                        onStopSelected={setSelectedStopId}
+                        onReorder={handleReorder}
+                        onRemove={handleRemoveParcel}
+                        disabled={parcelLoading || optimizing}
+                      />
                     )}
                   </div>
                 </div>
               </div>
+              </>
             )}
 
             {/* Non-draft: show assigned parcels as read-only */}

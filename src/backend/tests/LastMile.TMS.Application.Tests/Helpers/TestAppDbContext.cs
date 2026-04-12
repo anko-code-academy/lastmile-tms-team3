@@ -113,7 +113,6 @@ public class TestAppDbContext : DbContext, IAppDbContext, IAppDbContextFactory
         modelBuilder.Entity<Address>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.Ignore(e => e.GeoLocation);
         });
 
         modelBuilder.Entity<Vehicle>(entity =>

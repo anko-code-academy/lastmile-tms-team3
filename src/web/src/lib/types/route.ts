@@ -71,6 +71,12 @@ export interface RouteParcelItem {
     id: string;
     trackingNumber: string;
     status: string;
+    recipientAddress?: {
+      latitude: number;
+      longitude: number;
+      city: string;
+      street1: string;
+    };
   };
 }
 
@@ -78,7 +84,14 @@ export interface DeliveryRoute {
   id: string;
   name: string;
   depotId: string;
-  depot: { id: string; name: string };
+  depot: {
+    id: string;
+    name: string;
+    address?: {
+      latitude: number;
+      longitude: number;
+    } | null;
+  };
   date: string;
   zoneId: string;
   zoneName?: string;
@@ -92,6 +105,7 @@ export interface DeliveryRoute {
   parcelCount: number;
   estimatedStops: number;
   estimatedDistance?: number;
+  estimatedDuration?: number | null;
   parcels: RouteParcel[];
   routeParcels?: RouteParcelItem[];
   createdAt: string;
@@ -133,4 +147,14 @@ export interface AvailableDriver {
   id: string;
   fullName: string;
   routeCount: number;
+}
+
+export interface ReorderStopEntry {
+  parcelId: string;
+  stopOrder: number;
+}
+
+export interface ReorderStopsInput {
+  routeId: string;
+  newOrder: ReorderStopEntry[];
 }
