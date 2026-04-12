@@ -84,7 +84,14 @@ export interface DeliveryRoute {
   id: string;
   name: string;
   depotId: string;
-  depot: { id: string; name: string };
+  depot: {
+    id: string;
+    name: string;
+    address?: {
+      latitude: number;
+      longitude: number;
+    } | null;
+  };
   date: string;
   zoneId: string;
   zoneName?: string;
@@ -98,6 +105,7 @@ export interface DeliveryRoute {
   parcelCount: number;
   estimatedStops: number;
   estimatedDistance?: number;
+  estimatedDuration?: number | null;
   parcels: RouteParcel[];
   routeParcels?: RouteParcelItem[];
   createdAt: string;

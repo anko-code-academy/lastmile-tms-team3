@@ -29,6 +29,8 @@ public class DeliveryRoute : BaseAuditableEntity, IAuditTracked
 
     public decimal? EstimatedDistance { get; set; }
 
+    public int? EstimatedDuration { get; set; }
+
     public int EstimatedStops { get; set; }
 
     public DateTimeOffset? LoadedAt { get; set; }
@@ -125,12 +127,14 @@ public class DeliveryRoute : BaseAuditableEntity, IAuditTracked
 
     public void ApplyOptimizedStopOrder(
         Dictionary<Guid, int> optimizedOrder,
-        decimal totalDistanceMeters)
+        decimal totalDistanceMeters,
+        int? totalDurationSeconds = null)
     {
         if (Status != RouteStatus.Draft)
             throw new InvalidOperationException("Stop order can only be optimized for a route in Draft status.");
 
         EstimatedDistance = totalDistanceMeters;
+        EstimatedDuration = totalDurationSeconds;
 
         if (RouteParcels.Count == 0) return;
 

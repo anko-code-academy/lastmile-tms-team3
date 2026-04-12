@@ -18,6 +18,7 @@ public static class RouteMapper
         route.ParcelCount,
         route.EstimatedStops,
         route.EstimatedDistance,
+        route.EstimatedDuration,
         route.CreatedAt,
         route.LastModifiedAt
     );

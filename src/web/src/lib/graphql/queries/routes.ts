@@ -14,6 +14,7 @@ export const GET_ROUTES = `
         parcelCount
         estimatedStops
         estimatedDistance
+        estimatedDuration
         createdAt
       }
       pageInfo {
@@ -42,6 +43,15 @@ export const GET_ROUTE = `
       parcelCount
       estimatedStops
       estimatedDistance
+      estimatedDuration
+      depot {
+        id
+        name
+        address {
+          latitude
+          longitude
+        }
+      }
       routeParcels {
         parcelId
         stopOrder
@@ -139,6 +149,7 @@ export const ASSIGN_DRIVER_TO_ROUTE = `
       parcelCount
       estimatedStops
       estimatedDistance
+      estimatedDuration
       createdAt
       lastModifiedAt
     }
@@ -160,6 +171,7 @@ export const ASSIGN_VEHICLE_TO_ROUTE = `
       parcelCount
       estimatedStops
       estimatedDistance
+      estimatedDuration
       createdAt
       lastModifiedAt
     }
@@ -181,6 +193,7 @@ export const UNASSIGN_DRIVER_FROM_ROUTE = `
       parcelCount
       estimatedStops
       estimatedDistance
+      estimatedDuration
       createdAt
       lastModifiedAt
     }
@@ -202,6 +215,7 @@ export const UNASSIGN_VEHICLE_FROM_ROUTE = `
       parcelCount
       estimatedStops
       estimatedDistance
+      estimatedDuration
       createdAt
       lastModifiedAt
     }
@@ -226,6 +240,7 @@ export const OPTIMIZE_ROUTE_STOPS = `
       parcelCount
       estimatedStops
       estimatedDistance
+      estimatedDuration
       routeParcels {
         parcelId
         stopOrder
@@ -254,6 +269,7 @@ export const REORDER_ROUTE_STOPS = `
       parcelCount
       estimatedStops
       estimatedDistance
+      estimatedDuration
       routeParcels {
         parcelId
         stopOrder

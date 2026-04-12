@@ -94,7 +94,7 @@ public static class OptimizeRouteStops
                 result = NearestNeighborFallback.Optimize(depot, stops);
             }
 
-            route.ApplyOptimizedStopOrder(result.OptimizedOrder, (decimal)result.TotalDistanceMeters);
+            route.ApplyOptimizedStopOrder(result.OptimizedOrder, (decimal)result.TotalDistanceMeters, (int)result.TotalDurationSeconds);
 
             await context.SaveChangesAsync(cancellationToken);
 

@@ -489,6 +489,17 @@ export default function RouteDetailPage({
                   </span>
                 </div>
               )}
+              {route.estimatedDuration != null && (
+                <div>
+                  <span style={{ color: S.muted, fontSize: ".75rem" }}>
+                    Est. Duration
+                  </span>
+                  <br />
+                  <span style={{ fontFamily: S.mono, fontSize: ".85rem" }}>
+                    {Math.round(route.estimatedDuration / 60)} min
+                  </span>
+                </div>
+              )}
               <div>
                 <span style={{ color: S.muted, fontSize: ".75rem" }}>
                   Created
@@ -812,7 +823,16 @@ export default function RouteDetailPage({
                       </button>
                     </div>
                     <RouteMap
-                      depotLocation={null}
+                      depotLocation={
+                        route.depot?.address?.latitude != null &&
+                        route.depot?.address?.longitude != null
+                          ? {
+                              latitude: route.depot.address.latitude,
+                              longitude: route.depot.address.longitude,
+                              name: route.depot.name ?? "Depot",
+                            }
+                          : null
+                      }
                       stops={assignedParcels
                         .filter(
                           (rp) =>

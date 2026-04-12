@@ -95,6 +95,7 @@ public class OptimizeRouteStopsTests : IDisposable
         // Assert
         result.Should().NotBeNull();
         result.EstimatedDistance.Should().Be(5000m);
+        result.EstimatedDuration.Should().Be(300);
         // Verify the optimization service was called
         await _optimizationService.Received(1)
             .OptimizeAsync(Arg.Any<StopLocation>(), Arg.Any<IReadOnlyList<StopLocation>>(), Arg.Any<CancellationToken>());

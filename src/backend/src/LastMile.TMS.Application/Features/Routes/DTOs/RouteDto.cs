@@ -15,6 +15,7 @@ public record RouteDto(
     int ParcelCount,
     int EstimatedStops,
     decimal? EstimatedDistance,
+    int? EstimatedDuration,
     DateTimeOffset CreatedAt,
     DateTimeOffset? LastModifiedAt
 );

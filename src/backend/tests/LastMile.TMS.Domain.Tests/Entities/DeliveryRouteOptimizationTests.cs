@@ -70,7 +70,7 @@ public class DeliveryRouteOptimizationTests
     }
 
     [Fact]
-    public void ApplyOptimizedStopOrder_WhenDraft_ReordersAndSetsDistance()
+    public void ApplyOptimizedStopOrder_WhenDraft_ReordersAndSetsDistanceAndDuration()
     {
         // Arrange
         var route = CreateDraftRoute();
@@ -90,13 +90,14 @@ public class DeliveryRouteOptimizationTests
         };
 
         // Act
-        route.ApplyOptimizedStopOrder(optimizedOrder, 15.5m);
+        route.ApplyOptimizedStopOrder(optimizedOrder, 15.5m, 1800);
 
         // Assert
         route.RouteParcels.First(rp => rp.ParcelId == p1.Id).StopOrder.Should().Be(3);
         route.RouteParcels.First(rp => rp.ParcelId == p2.Id).StopOrder.Should().Be(2);
         route.RouteParcels.First(rp => rp.ParcelId == p3.Id).StopOrder.Should().Be(1);
         route.EstimatedDistance.Should().Be(15.5m);
+        route.EstimatedDuration.Should().Be(1800);
     }
 
     [Fact]
