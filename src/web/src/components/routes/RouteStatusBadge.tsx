@@ -6,8 +6,8 @@ const STATUS_BADGE: Record<RouteStatus, { label: string; border: string; color: 
     border: "rgba(148,163,184,.3)",
     color: "#94a3b8",
   },
-  [RouteStatus.Active]: {
-    label: "Active",
+  [RouteStatus.Dispatched]: {
+    label: "Dispatched",
     border: "rgba(59,130,246,.3)",
     color: "#3b82f6",
   },

@@ -165,7 +165,7 @@ public class DeliveryRouteTests
     {
         // Arrange
         var route = CreateDraftRoute();
-        route.Status = RouteStatus.Active;
+        route.Status = RouteStatus.Dispatched;
         var parcel = CreateParcel();
 
         // Act

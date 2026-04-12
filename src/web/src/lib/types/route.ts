@@ -1,6 +1,6 @@
 export enum RouteStatus {
   Draft = "DRAFT",
-  Active = "ACTIVE",
+  Dispatched = "DISPATCHED",
   InProgress = "IN_PROGRESS",
   Completed = "COMPLETED",
 }
