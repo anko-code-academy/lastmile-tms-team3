@@ -93,40 +93,48 @@ export default function RouteDetailPage({
   const availableVehicles =
     vehiclesData?.items?.filter((v) => v.status === "AVAILABLE") ?? [];
 
-  // Resolve params
-  useEffect(() => {
-    params.then((p) => setRouteId(p.id));
-  }, [params]);
-
-  // Load route data
+  // Resolve params and load route data
   const loadRoute = useCallback(async () => {
     if (!routeId) return;
     const data = await getRouteAction(routeId);
     setRoute(data);
-    setLoading(false);
   }, [routeId]);
 
   useEffect(() => {
-    loadRoute();
-  }, [loadRoute]);
+    params.then((p) => setRouteId(p.id));
+  }, [params]);
+
+  useEffect(() => {
+    if (!routeId) return;
+    let cancelled = false;
+    getRouteAction(routeId).then((data) => {
+      if (!cancelled) {
+        setRoute(data);
+        setLoading(false);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [routeId]);
 
   // Load available drivers when route is loaded
   useEffect(() => {
     if (!route) return;
+    let cancelled = false;
     getAvailableDriversAction(route.date).then((result) => {
-      if (result.drivers) {
+      if (!cancelled && result.drivers) {
         setAvailableDrivers(result.drivers);
       }
     });
+    return () => { cancelled = true; };
   }, [route?.date]);
 
   // Load staged parcels when route is loaded (for draft routes)
   useEffect(() => {
     if (!route || route.status !== RouteStatus.Draft || !route.zoneId) {
-      setStagedParcels([]);
       return;
     }
 
+    let cancelled = false;
     const GET_STAGED_PARCELS = `
       query GetStagedParcels($first: Int, $where: ParcelFilterInput) {
         parcels(first: $first, where: $where) {
@@ -149,13 +157,16 @@ export default function RouteDetailPage({
       },
     })
       .then((data) => {
-        setStagedParcels(
-          data.parcels.nodes.filter(
-            (p: StagedParcel) => p.routeAssignments.length === 0
-          )
-        );
+        if (!cancelled) {
+          setStagedParcels(
+            data.parcels.nodes.filter(
+              (p: StagedParcel) => p.routeAssignments.length === 0
+            )
+          );
+        }
       })
-      .catch(() => setStagedParcels([]));
+      .catch(() => { if (!cancelled) setStagedParcels([]); });
+    return () => { cancelled = true; };
   }, [route?.id, route?.status, route?.zoneId]);
 
   // Driver assignment
