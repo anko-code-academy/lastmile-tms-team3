@@ -241,22 +241,6 @@ export const OPTIMIZE_ROUTE_STOPS = `
       estimatedStops
       estimatedDistance
       estimatedDuration
-      routeParcels {
-        parcelId
-        stopOrder
-        addedAt
-        parcel {
-          id
-          trackingNumber
-          status
-          recipientAddress {
-            latitude
-            longitude
-            city
-            street1
-          }
-        }
-      }
     }
   }
 `;
@@ -270,22 +254,6 @@ export const REORDER_ROUTE_STOPS = `
       estimatedStops
       estimatedDistance
       estimatedDuration
-      routeParcels {
-        parcelId
-        stopOrder
-        addedAt
-        parcel {
-          id
-          trackingNumber
-          status
-          recipientAddress {
-            latitude
-            longitude
-            city
-            street1
-          }
-        }
-      }
     }
   }
 `;
