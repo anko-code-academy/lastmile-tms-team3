@@ -71,6 +71,12 @@ export interface RouteParcelItem {
     id: string;
     trackingNumber: string;
     status: string;
+    recipientAddress?: {
+      latitude: number;
+      longitude: number;
+      city: string;
+      street1: string;
+    };
   };
 }
 
@@ -133,4 +139,14 @@ export interface AvailableDriver {
   id: string;
   fullName: string;
   routeCount: number;
+}
+
+export interface ReorderStopEntry {
+  parcelId: string;
+  stopOrder: number;
+}
+
+export interface ReorderStopsInput {
+  routeId: string;
+  newOrder: ReorderStopEntry[];
 }

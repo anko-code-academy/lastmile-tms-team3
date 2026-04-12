@@ -50,6 +50,12 @@ export const GET_ROUTE = `
           id
           trackingNumber
           status
+          recipientAddress {
+            latitude
+            longitude
+            city
+            street1
+          }
         }
       }
       createdAt
@@ -208,6 +214,62 @@ export const GET_AVAILABLE_DRIVERS = `
       id
       fullName
       routeCount
+    }
+  }
+`;
+
+export const OPTIMIZE_ROUTE_STOPS = `
+  mutation OptimizeRouteStops($routeId: UUID!) {
+    optimizeRouteStops(routeId: $routeId) {
+      id
+      status
+      parcelCount
+      estimatedStops
+      estimatedDistance
+      routeParcels {
+        parcelId
+        stopOrder
+        addedAt
+        parcel {
+          id
+          trackingNumber
+          status
+          recipientAddress {
+            latitude
+            longitude
+            city
+            street1
+          }
+        }
+      }
+    }
+  }
+`;
+
+export const REORDER_ROUTE_STOPS = `
+  mutation ReorderRouteStops($input: ReorderStopsDtoInput!) {
+    reorderRouteStops(input: $input) {
+      id
+      status
+      parcelCount
+      estimatedStops
+      estimatedDistance
+      routeParcels {
+        parcelId
+        stopOrder
+        addedAt
+        parcel {
+          id
+          trackingNumber
+          status
+          recipientAddress {
+            latitude
+            longitude
+            city
+            street1
+          }
+        }
+      }
     }
   }
 `;

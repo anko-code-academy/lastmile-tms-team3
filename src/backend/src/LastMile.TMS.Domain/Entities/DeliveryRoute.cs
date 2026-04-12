@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using LastMile.TMS.Domain.Common;
 using LastMile.TMS.Domain.Enums;
+using LastMile.TMS.Domain.Exceptions;
 
 namespace LastMile.TMS.Domain.Entities;
 
@@ -119,6 +120,50 @@ public class DeliveryRoute : BaseAuditableEntity, IAuditTracked
         foreach (var rp in RouteParcels.OrderBy(rp => rp.StopOrder))
         {
             rp.StopOrder = order++;
+        }
+    }
+
+    public void ApplyOptimizedStopOrder(
+        Dictionary<Guid, int> optimizedOrder,
+        decimal totalDistanceMeters)
+    {
+        if (Status != RouteStatus.Draft)
+            throw new InvalidOperationException("Stop order can only be optimized for a route in Draft status.");
+
+        EstimatedDistance = totalDistanceMeters;
+
+        if (RouteParcels.Count == 0) return;
+
+        if (optimizedOrder.Count != RouteParcels.Count)
+            throw new RouteOptimizationException(
+                "Optimized order must include all parcels on the route.");
+
+        foreach (var rp in RouteParcels)
+        {
+            if (!optimizedOrder.TryGetValue(rp.ParcelId, out var newOrder))
+                throw new RouteOptimizationException(
+                    "Optimized order must include all parcels on the route.");
+            rp.StopOrder = newOrder;
+        }
+    }
+
+    public void ReorderStopsExplicit(Dictionary<Guid, int> newOrder)
+    {
+        if (Status != RouteStatus.Draft)
+            throw new InvalidOperationException("Stops can only be reordered on a route in Draft status.");
+
+        var parcelIds = RouteParcels.Select(rp => rp.ParcelId).ToHashSet();
+        foreach (var kvp in newOrder)
+        {
+            if (!parcelIds.Contains(kvp.Key))
+                throw new InvalidOperationException(
+                    $"Parcel '{kvp.Key}' is not on this route.");
+        }
+
+        foreach (var rp in RouteParcels)
+        {
+            if (newOrder.TryGetValue(rp.ParcelId, out var order))
+                rp.StopOrder = order;
         }
     }
 
