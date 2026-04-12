@@ -153,6 +153,8 @@ public class DeliveryRoute : BaseAuditableEntity, IAuditTracked
                     "Optimized order must include all parcels on the route.");
             rp.StopOrder = newOrder;
         }
+
+        RecalculateEstimatedStops();
     }
 
     public void ReorderStopsExplicit(Dictionary<Guid, int> newOrder)

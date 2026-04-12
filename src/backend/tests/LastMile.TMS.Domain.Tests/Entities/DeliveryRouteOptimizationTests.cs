@@ -98,6 +98,7 @@ public class DeliveryRouteOptimizationTests
         route.RouteParcels.First(rp => rp.ParcelId == p3.Id).StopOrder.Should().Be(1);
         route.EstimatedDistance.Should().Be(15.5m);
         route.EstimatedDuration.Should().Be(1800);
+        route.EstimatedStops.Should().Be(3);
     }
 
     [Fact]

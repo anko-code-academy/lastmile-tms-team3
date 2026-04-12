@@ -26,6 +26,7 @@ public static class AddParcelsToRoute
 
             var route = await context.DeliveryRoutes
                 .Include(r => r.RouteParcels)
+                    .ThenInclude(rp => rp.Parcel)
                 .Include(r => r.Zone)
                 .Include(r => r.Driver)
                 .Include(r => r.Vehicle)
