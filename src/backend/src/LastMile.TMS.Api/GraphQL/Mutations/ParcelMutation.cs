@@ -80,4 +80,22 @@ public class ParcelMutation
     {
         return await mediator.Send(new CompleteReceivingSession.Command(input), cancellationToken);
     }
+
+    [Authorize(Policy = "AdminOrOperationsManager")]
+    public async Task<ParcelDto> EditParcel(
+        [Service] IMediator mediator,
+        EditParcelDto input,
+        CancellationToken cancellationToken = default)
+    {
+        return await mediator.Send(new EditParcel.Command(input), cancellationToken);
+    }
+
+    [Authorize(Policy = "AdminOrOperationsManager")]
+    public async Task<ParcelDto> CancelParcel(
+        [Service] IMediator mediator,
+        CancelParcelDto input,
+        CancellationToken cancellationToken = default)
+    {
+        return await mediator.Send(new CancelParcel.Command(input), cancellationToken);
+    }
 }

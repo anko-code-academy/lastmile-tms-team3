@@ -6,7 +6,7 @@ namespace LastMile.TMS.Application.Features.Parcels.Mappers;
 
 public static class ParcelMapper
 {
-    public static ParcelDto ToDto(Parcel parcel) => new(
+    public static ParcelDto ToDto(Parcel parcel, IReadOnlyList<AuditLog>? auditLogs = null) => new(
         parcel.Id,
         parcel.TrackingNumber,
         parcel.BarcodeData ?? parcel.TrackingNumber,
@@ -71,7 +71,17 @@ public static class ParcelMapper
                 parcel.DeliveryConfirmation.DeliveredAt,
                 parcel.DeliveryConfirmation.DeliveryGeoLocation?.Y,
                 parcel.DeliveryConfirmation.DeliveryGeoLocation?.X)
-            : null
+            : null,
+        ChangeHistory: (auditLogs ?? [])
+            .Select(a => new AuditLogEntryDto(
+                a.Id,
+                a.OccurredAt,
+                a.ActorUserName,
+                a.ActionType,
+                a.Summary,
+                a.BeforeValuesJson,
+                a.AfterValuesJson))
+            .ToList()
     );
 
     private static AddressDto ToAddressDto(Address address) => new(

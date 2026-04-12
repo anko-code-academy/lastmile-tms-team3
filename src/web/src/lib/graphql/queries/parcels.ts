@@ -1,3 +1,90 @@
+export const EDIT_PARCEL = `
+  mutation EditParcel($input: EditParcelDtoInput!) {
+    editParcel(input: $input) {
+      id
+      trackingNumber
+      status
+      description
+      weight
+      weightUnit
+      length
+      width
+      height
+      dimensionUnit
+      declaredValue
+      currency
+      parcelType
+      notes
+      estimatedDeliveryDate
+      lastModifiedAt
+      recipientAddress {
+        street1
+        street2
+        city
+        state
+        postalCode
+        countryCode
+        isResidential
+        contactName
+        companyName
+        phone
+        email
+      }
+      shipperAddress {
+        street1
+        street2
+        city
+        state
+        postalCode
+        countryCode
+        isResidential
+        contactName
+        companyName
+        phone
+        email
+      }
+      changeHistory {
+        id
+        occurredAt
+        actorUserName
+        actionType
+        summary
+        beforeValuesJson
+        afterValuesJson
+      }
+    }
+  }
+`;
+
+export const CANCEL_PARCEL = `
+  mutation CancelParcel($input: CancelParcelDtoInput!) {
+    cancelParcel(input: $input) {
+      id
+      trackingNumber
+      status
+      lastModifiedAt
+      trackingEvents {
+        id
+        timestamp
+        eventType
+        description
+        locationCity
+        locationState
+        locationCountryCode
+        operator
+        createdAt
+      }
+      changeHistory {
+        id
+        occurredAt
+        actorUserName
+        actionType
+        summary
+      }
+    }
+  }
+`;
+
 export const CREATE_PARCEL = `
   mutation CreateParcel($input: CreateParcelDtoInput!) {
     createParcel(input: $input) {
@@ -197,6 +284,20 @@ export const GET_PARCEL = `
         photo
         deliveredAt
         geoLocation
+      }
+      routeId
+      route {
+        name
+        id
+      }
+      changeHistory {
+        id
+        occurredAt
+        actorUserName
+        actionType
+        summary
+        beforeValuesJson
+        afterValuesJson
       }
     }
   }

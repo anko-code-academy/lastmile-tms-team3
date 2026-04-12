@@ -32,5 +32,6 @@ public record ParcelDto(
     IReadOnlyList<TrackingEventDto> TrackingEvents,
     IReadOnlyList<ParcelContentItemDto> ContentItems,
     IReadOnlyList<ParcelWatcherDto> Watchers,
-    DeliveryConfirmationDto? DeliveryConfirmation
+    DeliveryConfirmationDto? DeliveryConfirmation,
+    IReadOnlyList<AuditLogEntryDto> ChangeHistory
 );

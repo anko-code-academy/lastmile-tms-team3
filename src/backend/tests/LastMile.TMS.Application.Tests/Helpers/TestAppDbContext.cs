@@ -37,6 +37,7 @@ public class TestAppDbContext : DbContext, IAppDbContext, IAppDbContextFactory
     public DbSet<ParcelImportHistory> ParcelImportHistories => Set<ParcelImportHistory>();
     public DbSet<InboundManifest> InboundManifests => Set<InboundManifest>();
     public DbSet<InboundReceivingSession> InboundReceivingSessions => Set<InboundReceivingSession>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     public new Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
@@ -206,6 +207,11 @@ public class TestAppDbContext : DbContext, IAppDbContext, IAppDbContextFactory
         });
 
         modelBuilder.Entity<InboundReceivingSession>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+        });
+
+        modelBuilder.Entity<AuditLog>(entity =>
         {
             entity.HasKey(e => e.Id);
         });

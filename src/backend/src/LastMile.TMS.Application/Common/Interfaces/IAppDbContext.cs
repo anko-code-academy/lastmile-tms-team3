@@ -17,6 +17,7 @@ public interface IAppDbContext : IDisposable
     DbSet<ParcelImportHistory> ParcelImportHistories { get; }
     DbSet<InboundManifest> InboundManifests { get; }
     DbSet<InboundReceivingSession> InboundReceivingSessions { get; }
+    DbSet<AuditLog> AuditLogs { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 

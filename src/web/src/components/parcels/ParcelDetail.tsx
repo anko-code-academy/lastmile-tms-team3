@@ -1,10 +1,14 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Printer } from "lucide-react";
-import type { Parcel } from "@/lib/types/parcel";
+import { Printer, ChevronLeft, Edit2, XCircle } from "lucide-react";
+import Link from "next/link";
+import type { Parcel, ChangeHistoryEntry } from "@/lib/types/parcel";
+import { ParcelStatus } from "@/lib/types/parcel";
 import { ParcelStatusBadge } from "@/components/parcels/ParcelStatusBadge";
 import { downloadParcelLabelPdf, downloadParcelLabelZpl } from "@/lib/actions/labels";
+import { EditParcelDialog } from "@/components/parcels/EditParcelDialog";
+import { CancelParcelDialog } from "@/components/parcels/CancelParcelDialog";
 
 const S = {
   panel:  "rgba(255,255,255,.025)" as const,
@@ -15,6 +19,14 @@ const S = {
   accent: "#f59e0b"                as const,
   mono:   "var(--font-geist-mono, monospace)" as const,
 };
+
+/** Statuses where Edit / Cancel are allowed */
+const EDITABLE_STATUSES: ParcelStatus[] = [
+  ParcelStatus.Registered,
+  ParcelStatus.ReceivedAtDepot,
+  ParcelStatus.Sorted,
+  ParcelStatus.Staged,
+];
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -60,15 +72,71 @@ function AddressBlock({ title, address }: { title: string; address: Parcel["reci
   );
 }
 
-export function ParcelDetail({ parcel }: { parcel: Parcel }) {
+function ChangeHistorySection({ entries }: { entries: ChangeHistoryEntry[] }) {
+  if (entries.length === 0) return null;
+  return (
+    <Section title={`Change History (${entries.length})`}>
+      <div style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr style={{ borderBottom: `1px solid ${S.border}` }}>
+              {["Date", "Operator", "Action", "Summary"].map(h => (
+                <th key={h} style={{ padding: ".5rem 1rem .5rem 0", fontFamily: S.mono, fontSize: "9px", letterSpacing: ".12em", color: S.muted, textTransform: "uppercase", textAlign: "left", fontWeight: 600 }}>
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {entries.map(entry => (
+              <tr key={entry.id} style={{ borderBottom: `1px solid rgba(255,255,255,.04)` }}>
+                <td style={{ padding: ".5rem 1rem .5rem 0", fontFamily: S.mono, fontSize: ".75rem", color: S.dim, whiteSpace: "nowrap" }}>
+                  {new Date(entry.occurredAt).toLocaleString()}
+                </td>
+                <td style={{ padding: ".5rem 1rem .5rem 0", fontSize: ".8rem", color: S.muted }}>
+                  {entry.actorUserName ?? "—"}
+                </td>
+                <td style={{ padding: ".5rem 1rem .5rem 0", fontFamily: S.mono, fontSize: ".75rem", color: S.accent }}>
+                  {entry.actionType}
+                </td>
+                <td style={{ padding: ".5rem 0", fontSize: ".8rem", color: S.text }}>
+                  {entry.summary ?? "—"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Section>
+  );
+}
+
+export function ParcelDetail({ parcel: initialParcel }: { parcel: Parcel }) {
+  const [parcel, setParcel] = useState(initialParcel);
+  const [showEdit, setShowEdit] = useState(false);
+  const [showCancel, setShowCancel] = useState(false);
+
+  const canEdit = EDITABLE_STATUSES.includes(parcel.status as ParcelStatus);
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+
+      {/* Breadcrumb */}
+      <div>
+        <Link
+          href="/parcels"
+          style={{ display: "inline-flex", alignItems: "center", gap: ".25rem", fontFamily: S.mono, fontSize: ".8rem", color: S.muted, textDecoration: "none" }}
+        >
+          <ChevronLeft size={14} />
+          Parcels
+        </Link>
+      </div>
 
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div>
           <p style={{ fontFamily: S.mono, fontSize: "10px", letterSpacing: ".2em", color: S.accent, textTransform: "uppercase", marginBottom: ".375rem" }}>
-            Parcel
+            Parcel · {parcel.parcelType ?? parcel.serviceType.charAt(0) + parcel.serviceType.slice(1).toLowerCase()}
           </p>
           <h1 style={{ fontFamily: S.mono, fontSize: "1.5rem", fontWeight: 800, color: S.text, letterSpacing: "-.02em", lineHeight: 1 }}>
             {parcel.trackingNumber}
@@ -77,12 +145,30 @@ export function ParcelDetail({ parcel }: { parcel: Parcel }) {
           {parcel.description && (
             <p style={{ fontSize: ".875rem", color: S.muted, marginTop: ".375rem" }}>{parcel.description}</p>
           )}
+          <p style={{ fontFamily: S.mono, fontSize: "9px", color: S.dim, marginTop: ".5rem" }}>
+            Created {new Date(parcel.createdAt).toLocaleString()}
+          </p>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: ".75rem" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: ".75rem", flexWrap: "wrap", justifyContent: "flex-end" }}>
           <ParcelStatusBadge status={parcel.status} />
-          <span style={{ fontFamily: S.mono, fontSize: ".8rem", color: S.dim }}>
-            {parcel.serviceType.charAt(0) + parcel.serviceType.slice(1).toLowerCase()}
-          </span>
+          {canEdit && (
+            <>
+              <button
+                onClick={() => setShowEdit(true)}
+                style={{ display: "flex", alignItems: "center", gap: ".375rem", padding: ".4rem .875rem", background: "rgba(37,99,235,.15)", border: "1px solid rgba(37,99,235,.4)", borderRadius: 6, color: "#93c5fd", fontSize: ".8rem", cursor: "pointer" }}
+              >
+                <Edit2 size={13} />
+                Edit
+              </button>
+              <button
+                onClick={() => setShowCancel(true)}
+                style={{ display: "flex", alignItems: "center", gap: ".375rem", padding: ".4rem .875rem", background: "rgba(220,38,38,.1)", border: "1px solid rgba(220,38,38,.3)", borderRadius: 6, color: "#fca5a5", fontSize: ".8rem", cursor: "pointer" }}
+              >
+                <XCircle size={13} />
+                Cancel
+              </button>
+            </>
+          )}
           <PrintLabelMenu parcelId={parcel.id} trackingNumber={parcel.trackingNumber} />
         </div>
       </div>
@@ -100,6 +186,7 @@ export function ParcelDetail({ parcel }: { parcel: Parcel }) {
           <InfoRow label="Dimensions"       value={`${parcel.length}×${parcel.width}×${parcel.height} ${parcel.dimensionUnit.toLowerCase()}`} />
           <InfoRow label="Declared Value"   value={`${parcel.currency} ${parcel.declaredValue}`} />
           <InfoRow label="Parcel Type"      value={parcel.parcelType} />
+          <InfoRow label="Notes"            value={parcel.notes} />
           <InfoRow label="Est. Delivery"    value={parcel.estimatedDeliveryDate ? new Date(parcel.estimatedDeliveryDate).toLocaleDateString() : null} />
           <InfoRow label="Actual Delivery"  value={parcel.actualDeliveryDate    ? new Date(parcel.actualDeliveryDate).toLocaleDateString()    : null} />
           <InfoRow label="Delivery Attempts" value={parcel.deliveryAttempts} />
@@ -107,20 +194,28 @@ export function ParcelDetail({ parcel }: { parcel: Parcel }) {
         </div>
       </Section>
 
+      {/* Route info */}
+      {parcel.route && (
+        <Section title="Assigned Route">
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", columnGap: "2rem" }}>
+            <InfoRow label="Route" value={parcel.route.name} />
+            <InfoRow label="Route ID" value={parcel.routeId} />
+          </div>
+        </Section>
+      )}
+
       {/* Tracking timeline */}
       {parcel.trackingEvents.length > 0 && (
         <Section title="Tracking History">
           <div>
             {parcel.trackingEvents.map((event, i) => (
               <div key={event.id} style={{ display: "flex", gap: "1rem", paddingBottom: i < parcel.trackingEvents.length - 1 ? "1rem" : 0 }}>
-                {/* Dot + line */}
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
                   <div style={{ marginTop: 4, width: 8, height: 8, borderRadius: "50%", background: S.accent, flexShrink: 0 }} />
                   {i < parcel.trackingEvents.length - 1 && (
                     <div style={{ flex: 1, width: 1, background: `rgba(255,255,255,.08)`, marginTop: 4 }} />
                   )}
                 </div>
-                {/* Content */}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: ".5rem" }}>
                     <p style={{ fontFamily: S.mono, fontSize: ".8rem", fontWeight: 700, color: S.text }}>
@@ -203,6 +298,9 @@ export function ParcelDetail({ parcel }: { parcel: Parcel }) {
         </Section>
       )}
 
+      {/* Change history */}
+      <ChangeHistorySection entries={parcel.changeHistory} />
+
       {/* Watchers */}
       {parcel.watchers.length > 0 && (
         <Section title="Tracking Watchers">
@@ -219,6 +317,28 @@ export function ParcelDetail({ parcel }: { parcel: Parcel }) {
         Created {new Date(parcel.createdAt).toLocaleString()}
         {parcel.lastModifiedAt && <> · Modified {new Date(parcel.lastModifiedAt).toLocaleString()}</>}
       </p>
+
+      {/* Dialogs */}
+      {showEdit && (
+        <EditParcelDialog
+          parcel={parcel}
+          onClose={() => setShowEdit(false)}
+          onSaved={updated => {
+            setParcel(p => ({ ...p, ...updated }));
+            setShowEdit(false);
+          }}
+        />
+      )}
+      {showCancel && (
+        <CancelParcelDialog
+          parcel={parcel}
+          onClose={() => setShowCancel(false)}
+          onCancelled={updated => {
+            setParcel(p => ({ ...p, ...updated }));
+            setShowCancel(false);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -228,7 +348,6 @@ function BarcodeSVG({ trackingNumber }: { trackingNumber: string }) {
 
   useEffect(() => {
     if (!canvasRef.current) return;
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
     import("jsbarcode").then(({ default: JsBarcode }) => {
       JsBarcode(canvasRef.current!, trackingNumber, {
         format: "CODE128",
