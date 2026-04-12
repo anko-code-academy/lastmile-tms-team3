@@ -95,6 +95,24 @@ public class DeliveryRoute : BaseAuditableEntity, IAuditTracked
         Vehicle = vehicle;
     }
 
+    public void UnassignDriver()
+    {
+        if (Status != RouteStatus.Draft)
+            throw new InvalidOperationException("Driver can only be unassigned from a route in Draft status.");
+
+        DriverId = null;
+        Driver = null;
+    }
+
+    public void UnassignVehicle()
+    {
+        if (Status != RouteStatus.Draft)
+            throw new InvalidOperationException("Vehicle can only be unassigned from a route in Draft status.");
+
+        VehicleId = null;
+        Vehicle = null;
+    }
+
     private void ReorderStops()
     {
         var order = 1;

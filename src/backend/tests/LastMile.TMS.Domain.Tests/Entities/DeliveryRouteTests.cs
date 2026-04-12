@@ -269,6 +269,66 @@ public class DeliveryRouteTests
     }
 
     [Fact]
+    public void UnassignDriver_WhenRouteIsDraft_ShouldClearDriver()
+    {
+        // Arrange
+        var route = CreateDraftRoute();
+        route.DriverId.Should().NotBeNull();
+
+        // Act
+        route.UnassignDriver();
+
+        // Assert
+        route.DriverId.Should().BeNull();
+        route.Driver.Should().BeNull();
+    }
+
+    [Fact]
+    public void UnassignDriver_WhenRouteNotDraft_ShouldThrow()
+    {
+        // Arrange
+        var route = CreateDraftRoute();
+        route.Status = RouteStatus.Dispatched;
+
+        // Act
+        var act = () => route.UnassignDriver();
+
+        // Assert
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*Draft*");
+    }
+
+    [Fact]
+    public void UnassignVehicle_WhenRouteIsDraft_ShouldClearVehicle()
+    {
+        // Arrange
+        var route = CreateDraftRoute();
+        route.VehicleId.Should().NotBeNull();
+
+        // Act
+        route.UnassignVehicle();
+
+        // Assert
+        route.VehicleId.Should().BeNull();
+        route.Vehicle.Should().BeNull();
+    }
+
+    [Fact]
+    public void UnassignVehicle_WhenRouteNotDraft_ShouldThrow()
+    {
+        // Arrange
+        var route = CreateDraftRoute();
+        route.Status = RouteStatus.InProgress;
+
+        // Act
+        var act = () => route.UnassignVehicle();
+
+        // Assert
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*Draft*");
+    }
+
+    [Fact]
     public void ParcelCount_ShouldReturnCorrectCount()
     {
         // Arrange
