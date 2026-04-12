@@ -66,9 +66,12 @@ public class Parcel : BaseAuditableEntity, IAuditTracked
     public Guid? CurrentBinId { get; set; }
     public Bin? CurrentBin { get; set; }
 
-    // Route assignment
+    // Route assignment (load-out FK)
     public Guid? RouteId { get; set; }
     public DeliveryRoute? Route { get; set; }
+
+    // Route assignments via RouteParcels join table
+    public virtual ICollection<RouteParcel> RouteAssignments { get; set; } = new List<RouteParcel>();
 
     // Navigation properties
     public ICollection<TrackingEvent> TrackingEvents { get; set; } = new List<TrackingEvent>();

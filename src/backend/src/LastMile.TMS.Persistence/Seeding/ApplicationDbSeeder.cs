@@ -36,6 +36,7 @@ public class ApplicationDbSeeder(
         await SeedOperationsManagerUserAsync();
         await SeedDepotOperatorUsersAsync(cancellationToken);
         await SeedWarehouseManagerUsersAsync(cancellationToken);
+        await SeedDispatcherUserAsync();
         await SeedVehiclesAsync(cancellationToken);
         await SeedZonesAsync(cancellationToken);
         await SeedAislesAndBinsAsync(cancellationToken);
@@ -501,6 +502,44 @@ public class ApplicationDbSeeder(
         }
     }
 
+    private async Task SeedDispatcherUserAsync()
+    {
+        var email = configuration["Seeding:DispatcherEmail"] ?? "dispatcher@lastmile.local";
+        var password = configuration["Seeding:DispatcherPassword"] ?? "Dispatcher@123456";
+
+        var existing = await userManager.FindByEmailAsync(email);
+        if (existing != null)
+            return;
+
+        var user = new AppUser
+        {
+            Id = Guid.NewGuid(),
+            UserName = email,
+            Email = email,
+            EmailConfirmed = true,
+            FirstName = "Dispatch",
+            LastName = "Coordinator",
+            Role = UserRole.Dispatcher,
+            IsActive = true,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        var createResult = await userManager.CreateAsync(user, password);
+        if (!createResult.Succeeded)
+        {
+            logger.LogError("Failed to create dispatcher user: {Errors}",
+                string.Join(", ", createResult.Errors.Select(e => e.Description)));
+            return;
+        }
+
+        var roleResult = await userManager.AddToRoleAsync(user, nameof(UserRole.Dispatcher));
+        if (roleResult.Succeeded)
+            logger.LogInformation("Dispatcher user seeded: {Email}", email);
+        else
+            logger.LogError("Failed to assign Dispatcher role: {Errors}",
+                string.Join(", ", roleResult.Errors.Select(e => e.Description)));
+    }
+
     private async Task SeedZonesAsync(CancellationToken cancellationToken)
     {
         if (await dbContext.Zones.AnyAsync(cancellationToken))
@@ -636,7 +675,7 @@ public class ApplicationDbSeeder(
             .ToListAsync(cancellationToken);
         var routes = await dbContext.DeliveryRoutes
             .AsNoTracking()
-            .Where(route => route.ZoneId.HasValue)
+            .Where(route => route.ZoneId != Guid.Empty)
             .OrderBy(route => route.Name)
             .ToListAsync(cancellationToken);
         var zonesByDepotId = zones

@@ -347,6 +347,7 @@ public sealed class AuditSaveChangesInterceptor(IHttpContextAccessor httpContext
             (AuditResourceType.DeliveryRoute, AuditActionType.Create) => "Delivery route created",
             (AuditResourceType.DeliveryRoute, AuditActionType.Update) => "Delivery route updated",
             (AuditResourceType.DeliveryRoute, AuditActionType.StatusTransition) => BuildDeliveryRouteStatusTransitionSummary(entry),
+            (AuditResourceType.DeliveryRoute, AuditActionType.Delete) => "Route deleted",
             _ => $"{resourceType} {actionType}"
         };
     }

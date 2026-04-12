@@ -12,7 +12,7 @@ namespace LastMile.TMS.Api.GraphQL.Queries;
 [ExtendObjectType(OperationTypeNames.Query)]
 public class DriverQuery
 {
-    [Authorize(Policy = "AdminOrOperationsManager")]
+    [Authorize(Policy = "AdminOrDispatcher")]
     [UseFirstOrDefault]
     [UseProjection]
     public IQueryable<Driver> GetDriver(
@@ -22,7 +22,7 @@ public class DriverQuery
             .AsNoTracking()
             .Where(d => d.Id == id);
 
-    [Authorize(Policy = "AdminOrOperationsManager")]
+    [Authorize(Policy = "AdminOrDispatcher")]
     [UsePaging(IncludeTotalCount = true, MaxPageSize = 100)]
     [UseProjection]
     [UseFiltering(typeof(DriverFilterInput))]

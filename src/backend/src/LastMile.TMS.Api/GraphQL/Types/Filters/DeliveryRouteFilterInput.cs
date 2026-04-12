@@ -14,5 +14,6 @@ public class DeliveryRouteFilterInput : FilterInputType<DeliveryRoute>
         descriptor.Field(x => x.DepotId);
         descriptor.Field(x => x.DriverId);
         descriptor.Field(x => x.ZoneId);
+        descriptor.Field(x => x.VehicleId);
     }
 }

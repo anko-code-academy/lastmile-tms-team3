@@ -50,7 +50,7 @@ public class CompleteLoadingCommandTests : IDisposable
             .Include(r => r.Parcels)
             .FirstOrDefaultAsync(r => r.Id == routeId);
         route.Should().NotBeNull();
-        route!.Status.Should().Be(RouteStatus.Active);
+        route!.Status.Should().Be(RouteStatus.Dispatched);
     }
 
     [Fact]
@@ -106,7 +106,7 @@ public class CompleteLoadingCommandTests : IDisposable
             .Include(r => r.Parcels)
             .FirstOrDefaultAsync(r => r.Id == routeId);
         route.Should().NotBeNull();
-        route!.Status.Should().Be(RouteStatus.Active);
+        route!.Status.Should().Be(RouteStatus.Dispatched);
     }
 
     [Fact]

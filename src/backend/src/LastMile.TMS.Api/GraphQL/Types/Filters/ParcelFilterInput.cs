@@ -13,6 +13,7 @@ public class ParcelFilterInput : FilterInputType<Parcel>
         descriptor.Field(x => x.ZoneId);
         descriptor.Field(x => x.Zone);
         descriptor.Field(x => x.ParcelType);
+        descriptor.Field(x => x.RouteId);
         descriptor.Field(x => x.CreatedAt);
         descriptor.Field(x => x.CurrentStatusChangedAt);
     }

@@ -55,6 +55,9 @@ try
 
             options.AcceptAnonymousClients();
 
+            options.SetAccessTokenLifetime(TimeSpan.FromMinutes(60));
+            options.SetRefreshTokenLifetime(TimeSpan.FromDays(7));
+
             options.AddEphemeralEncryptionKey()
                    .AddEphemeralSigningKey()
                    .DisableAccessTokenEncryption();
@@ -120,6 +123,13 @@ try
             policy.RequireAuthenticatedUser();
             policy.RequireRole("Admin", "DepotOperator", "WarehouseOperator");
         });
+
+        options.AddPolicy("AdminOrDispatcher", policy =>
+        {
+            policy.AddAuthenticationSchemes(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme);
+            policy.RequireAuthenticatedUser();
+            policy.RequireRole("Admin", "Dispatcher", "OperationsManager");
+        });
     });
 
     builder.Services
@@ -154,6 +164,8 @@ try
         .AddType<AuditLogQuery>()
         .AddType<DeliveryRouteQuery>()
         .AddType<DeliveryRouteMutation>()
+        .AddType<RouteQuery>()
+        .AddType<RouteMutation>()
         .AddType<AddressType>()
         .AddType<DepotType>()
         .AddType<VehicleType>()
@@ -173,6 +185,7 @@ try
         .AddType<ParcelWatcherType>()
         .AddType<DeliveryRouteType>()
         .AddType<InboundManifestQuery>()
+        .AddType<RouteParcelType>()
         .AddErrorFilter<ValidationErrorFilter>()
         .ModifyCostOptions(options =>
         {

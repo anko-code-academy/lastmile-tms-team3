@@ -56,8 +56,8 @@ public static class CompleteLoading
                     UnloadedParcels: unloadedParcels);
             }
 
-            // Update route status to Active
-            route.Status = RouteStatus.Active;
+            // Update route status to Dispatched
+            route.Status = RouteStatus.Dispatched;
             route.LoadedAt = DateTimeOffset.UtcNow;
 
             await context.SaveChangesAsync(cancellationToken);

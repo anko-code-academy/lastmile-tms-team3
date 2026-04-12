@@ -40,6 +40,7 @@ public class ParcelType : ObjectType<Parcel>
         descriptor.Field(x => x.CurrentBin).Type<BinType>();
         descriptor.Field(x => x.RouteId);
         descriptor.Field(x => x.Route).Type<DeliveryRouteType>();
+        descriptor.Field(x => x.RouteAssignments).Type<ListType<RouteParcelType>>();
         descriptor.Field(x => x.CreatedAt);
         descriptor.Field(x => x.LastModifiedAt);
         descriptor.Field("contentItemsCount")

@@ -322,7 +322,7 @@ export default function LoadOutPage() {
                       >
                         {route.depot.name}
                         {route.driver ? ` · ${route.driver.firstName} ${route.driver.lastName}` : ""}
-                        {route.zone ? ` · ${route.zone.name}` : ""}
+                        {route.zoneName ? ` · ${route.zoneName}` : ""}
                       </div>
 
                       {/* Mini progress bar */}
@@ -413,8 +413,8 @@ export default function LoadOutPage() {
                             {selectedRoute.driver
                               ? ` · Driver: ${selectedRoute.driver.firstName} ${selectedRoute.driver.lastName}`
                               : ""}
-                            {selectedRoute.zone
-                              ? ` · Zone: ${selectedRoute.zone.name}`
+                            {selectedRoute.zoneName
+                              ? ` · Zone: ${selectedRoute.zoneName}`
                               : ""}
                             {" · "}{selectedRoute.date}
                           </div>
