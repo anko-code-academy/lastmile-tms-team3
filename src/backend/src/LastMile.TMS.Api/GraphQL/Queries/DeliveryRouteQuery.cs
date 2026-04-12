@@ -14,10 +14,15 @@ public class DeliveryRouteQuery
 {
     [Authorize(Policy = "AdminOrDepotOperator")]
     [UsePaging(IncludeTotalCount = true, MaxPageSize = 100)]
-    [UseProjection]
     [UseFiltering(typeof(DeliveryRouteFilterInput))]
     [UseSorting(typeof(DeliveryRouteSortInput))]
     public IQueryable<DeliveryRoute> GetDeliveryRoutes(AppDbContext context)
         => context.DeliveryRoutes
-            .AsNoTracking();
+            .AsNoTracking()
+            .Include(r => r.Depot)
+                .ThenInclude(d => d!.Address)
+            .Include(r => r.Zone)
+            .Include(r => r.Driver)
+            .Include(r => r.Vehicle)
+            .Include(r => r.RouteParcels);
 }
