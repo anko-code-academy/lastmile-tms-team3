@@ -46,6 +46,15 @@ public class LoadOutIntegrationTests(ApiWebApplicationFactory factory)
                 CreatedAt = DateTimeOffset.UtcNow
             };
 
+            var zone = new Zone
+            {
+                Id = Guid.NewGuid(),
+                Name = "Load Test Zone",
+                DepotId = depot.Id,
+                IsActive = true,
+                CreatedAt = DateTimeOffset.UtcNow
+            };
+
             routeId = Guid.NewGuid();
             trackingNumber = $"LOAD-{Guid.NewGuid():N}"[..16];
 
@@ -54,6 +63,7 @@ public class LoadOutIntegrationTests(ApiWebApplicationFactory factory)
                 Id = routeId,
                 Name = "Load Test Route",
                 DepotId = depot.Id,
+                ZoneId = zone.Id,
                 Date = DateOnly.FromDateTime(DateTime.UtcNow),
                 Status = RouteStatus.Draft
             };
@@ -81,6 +91,7 @@ public class LoadOutIntegrationTests(ApiWebApplicationFactory factory)
 
             db.Addresses.Add(address);
             db.Depots.Add(depot);
+            db.Zones.Add(zone);
             db.DeliveryRoutes.Add(route);
             db.Parcels.Add(parcel);
             await db.SaveChangesAsync();
@@ -159,12 +170,22 @@ public class LoadOutIntegrationTests(ApiWebApplicationFactory factory)
                 CreatedAt = DateTimeOffset.UtcNow
             };
 
+            var zone = new Zone
+            {
+                Id = Guid.NewGuid(),
+                Name = "Complete Test Zone",
+                DepotId = depot.Id,
+                IsActive = true,
+                CreatedAt = DateTimeOffset.UtcNow
+            };
+
             routeId = Guid.NewGuid();
             var route = new DeliveryRoute
             {
                 Id = routeId,
                 Name = "Complete Test Route",
                 DepotId = depot.Id,
+                ZoneId = zone.Id,
                 Date = DateOnly.FromDateTime(DateTime.UtcNow),
                 Status = RouteStatus.Draft
             };
@@ -216,6 +237,7 @@ public class LoadOutIntegrationTests(ApiWebApplicationFactory factory)
 
             db.Addresses.Add(address);
             db.Depots.Add(depot);
+            db.Zones.Add(zone);
             db.DeliveryRoutes.Add(route);
             db.Parcels.AddRange(parcels);
             await db.SaveChangesAsync();
@@ -294,11 +316,21 @@ public class LoadOutIntegrationTests(ApiWebApplicationFactory factory)
                 CreatedAt = DateTimeOffset.UtcNow
             };
 
+            var zone = new Zone
+            {
+                Id = Guid.NewGuid(),
+                Name = "Route Query Zone",
+                DepotId = depot.Id,
+                IsActive = true,
+                CreatedAt = DateTimeOffset.UtcNow
+            };
+
             var route = new DeliveryRoute
             {
                 Id = routeId,
                 Name = routeName,
                 DepotId = depot.Id,
+                ZoneId = zone.Id,
                 Date = testDate,
                 Status = RouteStatus.Draft
             };
@@ -326,6 +358,7 @@ public class LoadOutIntegrationTests(ApiWebApplicationFactory factory)
 
             db.Addresses.Add(address);
             db.Depots.Add(depot);
+            db.Zones.Add(zone);
             db.DeliveryRoutes.Add(route);
             db.Parcels.Add(parcel);
             await db.SaveChangesAsync();

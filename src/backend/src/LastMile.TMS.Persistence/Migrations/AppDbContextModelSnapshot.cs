@@ -1947,7 +1947,7 @@ namespace LastMile.TMS.Persistence.Migrations
             modelBuilder.Entity("LastMile.TMS.Domain.Entities.RouteParcel", b =>
                 {
                     b.HasOne("LastMile.TMS.Domain.Entities.Parcel", "Parcel")
-                        .WithMany()
+                        .WithMany("RouteAssignments")
                         .HasForeignKey("ParcelId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -2120,6 +2120,8 @@ namespace LastMile.TMS.Persistence.Migrations
                     b.Navigation("ContentItems");
 
                     b.Navigation("DeliveryConfirmation");
+
+                    b.Navigation("RouteAssignments");
 
                     b.Navigation("TrackingEvents");
                 });
