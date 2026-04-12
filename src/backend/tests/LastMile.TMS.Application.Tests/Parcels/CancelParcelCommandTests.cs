@@ -18,7 +18,7 @@ public class CancelParcelCommandTests : IDisposable
     public CancelParcelCommandTests()
     {
         _context = TestAppDbContext.Create<CancelParcelCommandTests>();
-        _handler = new CancelParcel.Handler(_context, new FakeCurrentUserService());
+        _handler = new CancelParcel.Handler(_context, new FakeCurrentUserService()); // TestAppDbContext implements IAppDbContextFactory
         SeedTestData();
     }
 

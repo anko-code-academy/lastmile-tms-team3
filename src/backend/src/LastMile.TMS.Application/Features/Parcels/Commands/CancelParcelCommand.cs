@@ -12,11 +12,12 @@ public static class CancelParcel
 {
     public record Command(CancelParcelDto Dto) : IRequest<ParcelDto>;
 
-    public class Handler(IAppDbContext context, ICurrentUserService currentUser)
+    public class Handler(IAppDbContextFactory contextFactory, ICurrentUserService currentUser)
         : IRequestHandler<Command, ParcelDto>
     {
         public async Task<ParcelDto> Handle(Command request, CancellationToken cancellationToken)
         {
+            using var context = contextFactory.CreateDbContext();
             var dto = request.Dto;
 
             if (string.IsNullOrWhiteSpace(dto.CancelReason))

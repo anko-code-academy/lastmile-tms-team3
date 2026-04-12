@@ -23,11 +23,12 @@ public static class EditParcel
 
     public record Command(EditParcelDto Dto) : IRequest<ParcelDto>;
 
-    public class Handler(IAppDbContext context, ICurrentUserService currentUser)
+    public class Handler(IAppDbContextFactory contextFactory, ICurrentUserService currentUser)
         : IRequestHandler<Command, ParcelDto>
     {
         public async Task<ParcelDto> Handle(Command request, CancellationToken cancellationToken)
         {
+            using var context = contextFactory.CreateDbContext();
             var dto = request.Dto;
 
             var parcel = await context.Parcels
@@ -49,10 +50,8 @@ public static class EditParcel
                     $"Parcel in status '{parcel.Status}' cannot be edited. " +
                     $"Editing is allowed only when status is Registered, ReceivedAtDepot, Sorted, or Staged.");
 
-            // Capture before state for audit
             var before = CaptureEditableFields(parcel);
 
-            // Apply changes to addresses
             parcel.RecipientAddress.Street1 = dto.RecipientAddress.Street1;
             parcel.RecipientAddress.Street2 = dto.RecipientAddress.Street2;
             parcel.RecipientAddress.City = dto.RecipientAddress.City;
@@ -77,7 +76,6 @@ public static class EditParcel
             parcel.ShipperAddress.Phone = dto.ShipperAddress.Phone;
             parcel.ShipperAddress.Email = dto.ShipperAddress.Email;
 
-            // Apply changes to parcel
             parcel.Description = dto.Description;
             parcel.Weight = dto.Weight;
             parcel.WeightUnit = dto.WeightUnit;

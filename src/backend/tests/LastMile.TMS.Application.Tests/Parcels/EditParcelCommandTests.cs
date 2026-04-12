@@ -21,7 +21,7 @@ public class EditParcelCommandTests : IDisposable
     {
         _context = TestAppDbContext.Create<EditParcelCommandTests>();
         _currentUser = new FakeCurrentUserService();
-        _handler = new EditParcel.Handler(_context, _currentUser);
+        _handler = new EditParcel.Handler(_context, _currentUser); // TestAppDbContext implements IAppDbContextFactory
         SeedTestData();
     }
 
