@@ -550,16 +550,16 @@ export default function AuditLogsPage() {
                           }
                           style={{ borderBottom: `1px solid ${S.border}` }}
                         >
-                          <BodyCell>
+                          <BodyCell color="#647a96">
                             {formatOccurredAt(item.occurredAt)}
                           </BodyCell>
-                          <BodyCell>
+                          <BodyCell color="#93c5fd">
                             {item.actorUserName ?? item.actorUserId ?? "System"}
                           </BodyCell>
-                          <BodyCell>
+                          <BodyCell color="#f59e0b">
                             {item.actionType.replaceAll("_", " ")}
                           </BodyCell>
-                          <BodyCell>
+                          <BodyCell color="#38bdf8">
                             {item.resourceType.replaceAll("_", " ")}
                           </BodyCell>
                           <BodyCell>{shorten(item.summary)}</BodyCell>
@@ -652,8 +652,8 @@ function HeaderCell({
   );
 }
 
-function BodyCell({ children }: { children: React.ReactNode }) {
-  return <td style={{ padding: ".9rem 1rem", color: S.text }}>{children}</td>;
+function BodyCell({ children, color }: { children: React.ReactNode; color?: string }) {
+  return <td style={{ padding: ".9rem 1rem", color: color ?? S.text }}>{children}</td>;
 }
 
 const labelStyle: React.CSSProperties = {

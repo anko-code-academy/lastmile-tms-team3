@@ -123,9 +123,9 @@ export default function RoutesPage() {
         .tm-input::placeholder { color: #3a526e; }
         .rt-row:hover { background: rgba(255,255,255,.03); cursor: pointer; }
         .tm-btn-primary:hover { border-color: rgba(245,158,11,.6) !important; background: rgba(245,158,11,.18) !important; }
-        .tm-select { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); color: #e2e8f0; border-radius: 6px; padding: .5rem .75rem; font-size: .875rem; width: 100%; outline: none; }
+        .tm-select { background: #0d1424; border: 1px solid rgba(255,255,255,.1); color: #e2e8f0; border-radius: 6px; padding: .5rem .75rem; font-size: .875rem; width: 100%; outline: none; font-family: var(--font-geist-mono,monospace); }
         .tm-select:focus { border-color: rgba(245,158,11,.45); }
-        .tm-select option { background: #0f1929; color: #e2e8f0; }
+        .tm-select option { background: #0d1424; color: #e2e8f0; }
         .del-btn:hover { opacity: 1 !important; }
       `}</style>
       <div style={{ minHeight: "100vh", background: S.bg, color: S.text, position: "relative", overflow: "hidden" }}>
@@ -267,31 +267,31 @@ export default function RoutesPage() {
                         style={{ borderBottom: `1px solid ${S.border}` }}
                         onClick={() => router.push(`/routes/${route.id}`)}
                       >
-                        <td style={{ padding: ".75rem 1rem", fontSize: ".875rem", fontFamily: "var(--font-geist-mono,monospace)" }}>
+                        <td style={{ padding: ".75rem 1rem", fontSize: "11px", fontFamily: "var(--font-geist-mono,monospace)", color: "#647a96", letterSpacing: ".04em" }}>
                           {route.date}
                         </td>
-                        <td style={{ padding: ".75rem 1rem", fontSize: ".875rem" }}>
+                        <td style={{ padding: ".75rem 1rem", fontSize: "12px", fontFamily: "var(--font-geist-mono,monospace)", color: "#38bdf8" }}>
                           {route.depot?.name ?? "\u2014"}
                         </td>
-                        <td style={{ padding: ".75rem 1rem", fontSize: ".875rem" }}>
+                        <td style={{ padding: ".75rem 1rem", fontSize: "12px", fontFamily: "var(--font-geist-mono,monospace)", color: "#38bdf8" }}>
                           {route.zoneName ?? "\u2014"}
                         </td>
-                        <td style={{ padding: ".75rem 1rem", fontSize: ".875rem" }}>
+                        <td style={{ padding: ".75rem 1rem", fontSize: "13px", color: "#93c5fd" }}>
                           {route.driverName ?? "\u2014"}
                         </td>
-                        <td style={{ padding: ".75rem 1rem", fontSize: ".875rem", fontFamily: "var(--font-geist-mono,monospace)" }}>
+                        <td style={{ padding: ".75rem 1rem", fontSize: "13px", fontFamily: "var(--font-geist-mono,monospace)", fontWeight: 700, color: "#f59e0b" }}>
                           {route.vehiclePlate ?? "\u2014"}
                         </td>
-                        <td style={{ padding: ".75rem 1rem", fontSize: ".875rem", textAlign: "center" }}>
+                        <td style={{ padding: ".75rem 1rem", fontSize: "12px", fontFamily: "var(--font-geist-mono,monospace)", color: "#6ee7b7", textAlign: "center" }}>
                           {route.parcelCount}
                         </td>
-                        <td style={{ padding: ".75rem 1rem", fontSize: ".875rem", textAlign: "center" }}>
+                        <td style={{ padding: ".75rem 1rem", fontSize: "12px", fontFamily: "var(--font-geist-mono,monospace)", color: "#6ee7b7", textAlign: "center" }}>
                           {route.estimatedStops}
                         </td>
                         <td style={{ padding: ".75rem 1rem" }}>
                           <RouteStatusBadge status={route.status} />
                         </td>
-                        <td style={{ padding: ".75rem 1rem", fontSize: ".8rem", color: S.muted }}>
+                        <td style={{ padding: ".75rem 1rem", fontSize: "11px", fontFamily: "var(--font-geist-mono,monospace)", color: "#647a96", letterSpacing: ".04em" }}>
                           {new Date(route.createdAt).toLocaleDateString()}
                         </td>
                         <td style={{ padding: ".5rem .5rem", textAlign: "center" }}>

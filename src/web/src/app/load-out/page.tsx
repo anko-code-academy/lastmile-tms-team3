@@ -160,7 +160,9 @@ export default function LoadOutPage() {
         .lo-route-card.lo-selected { border-color: rgba(245,158,11,.4) !important; background: rgba(245,158,11,.04) !important; }
       `}</style>
 
-      <div style={{ minHeight: "100vh", background: S.bg, color: S.text }}>
+      <div style={{ minHeight: "100vh", background: S.bg, color: S.text, position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "fixed", inset: 0, zIndex: 0, backgroundImage: "linear-gradient(rgba(30,42,66,.45) 1px,transparent 1px),linear-gradient(90deg,rgba(30,42,66,.45) 1px,transparent 1px)", backgroundSize: "52px 52px", pointerEvents: "none" }} />
+        <div style={{ position: "relative", zIndex: 1 }}>
         <TmNavbar />
 
         <div style={{ padding: "2rem", maxWidth: 1360, margin: "0 auto" }}>
@@ -727,6 +729,7 @@ export default function LoadOutPage() {
             </div>
           ) : null}
         </div>
+      </div>
       </div>
 
       {/* Confirmation Dialog */}

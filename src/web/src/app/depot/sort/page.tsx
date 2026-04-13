@@ -194,8 +194,12 @@ export default function SortScanPage() {
         background: "#080c14",
         color: "#e2e8f0",
         fontFamily: mono,
+        position: "relative",
+        overflow: "hidden",
       }}
     >
+      <div style={{ position: "fixed", inset: 0, zIndex: 0, backgroundImage: "linear-gradient(rgba(30,42,66,.45) 1px,transparent 1px),linear-gradient(90deg,rgba(30,42,66,.45) 1px,transparent 1px)", backgroundSize: "52px 52px", pointerEvents: "none" }} />
+      <div style={{ position: "relative", zIndex: 1 }}>
       <TmNavbar />
 
       <div
@@ -817,6 +821,7 @@ function ResultCard({
               : (result.zoneName ?? "—")}
           </p>
         </div>
+      </div>
       </div>
     </div>
   );

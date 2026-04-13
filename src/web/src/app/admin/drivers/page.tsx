@@ -390,7 +390,8 @@ export default function DriversPage() {
                                 padding: ".75rem 1rem",
                                 fontFamily: S.mono,
                                 fontWeight: 700,
-                                color: S.text,
+                                fontSize: "13px",
+                                color: "#f59e0b",
                               }}
                             >
                               {d.fullName}
@@ -398,8 +399,8 @@ export default function DriversPage() {
                             <td
                               style={{
                                 padding: ".75rem 1rem",
-                                fontSize: ".875rem",
-                                color: S.muted,
+                                fontSize: "13px",
+                                color: "#93c5fd",
                               }}
                             >
                               {d.email}
@@ -408,8 +409,8 @@ export default function DriversPage() {
                               style={{
                                 padding: ".75rem 1rem",
                                 fontFamily: S.mono,
-                                fontSize: ".8rem",
-                                color: S.dim,
+                                fontSize: "12px",
+                                color: "#38bdf8",
                               }}
                             >
                               {d.licenseNumber}
@@ -417,8 +418,8 @@ export default function DriversPage() {
                             <td
                               style={{
                                 padding: ".75rem 1rem",
-                                fontSize: ".875rem",
-                                color: S.muted,
+                                fontSize: "13px",
+                                color: "#7a9ab8",
                               }}
                             >
                               {d.depot?.name ?? "—"}
@@ -443,8 +444,9 @@ export default function DriversPage() {
                               style={{
                                 padding: ".75rem 1rem",
                                 fontFamily: S.mono,
-                                fontSize: ".8rem",
-                                color: S.dim,
+                                fontSize: "11px",
+                                color: "#647a96",
+                                letterSpacing: ".04em",
                               }}
                             >
                               {new Date(d.createdAt).toLocaleDateString()}
