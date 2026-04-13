@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import type { RouteMapData } from "@/lib/types/route";
@@ -54,18 +54,16 @@ export default function RoutesOverviewMap({
   const containerRef = useRef<HTMLDivElement>(null!);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const staticMarkersRef = useRef<mapboxgl.Marker[]>([]);
-  const driverMarkersRef = useRef<mapboxgl.Marker[]>([]);
+  const driverMarkersRef = useRef<Map<string, mapboxgl.Marker>>(new Map());
+  const animFramesRef = useRef<Map<string, number>>(new Map());
   const [mapReady, setMapReady] = useState(false);
 
   const onRouteSelectedRef = useRef(onRouteSelected);
   onRouteSelectedRef.current = onRouteSelected;
 
-  const removeDriverMarkers = useCallback(() => {
-    driverMarkersRef.current.forEach((m) => {
-      try { m.remove(); } catch (_) { /* noop */ }
-    });
-    driverMarkersRef.current = [];
-  }, []);
+  // Keep routes ref in sync for popup content
+  const routesRef = useRef(routes);
+  routesRef.current = routes;
 
   // Effect 1: Route lines
   useEffect(() => {
@@ -140,7 +138,7 @@ export default function RoutesOverviewMap({
     });
   }, [routes, selectedRouteId, mapReady]);
 
-  // Effect 2: Static markers — depot + stops
+  // Effect 2: Static markers — depot + stops (only re-runs when routes change)
   useEffect(() => {
     const map = mapRef.current;
     if (!mapReady || !map) return;
@@ -216,43 +214,98 @@ export default function RoutesOverviewMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routes, mapReady]);
 
-  // Effect 3: Driver markers
+  // Effect 3: Driver markers — create/update markers, animate smoothly
   useEffect(() => {
     const map = mapRef.current;
     if (!mapReady || !map) return;
 
-    removeDriverMarkers();
+    const activeRoutes = routes.filter(
+      (r) => r.status === RouteStatus.Dispatched || r.status === RouteStatus.InProgress
+    );
 
-    routes.forEach((route) => {
-      if (route.status !== RouteStatus.Dispatched && route.status !== RouteStatus.InProgress) return;
+    // Remove markers for routes no longer active
+    const activeIds = new Set(activeRoutes.map((r) => r.id));
+    for (const [id, marker] of driverMarkersRef.current) {
+      if (!activeIds.has(id)) {
+        try { marker.remove(); } catch (_) { /* noop */ }
+        driverMarkersRef.current.delete(id);
+      }
+    }
 
-      const driverPos = driverPositions.get(route.id)
-        ?? (route.driverPosition ? { lat: route.driverPosition.latitude, lng: route.driverPosition.longitude } : null);
-      if (!driverPos) return;
+    // Cancel animations for removed routes
+    for (const [id, frameId] of animFramesRef.current) {
+      if (!activeIds.has(id)) {
+        cancelAnimationFrame(frameId);
+        animFramesRef.current.delete(id);
+      }
+    }
 
+    activeRoutes.forEach((route) => {
+      const pos = driverPositions.get(route.id);
+      if (!pos) return;
+
+      const targetLng = pos.lng;
+      const targetLat = pos.lat;
       const color = STATUS_COLORS[route.status] ?? "#94a3b8";
-      const deliveredCount = route.stops.filter(s => s.status === "DELIVERED").length;
-      const totalStops = route.stops.length;
 
-      const driverEl = document.createElement("div");
-      driverEl.style.cssText = `width:28px;height:28px;background:${color};border-radius:50%;border:3px solid #fff;box-shadow:0 0 8px rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;`;
-      driverEl.textContent = "\uD83D\uDE9A";
+      const existing = driverMarkersRef.current.get(route.id);
 
-      const driverMarker = new mapboxgl.Marker({ element: driverEl })
-        .setLngLat([driverPos.lng, driverPos.lat])
-        .setPopup(
-          new mapboxgl.Popup({ offset: 14, closeButton: false }).setHTML(
-            `<strong style="color:${color}">${route.name}</strong><br/>` +
-            `<span>Driver: ${route.driverName ?? "Unassigned"}</span><br/>` +
-            `<span>Progress: ${deliveredCount}/${totalStops} stops</span>` +
-            (route.vehiclePlate ? `<br/><span style="color:#8899aa">Vehicle: ${route.vehiclePlate}</span>` : "")
+      if (existing) {
+        // Animate existing marker to new position
+        const currentLngLat = existing.getLngLat();
+        const startLng = currentLngLat.lng;
+        const startLat = currentLngLat.lat;
+        const duration = 2000; // 2 seconds smooth transition
+        const startTime = performance.now();
+
+        // Cancel previous animation for this route
+        const prevFrame = animFramesRef.current.get(route.id);
+        if (prevFrame) cancelAnimationFrame(prevFrame);
+
+        const animate = (now: number) => {
+          const elapsed = now - startTime;
+          const t = Math.min(elapsed / duration, 1);
+          // Ease out cubic
+          const ease = 1 - Math.pow(1 - t, 3);
+
+          const lng = startLng + (targetLng - startLng) * ease;
+          const lat = startLat + (targetLat - startLat) * ease;
+          existing.setLngLat([lng, lat]);
+
+          if (t < 1) {
+            animFramesRef.current.set(route.id, requestAnimationFrame(animate));
+          } else {
+            animFramesRef.current.delete(route.id);
+          }
+        };
+
+        animFramesRef.current.set(route.id, requestAnimationFrame(animate));
+      } else {
+        // Create new driver marker
+        const driverEl = document.createElement("div");
+        driverEl.style.cssText = `width:28px;height:28px;background:${color};border-radius:50%;border:3px solid #fff;box-shadow:0 0 8px rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;`;
+        driverEl.textContent = "\uD83D\uDE9A";
+
+        const deliveredCount = route.stops.filter(s => s.status === "DELIVERED").length;
+        const totalStops = route.stops.length;
+
+        const marker = new mapboxgl.Marker({ element: driverEl })
+          .setLngLat([targetLng, targetLat])
+          .setPopup(
+            new mapboxgl.Popup({ offset: 14, closeButton: false }).setHTML(
+              `<strong style="color:${color}">${route.name}</strong><br/>` +
+              `<span>Driver: ${route.driverName ?? "Unassigned"}</span><br/>` +
+              `<span>Progress: ${deliveredCount}/${totalStops} stops</span>` +
+              (route.vehiclePlate ? `<br/><span style="color:#8899aa">Vehicle: ${route.vehiclePlate}</span>` : "")
+            )
           )
-        )
-        .addTo(map);
+          .addTo(map);
 
-      driverMarkersRef.current.push(driverMarker);
+        driverMarkersRef.current.set(route.id, marker);
+      }
     });
-  }, [routes, driverPositions, removeDriverMarkers, mapReady]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routes, driverPositions, mapReady]);
 
   // Map init
   useEffect(() => {
@@ -281,6 +334,9 @@ export default function RoutesOverviewMap({
       driverMarkersRef.current.forEach((m) => {
         try { m.remove(); } catch (_) { /* noop */ }
       });
+      driverMarkersRef.current.clear();
+      animFramesRef.current.forEach((f) => cancelAnimationFrame(f));
+      animFramesRef.current.clear();
       try { map.remove(); } catch (_) { /* noop */ }
       mapRef.current = null;
     };

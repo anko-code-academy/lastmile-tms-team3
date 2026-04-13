@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import TmNavbar from "@/components/TmNavbar";
 import RouteStatusBadge from "@/components/routes/RouteStatusBadge";
@@ -42,11 +42,6 @@ export default function RouteMapPage() {
   const routeIds = routes.map((r) => r.id);
   const driverPositions = useDriverPositions(routeIds);
 
-  const routesWithPositions = routes.map((r) => {
-    const pos = driverPositions.get(r.id);
-    return pos ? { ...r, driverPosition: { latitude: pos.lat, longitude: pos.lng } } : r;
-  });
-
   useEffect(() => {
     let cancelled = false;
 
@@ -74,7 +69,7 @@ export default function RouteMapPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date]);
 
-  const routesWithStops = routesWithPositions.filter((r) => r.stops.length > 0);
+  const routesWithStops = useMemo(() => routes.filter((r) => r.stops.length > 0), [routes]);
   const selectedRoute = routes.find((r) => r.id === selectedRouteId);
 
   return (
