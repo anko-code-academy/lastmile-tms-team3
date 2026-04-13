@@ -6,6 +6,7 @@ import TmNavbar from "@/components/TmNavbar";
 import RouteStatusBadge from "@/components/routes/RouteStatusBadge";
 import RoutesOverviewMap from "@/components/routes/RoutesOverviewMap";
 import { getRoutesForMapAction } from "@/lib/actions/routes";
+import { useDriverPositions } from "@/lib/hooks/useDriverPositions";
 import type { RouteMapData } from "@/lib/types/route";
 import { RouteStatus } from "@/lib/types/route";
 
@@ -38,6 +39,14 @@ export default function RouteMapPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const routeIds = routes.map((r) => r.id);
+  const driverPositions = useDriverPositions(routeIds);
+
+  const routesWithPositions = routes.map((r) => {
+    const pos = driverPositions.get(r.id);
+    return pos ? { ...r, driverPosition: { latitude: pos.lat, longitude: pos.lng } } : r;
+  });
+
   useEffect(() => {
     let cancelled = false;
 
@@ -65,7 +74,7 @@ export default function RouteMapPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date]);
 
-  const routesWithStops = routes.filter((r) => r.stops.length > 0);
+  const routesWithStops = routesWithPositions.filter((r) => r.stops.length > 0);
   const selectedRoute = routes.find((r) => r.id === selectedRouteId);
 
   return (
@@ -268,6 +277,7 @@ export default function RouteMapPage() {
                     routes={routesWithStops}
                     selectedRouteId={selectedRouteId}
                     onRouteSelected={setSelectedRouteId}
+                    driverPositions={driverPositions}
                   />
                 )}
               </div>

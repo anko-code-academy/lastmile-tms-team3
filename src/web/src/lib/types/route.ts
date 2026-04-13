@@ -183,4 +183,5 @@ export interface RouteMapData {
     address?: { latitude: number; longitude: number } | null;
   } | null;
   stops: RouteMapStop[];
+  driverPosition?: { latitude: number; longitude: number } | null;
 }
