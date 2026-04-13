@@ -82,16 +82,14 @@ export default function ReceivingPage() {
   const [listSearchDebounced, setListSearchDebounced] = useState("");
   const [pageHistory, setPageHistory] = useState<(string | null)[]>([null]);
 
-  // Debounce search input
+  // Debounce search input and reset to first page
   useEffect(() => {
-    const t = setTimeout(() => setListSearchDebounced(listSearch), 400);
+    const t = setTimeout(() => {
+      setListSearchDebounced(listSearch);
+      setPageHistory([null]);
+    }, 400);
     return () => clearTimeout(t);
   }, [listSearch]);
-
-  // Reset to first page when search changes
-  useEffect(() => {
-    setPageHistory([null]);
-  }, [listSearchDebounced]);
 
   const currentCursor = useMemo(
     () => pageHistory[pageHistory.length - 1] ?? null,
