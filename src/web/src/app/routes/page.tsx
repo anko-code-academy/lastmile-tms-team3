@@ -250,7 +250,7 @@ export default function RoutesPage() {
                           fontFamily: "var(--font-geist-mono,monospace)",
                           fontSize: "11px",
                           fontWeight: 600,
-                          color: col.sortKey && sortField === col.sortKey ? S.accent : S.muted,
+                          color: col.sortKey && sortColumn === col.sortKey ? S.accent : S.muted,
                           textTransform: "uppercase",
                           letterSpacing: ".12em",
                           cursor: col.sortKey ? "pointer" : "default",
