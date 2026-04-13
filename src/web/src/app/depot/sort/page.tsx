@@ -545,7 +545,6 @@ export default function SortScanPage() {
           </div>
         </div>
       </div>
-      </div>
     </div>
   );
 }
