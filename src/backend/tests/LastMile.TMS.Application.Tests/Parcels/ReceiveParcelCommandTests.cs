@@ -159,7 +159,7 @@ public class ReceiveParcelCommandTests : IDisposable
     }
 
     [Fact]
-    public async Task ReceiveParcel_ParcelNotInManifest_ReceivedWithUnexpectedFlag()
+    public async Task ReceiveParcel_ParcelNotInManifest_FlaggedAsMisdirectedException()
     {
         var sessionDto = new StartReceivingSessionDto(_manifestId, "D1");
         var sessionResult = await _startSessionHandler.Handle(new StartReceivingSession.Command(sessionDto), CancellationToken.None);
@@ -167,8 +167,23 @@ public class ReceiveParcelCommandTests : IDisposable
         var dto = new ReceiveParcelDto("RECV-WALKIN-001", sessionResult.SessionId, null, null, null, null);
         var result = await _receiveHandler.Handle(new ReceiveParcel.Command(dto), CancellationToken.None);
 
-        result.Status.Should().Be(ParcelStatus.ReceivedAtDepot.ToString());
+        result.Status.Should().Be(ParcelStatus.Exception.ToString());
         result.IsUnexpected.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ReceiveParcel_ParcelNotInManifest_ParcelEntityHasExceptionStatus()
+    {
+        var sessionDto = new StartReceivingSessionDto(_manifestId, "D1");
+        var sessionResult = await _startSessionHandler.Handle(new StartReceivingSession.Command(sessionDto), CancellationToken.None);
+
+        var dto = new ReceiveParcelDto("RECV-WALKIN-001", sessionResult.SessionId, null, null, null, null);
+        await _receiveHandler.Handle(new ReceiveParcel.Command(dto), CancellationToken.None);
+
+        // Use the factory to get a context sharing the same InMemory DB
+        using var readContext = (TestAppDbContext)_context.CreateDbContext();
+        var parcel = await readContext.Parcels.FirstAsync(p => p.TrackingNumber == "RECV-WALKIN-001");
+        parcel.Status.Should().Be(ParcelStatus.Exception);
     }
 
     [Fact]
@@ -184,19 +199,38 @@ public class ReceiveParcelCommandTests : IDisposable
     }
 
     [Fact]
-    public async Task ReceiveParcel_WrongStatus_Throws()
+    public async Task ReceiveParcel_AlreadyReceivedInSameManifest_ReturnsAlreadyReceived()
     {
-        // First receive the parcel
         var sessionDto = new StartReceivingSessionDto(_manifestId, "D1");
         var sessionResult = await _startSessionHandler.Handle(new StartReceivingSession.Command(sessionDto), CancellationToken.None);
 
         var dto = new ReceiveParcelDto("RECV-TEST-001", sessionResult.SessionId, null, null, null, null);
         await _receiveHandler.Handle(new ReceiveParcel.Command(dto), CancellationToken.None);
 
-        // Try receiving again (now status is ReceivedAtDepot, not Registered)
-        var act = () => _receiveHandler.Handle(new ReceiveParcel.Command(dto), CancellationToken.None);
+        // Scan the same parcel again — should return friendly result, not throw
+        var result = await _receiveHandler.Handle(new ReceiveParcel.Command(dto), CancellationToken.None);
 
-        await act.Should().ThrowAsync<InvalidOperationException>();
+        result.IsUnexpected.Should().BeFalse();
+        result.IsAlreadyReceived.Should().BeTrue();
+        result.Status.Should().Be(ParcelStatus.ReceivedAtDepot.ToString());
+    }
+
+    [Fact]
+    public async Task ReceiveParcel_AlreadyReceivedNotInManifest_FlaggedAsException()
+    {
+        var sessionDto = new StartReceivingSessionDto(_manifestId, "D1");
+        var sessionResult = await _startSessionHandler.Handle(new StartReceivingSession.Command(sessionDto), CancellationToken.None);
+
+        // Receive the walk-in parcel first (it gets Exception since it's not in manifest)
+        var dto = new ReceiveParcelDto("RECV-WALKIN-001", sessionResult.SessionId, null, null, null, null);
+        var firstResult = await _receiveHandler.Handle(new ReceiveParcel.Command(dto), CancellationToken.None);
+        firstResult.Status.Should().Be(ParcelStatus.Exception.ToString());
+
+        // Scan again — already in Exception, not in manifest — should return already-received as exception
+        var secondResult = await _receiveHandler.Handle(new ReceiveParcel.Command(dto), CancellationToken.None);
+        secondResult.IsUnexpected.Should().BeTrue();
+        secondResult.IsAlreadyReceived.Should().BeTrue();
+        secondResult.Status.Should().Be(ParcelStatus.Exception.ToString());
     }
 
     [Fact]
@@ -221,5 +255,47 @@ public class ReceiveParcelCommandTests : IDisposable
     {
         _context.Database.EnsureDeleted();
         _context.Dispose();
+    }
+
+    [Fact]
+    public async Task StartReceivingSession_SecondOpenSessionOnSameManifest_Throws()
+    {
+        var sessionDto = new StartReceivingSessionDto(_manifestId, "D1");
+        await _startSessionHandler.Handle(new StartReceivingSession.Command(sessionDto), CancellationToken.None);
+
+        var act = () => _startSessionHandler.Handle(
+            new StartReceivingSession.Command(new StartReceivingSessionDto(_manifestId, "D2")),
+            CancellationToken.None);
+
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*already has an open session*");
+    }
+
+    [Fact]
+    public async Task StartReceivingSession_DifferentManifest_Succeeds()
+    {
+        // Start session on first manifest
+        var sessionDto = new StartReceivingSessionDto(_manifestId, "D1");
+        await _startSessionHandler.Handle(new StartReceivingSession.Command(sessionDto), CancellationToken.None);
+
+        // Create a second manifest and start session on it — should succeed
+        var manifest2 = new InboundManifest
+        {
+            Id = Guid.NewGuid(),
+            ManifestNumber = "MFT-20260412-002",
+            DepotId = _depotId,
+            Status = InboundManifestStatus.Sealed,
+            MaxParcels = 5,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        using var ctx = (TestAppDbContext)_context.CreateDbContext();
+        ctx.InboundManifests.Add(manifest2);
+        await ctx.SaveChangesAsync(CancellationToken.None);
+
+        var act = () => _startSessionHandler.Handle(
+            new StartReceivingSession.Command(new StartReceivingSessionDto(manifest2.Id, "D2")),
+            CancellationToken.None);
+
+        await act.Should().NotThrowAsync();
     }
 }

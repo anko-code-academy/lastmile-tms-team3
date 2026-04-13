@@ -27,23 +27,42 @@ public static class ReceiveParcel
                 .FirstOrDefaultAsync(p => p.TrackingNumber == request.Dto.TrackingNumber, cancellationToken)
                 ?? throw new InvalidOperationException($"Parcel with tracking number '{request.Dto.TrackingNumber}' not found.");
 
-            if (parcel.Status != ParcelStatus.Registered)
-                throw new InvalidOperationException($"Parcel '{request.Dto.TrackingNumber}' is in status '{parcel.Status}', expected 'Registered'.");
-
-            var session = await context.InboundReceivingSessions
-                .FirstOrDefaultAsync(s => s.Id == request.Dto.SessionId, cancellationToken)
+            var sessionData = await context.InboundReceivingSessions
+                .Where(s => s.Id == request.Dto.SessionId)
+                .Select(s => new
+                {
+                    Session = s,
+                    IsInManifest = context.InboundManifests
+                        .Where(m => m.Id == s.ManifestId)
+                        .SelectMany(m => m.Parcels)
+                        .Any(p => p.Id == parcel.Id)
+                })
+                .FirstOrDefaultAsync(cancellationToken)
                 ?? throw new InvalidOperationException($"Receiving session {request.Dto.SessionId} not found.");
 
-            if (session.Status != InboundReceivingSessionStatus.Open)
+            if (sessionData.Session.Status != InboundReceivingSessionStatus.Open)
                 throw new InvalidOperationException("Session is not open.");
 
-            var isUnexpected = !await context.InboundManifests
-                .Where(m => m.Id == session.ManifestId)
-                .SelectMany(m => m.Parcels)
-                .AnyAsync(p => p.Id == parcel.Id, cancellationToken);
+            var isUnexpected = !sessionData.IsInManifest;
+
+            // Already processed — return friendly result without changing status
+            if (parcel.Status != ParcelStatus.Registered)
+            {
+                return new ReceiveParcelResultDto(
+                    parcel.Id,
+                    parcel.TrackingNumber,
+                    parcel.Status.ToString(),
+                    isUnexpected,
+                    IsAlreadyReceived: true,
+                    sessionData.Session.Id);
+            }
+
+            var targetStatus = isUnexpected
+                ? ParcelStatus.Exception
+                : ParcelStatus.ReceivedAtDepot;
 
             parcel.TransitionToStatus(
-                ParcelStatus.ReceivedAtDepot,
+                targetStatus,
                 request.Dto.OperatorName,
                 request.Dto.LocationCity,
                 request.Dto.LocationState,
@@ -56,7 +75,8 @@ public static class ReceiveParcel
                 parcel.TrackingNumber,
                 parcel.Status.ToString(),
                 isUnexpected,
-                session.Id);
+                IsAlreadyReceived: false,
+                sessionData.Session.Id);
         }
     }
 }

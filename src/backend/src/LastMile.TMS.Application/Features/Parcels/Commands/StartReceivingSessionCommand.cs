@@ -31,6 +31,16 @@ public static class StartReceivingSession
             if (manifest.Status == InboundManifestStatus.Closed)
                 throw new InvalidOperationException("Cannot start a session on a closed manifest.");
 
+            // Seal the manifest so no more parcels can be added while receiving
+            if (manifest.Status == InboundManifestStatus.Open)
+                manifest.Status = InboundManifestStatus.Sealed;
+
+            var hasOpenSession = await context.InboundReceivingSessions
+                .AnyAsync(s => s.ManifestId == manifest.Id && s.Status == InboundReceivingSessionStatus.Open, cancellationToken);
+
+            if (hasOpenSession)
+                throw new InvalidOperationException($"Manifest {manifest.ManifestNumber} already has an open session.");
+
             var session = new InboundReceivingSession
             {
                 Id = Guid.NewGuid(),

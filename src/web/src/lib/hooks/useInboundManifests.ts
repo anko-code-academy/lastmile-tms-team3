@@ -4,11 +4,13 @@ import {
   startReceivingSession,
   receiveParcel,
   completeReceivingSession,
+  receiveWalkInParcel,
 } from "../api/inboundManifests";
 import type {
   StartReceivingSessionInput,
   ReceiveParcelInput,
   CompleteReceivingSessionInput,
+  ReceiveWalkInParcelInput,
 } from "../types/inboundManifest";
 
 export function useInboundManifests() {
@@ -53,6 +55,18 @@ export function useCompleteReceivingSession() {
       completeReceivingSession(input).then(
         (res) => res.completeReceivingSession,
       ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["inbound-manifests"] });
+    },
+  });
+}
+
+export function useReceiveWalkInParcel() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: ReceiveWalkInParcelInput) =>
+      receiveWalkInParcel(input).then((res) => res.receiveWalkInParcel),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["inbound-manifests"] });
     },

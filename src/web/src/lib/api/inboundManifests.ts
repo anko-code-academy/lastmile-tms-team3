@@ -7,6 +7,8 @@ import type {
   ReceiveParcelResult,
   CompleteReceivingSessionInput,
   CompleteReceivingSessionResult,
+  ReceiveWalkInParcelInput,
+  ReceiveWalkInParcelResult,
 } from "../types/inboundManifest";
 
 interface InboundManifestsResponse {
@@ -68,6 +70,7 @@ const RECEIVE_PARCEL_MUTATION = `
       trackingNumber
       status
       isUnexpected
+      isAlreadyReceived
       sessionId
     }
   }
@@ -80,10 +83,22 @@ const COMPLETE_RECEIVING_SESSION_MUTATION = `
       expectedCount
       receivedCount
       missingCount
+      misdirectedCount
       missingParcels {
         trackingNumber
         status
       }
+    }
+  }
+`;
+
+const RECEIVE_WALK_IN_PARCEL_MUTATION = `
+  mutation ReceiveWalkInParcel($input: ReceiveWalkInParcelDtoInput!) {
+    receiveWalkInParcel(input: $input) {
+      parcelId
+      trackingNumber
+      status
+      isMisdirected
     }
   }
 `;
@@ -119,6 +134,15 @@ export async function completeReceivingSession(
 ): Promise<{ completeReceivingSession: CompleteReceivingSessionResult }> {
   return graphql<{ completeReceivingSession: CompleteReceivingSessionResult }>(
     COMPLETE_RECEIVING_SESSION_MUTATION,
+    { input },
+  );
+}
+
+export async function receiveWalkInParcel(
+  input: ReceiveWalkInParcelInput,
+): Promise<{ receiveWalkInParcel: ReceiveWalkInParcelResult }> {
+  return graphql<{ receiveWalkInParcel: ReceiveWalkInParcelResult }>(
+    RECEIVE_WALK_IN_PARCEL_MUTATION,
     { input },
   );
 }

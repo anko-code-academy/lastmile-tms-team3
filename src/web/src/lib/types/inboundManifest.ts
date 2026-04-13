@@ -69,6 +69,7 @@ export interface ReceiveParcelResult {
   trackingNumber: string;
   status: string;
   isUnexpected: boolean;
+  isAlreadyReceived: boolean;
   sessionId: string;
 }
 
@@ -82,10 +83,27 @@ export interface MissingParcel {
   status: string;
 }
 
+export interface ReceiveWalkInParcelInput {
+  trackingNumber: string;
+  dockDoor?: string | null;
+  operatorName?: string;
+  locationCity?: string;
+  locationState?: string;
+  locationCountryCode?: string;
+}
+
+export interface ReceiveWalkInParcelResult {
+  parcelId: string;
+  trackingNumber: string;
+  status: string;
+  isMisdirected: boolean;
+}
+
 export interface CompleteReceivingSessionResult {
   sessionId: string;
   expectedCount: number;
   receivedCount: number;
   missingCount: number;
+  misdirectedCount: number;
   missingParcels: MissingParcel[];
 }
