@@ -390,6 +390,100 @@ public class DeliveryRouteTests
     }
 
     [Fact]
+    public void Dispatch_WhenDraftWithDriverVehicleAndParcels_ShouldSetStatusToDispatched()
+    {
+        // Arrange
+        var route = CreateDraftRoute();
+        route.AddParcel(CreateParcel());
+
+        // Act
+        route.Dispatch();
+
+        // Assert
+        route.Status.Should().Be(RouteStatus.Dispatched);
+    }
+
+    [Fact]
+    public void Dispatch_ShouldSetDispatchedAtTimestamp()
+    {
+        // Arrange
+        var route = CreateDraftRoute();
+        route.AddParcel(CreateParcel());
+        var before = DateTimeOffset.UtcNow;
+
+        // Act
+        route.Dispatch();
+
+        // Assert
+        route.DispatchedAt.Should().NotBeNull();
+        route.DispatchedAt.Should().BeOnOrAfter(before);
+        route.DispatchedAt.Should().BeCloseTo(DateTimeOffset.UtcNow, TimeSpan.FromSeconds(1));
+    }
+
+    [Fact]
+    public void Dispatch_WhenNotDraft_ShouldThrow()
+    {
+        // Arrange
+        var route = CreateDraftRoute();
+        route.AddParcel(CreateParcel());
+        route.Status = RouteStatus.Dispatched;
+
+        // Act
+        var act = () => route.Dispatch();
+
+        // Assert
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*Draft*");
+    }
+
+    [Fact]
+    public void Dispatch_WhenNoDriverAssigned_ShouldThrow()
+    {
+        // Arrange
+        var route = CreateDraftRoute();
+        route.UnassignDriver();
+        route.AddParcel(CreateParcel());
+
+        // Act
+        var act = () => route.Dispatch();
+
+        // Assert
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*driver*");
+    }
+
+    [Fact]
+    public void Dispatch_WhenNoVehicleAssigned_ShouldThrow()
+    {
+        // Arrange
+        var route = CreateDraftRoute();
+        route.UnassignVehicle();
+        route.AddParcel(CreateParcel());
+
+        // Act
+        var act = () => route.Dispatch();
+
+        // Assert
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*vehicle*");
+    }
+
+    [Fact]
+    public void Dispatch_WhenNoParcels_ShouldThrow()
+    {
+        // Arrange
+        var route = CreateDraftRoute();
+        // No parcels added
+
+        // Act
+        var act = () => route.Dispatch();
+
+        // Assert
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*parcel*");
+    }
+
+    [Fact]
     public void RemoveParcel_ShouldRecalculateStops_WhenAddressNoLongerOnRoute()
     {
         // Arrange — 2 parcels at address A, 1 parcel at address B

@@ -28,6 +28,7 @@ type SortDir = "asc" | "desc";
 
 const COLS: { label: string; sortKey: SortKey | null }[] = [
   { label: "Date", sortKey: "date" },
+  { label: "Depot", sortKey: null },
   { label: "Zone", sortKey: null },
   { label: "Driver", sortKey: null },
   { label: "Vehicle", sortKey: null },
@@ -268,6 +269,9 @@ export default function RoutesPage() {
                       >
                         <td style={{ padding: ".75rem 1rem", fontSize: ".875rem", fontFamily: "var(--font-geist-mono,monospace)" }}>
                           {route.date}
+                        </td>
+                        <td style={{ padding: ".75rem 1rem", fontSize: ".875rem" }}>
+                          {route.depot?.name ?? "\u2014"}
                         </td>
                         <td style={{ padding: ".75rem 1rem", fontSize: ".875rem" }}>
                           {route.zoneName ?? "\u2014"}

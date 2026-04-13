@@ -21,6 +21,7 @@ import {
   getAvailableDriversAction,
   optimizeRouteStopsAction,
   reorderRouteStopsAction,
+  dispatchRouteAction,
 } from "@/lib/actions/routes";
 import { useSearchVehicles } from "@/lib/hooks/useVehicles";
 import { graphql } from "@/lib/api/graphql";
@@ -88,6 +89,7 @@ export default function RouteDetailPage({
   );
   const [parcelLoading, setParcelLoading] = useState(false);
   const [optimizing, setOptimizing] = useState(false);
+  const [dispatching, setDispatching] = useState(false);
   const [selectedStopId, setSelectedStopId] = useState<string | null>(null);
 
   // Vehicles
@@ -331,6 +333,26 @@ export default function RouteDetailPage({
     // Don't reload — the SortableStopList manages local state optimistically
   }
 
+  async function handleDispatch() {
+    if (!routeId || !route) return;
+    if (
+      !confirm(
+        `Dispatch route "${route.name}"?\n\nThis will lock the route and transition all parcels to Out for Delivery.`
+      )
+    )
+      return;
+    setDispatching(true);
+    setError(null);
+    const result = await dispatchRouteAction(routeId);
+    setDispatching(false);
+    if (result.error) {
+      setError(result.error);
+    } else {
+      queryClient.invalidateQueries({ queryKey: ["routes"] });
+      await loadRoute();
+    }
+  }
+
   const isDraft = route?.status === RouteStatus.Draft;
   const assignedParcels = route?.routeParcels ?? [];
 
@@ -464,6 +486,11 @@ export default function RouteDetailPage({
                 <span style={{ color: S.muted, fontSize: ".75rem" }}>Date</span>
                 <br />
                 <span style={{ fontFamily: S.mono }}>{route.date}</span>
+              </div>
+              <div>
+                <span style={{ color: S.muted, fontSize: ".75rem" }}>Depot</span>
+                <br />
+                {route.depot?.name ?? "\u2014"}
               </div>
               <div>
                 <span style={{ color: S.muted, fontSize: ".75rem" }}>Zone</span>
@@ -1150,6 +1177,28 @@ export default function RouteDetailPage({
                 gap: ".75rem",
               }}
             >
+              {isDraft &&
+                route.driverId &&
+                route.vehicleId &&
+                route.parcelCount > 0 && (
+                  <button
+                    onClick={handleDispatch}
+                    disabled={dispatching}
+                    style={{
+                      padding: ".5rem 1.25rem",
+                      borderRadius: 6,
+                      background: "rgba(34,197,94,.1)",
+                      border: "1px solid rgba(34,197,94,.3)",
+                      color: S.green,
+                      fontWeight: 600,
+                      fontSize: ".875rem",
+                      cursor: dispatching ? "not-allowed" : "pointer",
+                      opacity: dispatching ? 0.5 : 1,
+                    }}
+                  >
+                    {dispatching ? "Dispatching..." : "Dispatch Route"}
+                  </button>
+                )}
               {isDraft && (
                 <button
                   onClick={handleDelete}

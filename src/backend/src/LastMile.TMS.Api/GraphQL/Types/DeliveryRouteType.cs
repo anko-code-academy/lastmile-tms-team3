@@ -28,6 +28,7 @@ public class DeliveryRouteType : ObjectType<DeliveryRoute>
         descriptor.Field(x => x.EstimatedDistance);
         descriptor.Field(x => x.EstimatedDuration);
         descriptor.Field(x => x.LoadedAt);
+        descriptor.Field(x => x.DispatchedAt);
         descriptor.Field("parcelCount").Resolve(ctx => ctx.Parent<DeliveryRoute>().RouteParcels.Count);
         descriptor.Field(x => x.RouteParcels).Type<ListType<RouteParcelType>>();
         descriptor.Field(x => x.Parcels).Type<NonNullType<ListType<NonNullType<ParcelType>>>>();

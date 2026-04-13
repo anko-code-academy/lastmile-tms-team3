@@ -35,6 +35,8 @@ public class DeliveryRoute : BaseAuditableEntity, IAuditTracked
 
     public DateTimeOffset? LoadedAt { get; set; }
 
+    public DateTimeOffset? DispatchedAt { get; set; }
+
     public virtual ICollection<RouteParcel> RouteParcels { get; set; } = new List<RouteParcel>();
 
     public ICollection<Parcel> Parcels { get; set; } = new List<Parcel>();
@@ -70,8 +72,7 @@ public class DeliveryRoute : BaseAuditableEntity, IAuditTracked
         var routeParcel = RouteParcels.FirstOrDefault(rp => rp.ParcelId == parcelId)
             ?? throw new InvalidOperationException($"Parcel '{parcelId}' not found on this route.");
 
-        if (routeParcel.Parcel is not null)
-            RouteParcels.Remove(routeParcel);
+        RouteParcels.Remove(routeParcel);
         ReorderStops();
         RecalculateEstimatedStops();
     }
@@ -114,6 +115,24 @@ public class DeliveryRoute : BaseAuditableEntity, IAuditTracked
 
         VehicleId = null;
         Vehicle = null;
+    }
+
+    public void Dispatch()
+    {
+        if (Status != RouteStatus.Draft)
+            throw new InvalidOperationException("Only a route in Draft status can be dispatched.");
+
+        if (!DriverId.HasValue)
+            throw new InvalidOperationException("A driver must be assigned before dispatching.");
+
+        if (!VehicleId.HasValue)
+            throw new InvalidOperationException("A vehicle must be assigned before dispatching.");
+
+        if (RouteParcels.Count == 0)
+            throw new InvalidOperationException("At least one parcel must be on the route before dispatching.");
+
+        Status = RouteStatus.Dispatched;
+        DispatchedAt = DateTimeOffset.UtcNow;
     }
 
     private void ReorderStops()
