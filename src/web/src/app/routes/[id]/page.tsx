@@ -179,7 +179,7 @@ export default function RouteDetailPage({
       })
       .catch(() => { if (!cancelled) setStagedParcels([]); });
     return () => { cancelled = true; };
-  }, [route?.id, route?.status, route?.zoneId]);
+  }, [route?.id, route?.status, route?.zoneId, route?.parcelCount]);
 
   // Driver assignment
   async function handleAssignDriver() {
