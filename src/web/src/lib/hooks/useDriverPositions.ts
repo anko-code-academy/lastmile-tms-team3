@@ -28,6 +28,12 @@ export function useDriverPositions(routeIds: string[]) {
       });
     });
 
+    // Re-subscribe after reconnect — server assigns new connection ID,
+    // so all group memberships are lost on reconnect.
+    connection.onreconnected(() => {
+      connection.invoke("SubscribeRoutes", routeIds).catch(console.error);
+    });
+
     connection.start()
       .then(() => connection.invoke("SubscribeRoutes", routeIds))
       .catch(console.error);

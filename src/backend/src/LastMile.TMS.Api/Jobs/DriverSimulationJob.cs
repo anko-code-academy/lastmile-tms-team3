@@ -73,7 +73,7 @@ public class DriverSimulationJob
         }
     }
 
-    private static List<(double Lat, double Lng)> BuildWaypoints(Domain.Entities.DeliveryRoute route)
+    internal static List<(double Lat, double Lng)> BuildWaypoints(Domain.Entities.DeliveryRoute route)
     {
         var waypoints = new List<(double Lat, double Lng)>();
 
@@ -101,7 +101,7 @@ public class DriverSimulationJob
         return waypoints;
     }
 
-    private static (double Lat, double Lng) Interpolate(List<(double Lat, double Lng)> waypoints, double progress)
+    internal static (double Lat, double Lng) Interpolate(List<(double Lat, double Lng)> waypoints, double progress)
     {
         var segIdx = (int)progress;
         var frac = progress - segIdx;

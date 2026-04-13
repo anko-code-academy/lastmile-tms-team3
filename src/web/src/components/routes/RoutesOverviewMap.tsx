@@ -61,10 +61,6 @@ export default function RoutesOverviewMap({
   const onRouteSelectedRef = useRef(onRouteSelected);
   onRouteSelectedRef.current = onRouteSelected;
 
-  // Keep routes ref in sync for popup content
-  const routesRef = useRef(routes);
-  routesRef.current = routes;
-
   // Effect 1: Route lines
   useEffect(() => {
     const map = mapRef.current;
