@@ -1,4 +1,5 @@
 using FluentAssertions;
+using LastMile.TMS.Application.Common.Interfaces;
 using LastMile.TMS.Application.Features.Parcels.Commands;
 using LastMile.TMS.Application.Features.Parcels.DTOs;
 using LastMile.TMS.Application.Tests.Helpers;
@@ -6,6 +7,7 @@ using LastMile.TMS.Domain.Entities;
 using LastMile.TMS.Domain.Enums;
 using LastMile.TMS.Domain.Exceptions;
 using Microsoft.EntityFrameworkCore;
+using NSubstitute;
 
 namespace LastMile.TMS.Application.Tests.Parcels;
 
@@ -13,6 +15,7 @@ public class StageParcelCommandTests : IDisposable
 {
     private readonly TestAppDbContext _context;
     private readonly StageParcel.Handler _handler;
+    private readonly ICurrentUserService _currentUser;
 
     private const string TrackingNumber = "STAGE-TEST-001";
     private readonly Guid _depotId = Guid.NewGuid();
@@ -23,7 +26,11 @@ public class StageParcelCommandTests : IDisposable
     public StageParcelCommandTests()
     {
         _context = TestAppDbContext.Create<StageParcelCommandTests>();
-        _handler = new StageParcel.Handler(_context);
+
+        _currentUser = Substitute.For<ICurrentUserService>();
+        _currentUser.IsInRole("Admin").Returns(true);
+
+        _handler = new StageParcel.Handler(_context, _currentUser);
         SeedTestData();
     }
 
@@ -54,7 +61,7 @@ public class StageParcelCommandTests : IDisposable
             DepotId = _depotId,
             ZoneId = _zoneId,
             Date = DateOnly.FromDateTime(DateTime.Today),
-            Status = RouteStatus.Active,
+            Status = RouteStatus.Draft,
             CreatedAt = DateTimeOffset.UtcNow
         };
 
@@ -65,7 +72,7 @@ public class StageParcelCommandTests : IDisposable
             DepotId = _depotId,
             ZoneId = _zoneId,
             Date = DateOnly.FromDateTime(DateTime.Today),
-            Status = RouteStatus.Active,
+            Status = RouteStatus.Draft,
             CreatedAt = DateTimeOffset.UtcNow
         };
 
@@ -153,13 +160,6 @@ public class StageParcelCommandTests : IDisposable
     [Fact]
     public async Task StageParcel_AlreadyAssignedToDifferentRoute_ReturnsMisstageFlag()
     {
-        // First, stage to route-01
-        var dto1 = new StageParcelDto(TrackingNumber, _routeId, "Op1", null, null, null);
-        await _handler.Handle(new StageParcel.Command(dto1), CancellationToken.None);
-
-        // Now scan to other route — should mis-stage
-        // Need a new parcel in Sorted status with RouteId already set
-        // Reset: create a fresh parcel pre-assigned to route-01 but still Sorted
         const string misstageTracking = "STAGE-MISSTAGE-001";
         var recipientAddr = new Address
         {

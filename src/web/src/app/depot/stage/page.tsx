@@ -50,7 +50,9 @@ export default function StagePage() {
   // Load routes for today on mount
   useEffect(() => {
     const today = new Date().toISOString().split("T")[0];
-    getDeliveryRoutesAction(today).then(setRoutes).catch(() => {});
+    getDeliveryRoutesAction(today).then(setRoutes).catch((err) => {
+      console.error("Failed to load routes:", err);
+    });
   }, []);
 
   // Refresh staging status when route changes
@@ -59,7 +61,9 @@ export default function StagePage() {
       setStagingStatus(null);
       return;
     }
-    getStagingStatusAction(selectedRouteId).then(setStagingStatus).catch(() => {});
+    getStagingStatusAction(selectedRouteId).then(setStagingStatus).catch((err) => {
+      console.error("Failed to load staging status:", err);
+    });
   }, [selectedRouteId, scanHistory]);
 
   const handleScan = useCallback(
@@ -121,8 +125,6 @@ export default function StagePage() {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") handleScan(trackingInput);
   };
-
-  const selectedRoute = routes.find((r) => r.id === selectedRouteId);
 
   return (
     <div style={{ minHeight: "100vh", background: "#080c14", color: "#e2e8f0", position: "relative", overflow: "hidden", fontFamily: mono }}>

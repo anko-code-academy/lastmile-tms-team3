@@ -1,4 +1,5 @@
 using LastMile.TMS.Application.Common.Interfaces;
+using LastMile.TMS.Application.Common.Security;
 using LastMile.TMS.Application.Features.Parcels.DTOs;
 using LastMile.TMS.Domain.Enums;
 using LastMile.TMS.Domain.Exceptions;
@@ -14,10 +15,12 @@ public static class StageParcel
     public class Handler : IRequestHandler<Command, StageParcelResultDto>
     {
         private readonly IAppDbContextFactory _contextFactory;
+        private readonly ICurrentUserService _currentUser;
 
-        public Handler(IAppDbContextFactory contextFactory)
+        public Handler(IAppDbContextFactory contextFactory, ICurrentUserService currentUser)
         {
             _contextFactory = contextFactory;
+            _currentUser = currentUser;
         }
 
         public async Task<StageParcelResultDto> Handle(Command request, CancellationToken cancellationToken)
@@ -40,6 +43,8 @@ public static class StageParcel
 
             if (route is null)
                 throw new RouteNotFoundException(request.Dto.RouteId);
+
+            DepotAccessGuard.EnsureDepotAccess(_currentUser, route.DepotId);
 
             // Mis-stage: parcel is already assigned to a different route
             if (parcel.RouteId.HasValue && parcel.RouteId.Value != route.Id)
