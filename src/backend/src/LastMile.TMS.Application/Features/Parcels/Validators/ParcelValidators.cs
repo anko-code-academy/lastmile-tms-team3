@@ -62,6 +62,19 @@ public class SortParcelValidator : AbstractValidator<SortParcel.Command>
     }
 }
 
+public class StageParcelValidator : AbstractValidator<StageParcel.Command>
+{
+    public StageParcelValidator()
+    {
+        RuleFor(x => x.Dto.TrackingNumber)
+            .NotEmpty().WithMessage("Tracking number is required")
+            .MaximumLength(50);
+
+        RuleFor(x => x.Dto.RouteId)
+            .NotEmpty().WithMessage("Route ID is required");
+    }
+}
+
 public class SearchParcelDtoValidator : AbstractValidator<SearchParcelDto>
 {
     public SearchParcelDtoValidator()

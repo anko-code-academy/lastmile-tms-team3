@@ -55,6 +55,15 @@ public class ParcelMutation
     }
 
     [Authorize(Policy = "AdminOrDepotOperator")]
+    public async Task<StageParcelResultDto> StageParcel(
+        [Service] IMediator mediator,
+        StageParcelDto input,
+        CancellationToken cancellationToken = default)
+    {
+        return await mediator.Send(new StageParcel.Command(input), cancellationToken);
+    }
+
+    [Authorize(Policy = "AdminOrDepotOperator")]
     public async Task<StartReceivingSessionResultDto> StartReceivingSession(
         [Service] IMediator mediator,
         StartReceivingSessionDto input,

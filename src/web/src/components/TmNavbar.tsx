@@ -36,6 +36,7 @@ export default function TmNavbar() {
             children: [
               { label: "Receive", href: "/depot/receiving" },
               { label: "Sort", href: "/depot/sort" },
+              { label: "Stage", href: "/depot/stage" },
               { label: "Load Out", href: "/load-out" },
             ],
           },
