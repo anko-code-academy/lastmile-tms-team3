@@ -38,6 +38,8 @@ public class DeliveryRouteQuery
         return await context.DeliveryRoutes
             .AsNoTracking()
             .Include(r => r.Depot).ThenInclude(d => d!.Address)
+            .Include(r => r.Driver)
+            .Include(r => r.Vehicle)
             .Include(r => r.RouteParcels)
                 .ThenInclude(rp => rp.Parcel).ThenInclude(p => p.RecipientAddress)
             .Where(r => r.Date == date)
