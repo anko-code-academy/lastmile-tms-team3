@@ -133,7 +133,7 @@ public class ParcelCommandTests : IDisposable
         );
 
         var mockGeocodingService = new FakeGeocodingService();
-        var mockZoneMatchingService = new FakeZoneMatchingService(null);
+        var mockZoneMatchingService = new FakeZoneMatchingService(Guid.NewGuid());
 
         var handler = new CreateParcel.Handler(
             _context,
@@ -237,7 +237,7 @@ public class ParcelCommandTests : IDisposable
     }
 
     [Fact]
-    public async Task CreateParcel_WithNoMatchingZone_ZoneIdIsNull()
+    public async Task CreateParcel_WithNoMatchingZone_ThrowsValidationException()
     {
         // Arrange
         var createDto = new CreateParcelDto(
@@ -268,11 +268,54 @@ public class ParcelCommandTests : IDisposable
         var command = new CreateParcel.Command(createDto);
 
         // Act
-        var result = await handler.Handle(command, CancellationToken.None);
+        var act = () => handler.Handle(command, CancellationToken.None);
 
         // Assert
-        result.ZoneId.Should().BeNull();
-        result.ZoneName.Should().BeNull();
+        var exception = await act.Should().ThrowAsync<ValidationException>();
+        exception.Which.Errors.Should().ContainSingle(e =>
+            e.PropertyName == "RecipientAddress" &&
+            e.ErrorMessage.Contains("zone"));
+    }
+
+    [Fact]
+    public async Task CreateParcel_WhenGeocodingFails_ThrowsValidationException()
+    {
+        // Arrange
+        var createDto = new CreateParcelDto(
+            Description: null,
+            ServiceType: ServiceType.Standard,
+            RecipientAddress: new CreateAddressDto("999 Unknown St", null, "Nowhere", "XX", "00000", "XX"),
+            ShipperAddress: new CreateAddressDto("123 S St", null, "LA", "CA", "90001", "US"),
+            Weight: 1m,
+            WeightUnit: WeightUnit.Kg,
+            Length: 10m,
+            Width: 10m,
+            Height: 10m,
+            DimensionUnit: DimensionUnit.Cm,
+            DeclaredValue: 50m
+        );
+
+        var mockGeocodingService = new FakeGeocodingService(returnNull: true);
+        var mockZoneMatchingService = new FakeZoneMatchingService(null);
+
+        var handler = new CreateParcel.Handler(
+            _context,
+            _currentUser,
+            mockZoneMatchingService,
+            mockGeocodingService,
+            new StubManifestAssignmentService()
+        );
+
+        var command = new CreateParcel.Command(createDto);
+
+        // Act
+        var act = () => handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        var exception = await act.Should().ThrowAsync<ValidationException>();
+        exception.Which.Errors.Should().ContainSingle(e =>
+            e.PropertyName == "RecipientAddress" &&
+            e.ErrorMessage.Contains("geocode"));
     }
 
     public void Dispose()
@@ -816,6 +859,12 @@ public class FakeGeocodingService : LastMile.TMS.Application.Common.Interfaces.I
 {
     public double Latitude { get; set; } = 40.7128;
     public double Longitude { get; set; } = -71.0589;
+    private readonly bool _returnNull;
+
+    public FakeGeocodingService(bool returnNull = false)
+    {
+        _returnNull = returnNull;
+    }
 
     public Task<LastMile.TMS.Application.Common.Interfaces.GeocodingResult?> GeocodeAsync(
         string street,
@@ -825,6 +874,9 @@ public class FakeGeocodingService : LastMile.TMS.Application.Common.Interfaces.I
         string countryCode,
         CancellationToken cancellationToken = default)
     {
+        if (_returnNull)
+            return Task.FromResult<LastMile.TMS.Application.Common.Interfaces.GeocodingResult?>(null);
+
         return Task.FromResult<LastMile.TMS.Application.Common.Interfaces.GeocodingResult?>(
             new LastMile.TMS.Application.Common.Interfaces.GeocodingResult(Latitude, Longitude));
     }
