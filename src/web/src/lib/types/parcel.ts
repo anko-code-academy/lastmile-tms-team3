@@ -137,6 +137,16 @@ export interface ParcelListItem {
   createdAt: string;
 }
 
+export interface ChangeHistoryEntry {
+  id: string;
+  occurredAt: string;
+  actorUserName?: string;
+  actionType: string;
+  summary?: string;
+  beforeValuesJson?: string;
+  afterValuesJson?: string;
+}
+
 export interface Parcel {
   id: string;
   trackingNumber: string;
@@ -161,12 +171,15 @@ export interface Parcel {
   notes?: string;
   zoneId?: string;
   zone?: { name?: string };
+  routeId?: string;
+  route?: { name?: string; id?: string };
   createdAt: string;
   lastModifiedAt?: string;
   trackingEvents: TrackingEvent[];
   contentItems: ParcelContentItem[];
   watchers: ParcelWatcher[];
   deliveryConfirmation?: DeliveryConfirmation;
+  changeHistory: ChangeHistoryEntry[];
 }
 
 export interface PagedResult<T> {
@@ -228,6 +241,30 @@ export interface CreateParcelInput {
   currency?: string;
   parcelType?: string;
   notes?: string;
+}
+
+export interface EditParcelInput {
+  parcelId: string;
+  description?: string;
+  recipientAddress: CreateAddressInput;
+  shipperAddress: CreateAddressInput;
+  weight: number;
+  weightUnit: WeightUnit;
+  length: number;
+  width: number;
+  height: number;
+  dimensionUnit: DimensionUnit;
+  declaredValue: number;
+  currency: string;
+  parcelType?: string;
+  notes?: string;
+  estimatedDeliveryDate?: string;
+}
+
+export interface CancelParcelInput {
+  parcelId: string;
+  cancelReason: string;
+  operatorName?: string;
 }
 
 // Zod schemas

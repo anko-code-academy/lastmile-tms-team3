@@ -74,62 +74,93 @@ public class ApplicationDbSeeder(
 
     private async Task SeedVehiclesAsync(CancellationToken cancellationToken)
     {
-        if (await dbContext.Vehicles.AnyAsync(cancellationToken))
-            return;
-
         var depots = await dbContext.Depots.ToListAsync(cancellationToken);
         if (depots.Count == 0) return;
 
-        var vehicles = new List<Vehicle>();
-        var random = new Random(42);
-        var states = new[] { "TN", "KY", "AL" };
-        var plateLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        var existingPlates = await dbContext.Vehicles
+            .Select(v => v.RegistrationPlate)
+            .ToHashSetAsync(cancellationToken);
 
-        for (var i = 0; i < 25; i++)
+        // Deterministic seed data: 45 vehicles across 3 depots (15 each)
+        var vehicleSpecs = new (string Plate, VehicleType Type, VehicleStatus Status, int Parcels, int Weight, string DepotName)[]
         {
-            var depot = depots[i % depots.Count];
-            var state = states[i % states.Length];
-            var type = (VehicleType)(i % 3); // Van, Car, Bike rotation
-            var status = i < 18 ? VehicleStatus.Available
-                : i < 22 ? VehicleStatus.InUse
-                : VehicleStatus.Maintenance;
+            // Central Hub — Nashville TN
+            ("TN-VAN-001", VehicleType.Van,  VehicleStatus.Available,   60, 800, "Central Hub"),
+            ("TN-VAN-002", VehicleType.Van,  VehicleStatus.Available,   65, 850, "Central Hub"),
+            ("TN-VAN-003", VehicleType.Van,  VehicleStatus.Available,   55, 750, "Central Hub"),
+            ("TN-VAN-004", VehicleType.Van,  VehicleStatus.InUse,       70, 900, "Central Hub"),
+            ("TN-VAN-005", VehicleType.Van,  VehicleStatus.Maintenance, 60, 800, "Central Hub"),
+            ("TN-CAR-001", VehicleType.Car,  VehicleStatus.Available,   25, 350, "Central Hub"),
+            ("TN-CAR-002", VehicleType.Car,  VehicleStatus.Available,   30, 400, "Central Hub"),
+            ("TN-CAR-003", VehicleType.Car,  VehicleStatus.InUse,       28, 380, "Central Hub"),
+            ("TN-CAR-004", VehicleType.Car,  VehicleStatus.Available,   22, 300, "Central Hub"),
+            ("TN-CAR-005", VehicleType.Car,  VehicleStatus.Available,   35, 450, "Central Hub"),
+            ("TN-BKE-001", VehicleType.Bike, VehicleStatus.Available,    5,  30, "Central Hub"),
+            ("TN-BKE-002", VehicleType.Bike, VehicleStatus.Available,    6,  35, "Central Hub"),
+            ("TN-BKE-003", VehicleType.Bike, VehicleStatus.InUse,        4,  25, "Central Hub"),
+            ("TN-BKE-004", VehicleType.Bike, VehicleStatus.Available,    7,  40, "Central Hub"),
+            ("TN-BKE-005", VehicleType.Bike, VehicleStatus.Maintenance,  5,  30, "Central Hub"),
+            // North Distribution Center — Louisville KY
+            ("KY-VAN-001", VehicleType.Van,  VehicleStatus.Available,   62, 820, "North Distribution Center"),
+            ("KY-VAN-002", VehicleType.Van,  VehicleStatus.Available,   68, 870, "North Distribution Center"),
+            ("KY-VAN-003", VehicleType.Van,  VehicleStatus.InUse,       58, 760, "North Distribution Center"),
+            ("KY-VAN-004", VehicleType.Van,  VehicleStatus.Available,   72, 920, "North Distribution Center"),
+            ("KY-VAN-005", VehicleType.Van,  VehicleStatus.Maintenance, 64, 810, "North Distribution Center"),
+            ("KY-CAR-001", VehicleType.Car,  VehicleStatus.Available,   27, 360, "North Distribution Center"),
+            ("KY-CAR-002", VehicleType.Car,  VehicleStatus.Available,   32, 420, "North Distribution Center"),
+            ("KY-CAR-003", VehicleType.Car,  VehicleStatus.InUse,       29, 390, "North Distribution Center"),
+            ("KY-CAR-004", VehicleType.Car,  VehicleStatus.Available,   24, 320, "North Distribution Center"),
+            ("KY-CAR-005", VehicleType.Car,  VehicleStatus.Available,   36, 460, "North Distribution Center"),
+            ("KY-BKE-001", VehicleType.Bike, VehicleStatus.Available,    5,  32, "North Distribution Center"),
+            ("KY-BKE-002", VehicleType.Bike, VehicleStatus.Available,    6,  36, "North Distribution Center"),
+            ("KY-BKE-003", VehicleType.Bike, VehicleStatus.InUse,        4,  26, "North Distribution Center"),
+            ("KY-BKE-004", VehicleType.Bike, VehicleStatus.Available,    7,  42, "North Distribution Center"),
+            ("KY-BKE-005", VehicleType.Bike, VehicleStatus.Maintenance,  5,  31, "North Distribution Center"),
+            // South Fleet Yard — Birmingham AL
+            ("AL-VAN-001", VehicleType.Van,  VehicleStatus.Available,   58, 780, "South Fleet Yard"),
+            ("AL-VAN-002", VehicleType.Van,  VehicleStatus.Available,   63, 830, "South Fleet Yard"),
+            ("AL-VAN-003", VehicleType.Van,  VehicleStatus.InUse,       56, 740, "South Fleet Yard"),
+            ("AL-VAN-004", VehicleType.Van,  VehicleStatus.Available,   67, 880, "South Fleet Yard"),
+            ("AL-VAN-005", VehicleType.Van,  VehicleStatus.Maintenance, 61, 790, "South Fleet Yard"),
+            ("AL-CAR-001", VehicleType.Car,  VehicleStatus.Available,   26, 340, "South Fleet Yard"),
+            ("AL-CAR-002", VehicleType.Car,  VehicleStatus.Available,   31, 410, "South Fleet Yard"),
+            ("AL-CAR-003", VehicleType.Car,  VehicleStatus.InUse,       28, 370, "South Fleet Yard"),
+            ("AL-CAR-004", VehicleType.Car,  VehicleStatus.Available,   23, 310, "South Fleet Yard"),
+            ("AL-CAR-005", VehicleType.Car,  VehicleStatus.Available,   34, 440, "South Fleet Yard"),
+            ("AL-BKE-001", VehicleType.Bike, VehicleStatus.Available,    5,  28, "South Fleet Yard"),
+            ("AL-BKE-002", VehicleType.Bike, VehicleStatus.Available,    6,  33, "South Fleet Yard"),
+            ("AL-BKE-003", VehicleType.Bike, VehicleStatus.InUse,        4,  24, "South Fleet Yard"),
+            ("AL-BKE-004", VehicleType.Bike, VehicleStatus.Available,    7,  38, "South Fleet Yard"),
+            ("AL-BKE-005", VehicleType.Bike, VehicleStatus.Maintenance,  5,  29, "South Fleet Yard"),
+        };
 
-            var parcelCapacity = type switch
-            {
-                VehicleType.Van => random.Next(40, 80),
-                VehicleType.Car => random.Next(15, 40),
-                VehicleType.Bike => random.Next(1, 10),
-                _ => random.Next(20, 60)
-            };
-
-            var weightCapacity = type switch
-            {
-                VehicleType.Van => random.Next(500, 1000),
-                VehicleType.Car => random.Next(200, 500),
-                VehicleType.Bike => random.Next(10, 50),
-                _ => random.Next(100, 500)
-            };
-
-            var plate = $"{state}-{plateLetters[random.Next(26)]}{plateLetters[random.Next(26)]}{plateLetters[random.Next(26)]}-{random.Next(100, 999)}";
-
-            vehicles.Add(new Vehicle
+        var knownDepotNames = new HashSet<string> { "Central Hub", "North Distribution Center", "South Fleet Yard" };
+        var depotByName = depots
+            .Where(d => knownDepotNames.Contains(d.Name))
+            .GroupBy(d => d.Name)
+            .ToDictionary(g => g.Key, g => g.First());
+        var toAdd = vehicleSpecs
+            .Where(s => !existingPlates.Contains(s.Plate) && depotByName.ContainsKey(s.DepotName))
+            .Select(s => new Vehicle
             {
                 Id = Guid.NewGuid(),
-                RegistrationPlate = plate,
-                Type = type,
-                Status = status,
-                ParcelCapacity = parcelCapacity,
-                WeightCapacity = weightCapacity,
+                RegistrationPlate = s.Plate,
+                Type = s.Type,
+                Status = s.Status,
+                ParcelCapacity = s.Parcels,
+                WeightCapacity = s.Weight,
                 WeightUnit = WeightUnit.Kg,
-                DepotId = depot.Id,
-                Depot = depot,
-                CreatedAt = DateTimeOffset.UtcNow
-            });
-        }
+                DepotId = depotByName[s.DepotName].Id,
+                Depot = depotByName[s.DepotName],
+                CreatedAt = DateTimeOffset.UtcNow,
+            })
+            .ToList();
 
-        await dbContext.Vehicles.AddRangeAsync(vehicles, cancellationToken);
+        if (toAdd.Count == 0) return;
+
+        await dbContext.Vehicles.AddRangeAsync(toAdd, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
-        logger.LogInformation("Seeded {Count} vehicle records", vehicles.Count);
+        logger.LogInformation("Seeded {Count} vehicle records", toAdd.Count);
     }
 
     private static List<Depot> CreateSeedDepots(GeometryFactory geometryFactory)
@@ -543,61 +574,67 @@ public class ApplicationDbSeeder(
 
     private async Task SeedZonesAsync(CancellationToken cancellationToken)
     {
-        if (await dbContext.Zones.AnyAsync(cancellationToken))
-            return;
-
-        var depots = await dbContext.Depots.ToListAsync(cancellationToken);
+        var knownDepotNames = new HashSet<string> { "Central Hub", "North Distribution Center", "South Fleet Yard" };
+        var depots = await dbContext.Depots
+            .Where(d => knownDepotNames.Contains(d.Name))
+            .ToListAsync(cancellationToken);
         if (depots.Count == 0) return;
+
+        var existingZoneNames = await dbContext.Zones
+            .Select(z => z.Name)
+            .ToHashSetAsync(cancellationToken);
 
         var geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
 
-        // Two zones per depot city with simple rectangular polygons
+        // Four zones per depot — A/B/C/D covering cardinal quadrants of each city
         var zones = new List<Zone>();
         foreach (var depot in depots)
         {
             var (baseLon, baseLat) = depot.Name switch
             {
-                "Central Hub" => (-86.80, 36.16),
-                "North Distribution Center" => (-85.76, 38.24),
-                "South Fleet Yard" => (-86.80, 33.45),
-                _ => (-86.80, 36.16),
+                "Central Hub"               => (-86.82, 36.14),  // Nashville TN
+                "North Distribution Center" => (-85.78, 38.22),  // Louisville KY
+                "South Fleet Yard"          => (-86.82, 33.43),  // Birmingham AL
+                _                           => (-86.82, 36.14),
             };
 
-            // Zone A — slightly offset polygon
-            zones.Add(new Zone
+            // Zones laid out in a 2×2 grid around the base coordinate (each 0.04° ≈ 3–4 km)
+            var zoneSpecs = new[]
             {
-                Id = Guid.NewGuid(),
-                Name = $"{depot.Name} — Zone A",
-                IsActive = true,
-                DepotId = depot.Id,
-                Boundary = geometryFactory.CreatePolygon(new[]
-                {
-                    new Coordinate(baseLon, baseLat),
-                    new Coordinate(baseLon + 0.02, baseLat),
-                    new Coordinate(baseLon + 0.02, baseLat + 0.02),
-                    new Coordinate(baseLon, baseLat + 0.02),
-                    new Coordinate(baseLon, baseLat),
-                }),
-                CreatedAt = DateTimeOffset.UtcNow,
-            });
+                ("Zone A", baseLon,        baseLat,        baseLon + 0.04, baseLat + 0.04),  // NW quadrant
+                ("Zone B", baseLon + 0.04, baseLat,        baseLon + 0.08, baseLat + 0.04),  // NE quadrant
+                ("Zone C", baseLon,        baseLat - 0.04, baseLon + 0.04, baseLat),         // SW quadrant
+                ("Zone D", baseLon + 0.04, baseLat - 0.04, baseLon + 0.08, baseLat),         // SE quadrant
+            };
 
-            // Zone B — adjacent polygon
-            zones.Add(new Zone
+            foreach (var (label, minLon, minLat, maxLon, maxLat) in zoneSpecs)
             {
-                Id = Guid.NewGuid(),
-                Name = $"{depot.Name} — Zone B",
-                IsActive = true,
-                DepotId = depot.Id,
-                Boundary = geometryFactory.CreatePolygon(new[]
+                var name = $"{depot.Name} — {label}";
+                if (existingZoneNames.Contains(name)) continue;
+
+                zones.Add(new Zone
                 {
-                    new Coordinate(baseLon + 0.02, baseLat),
-                    new Coordinate(baseLon + 0.04, baseLat),
-                    new Coordinate(baseLon + 0.04, baseLat + 0.02),
-                    new Coordinate(baseLon + 0.02, baseLat + 0.02),
-                    new Coordinate(baseLon + 0.02, baseLat),
-                }),
-                CreatedAt = DateTimeOffset.UtcNow,
-            });
+                    Id = Guid.NewGuid(),
+                    Name = name,
+                    IsActive = true,
+                    DepotId = depot.Id,
+                    Boundary = geometryFactory.CreatePolygon(new[]
+                    {
+                        new Coordinate(minLon, minLat),
+                        new Coordinate(maxLon, minLat),
+                        new Coordinate(maxLon, maxLat),
+                        new Coordinate(minLon, maxLat),
+                        new Coordinate(minLon, minLat),
+                    }),
+                    CreatedAt = DateTimeOffset.UtcNow,
+                });
+            }
+        }
+
+        if (zones.Count == 0)
+        {
+            logger.LogInformation("Zones already seeded, skipping");
+            return;
         }
 
         await dbContext.Zones.AddRangeAsync(zones, cancellationToken);
@@ -607,10 +644,12 @@ public class ApplicationDbSeeder(
 
     private async Task SeedAislesAndBinsAsync(CancellationToken cancellationToken)
     {
-        if (await dbContext.Aisles.AnyAsync(cancellationToken) || await dbContext.Bins.AnyAsync(cancellationToken))
-            return;
+        var existingAisleZoneIds = await dbContext.Aisles
+            .Select(a => a.ZoneId)
+            .ToHashSetAsync(cancellationToken);
 
         var zones = await dbContext.Zones
+            .Where(z => !existingAisleZoneIds.Contains(z.Id))
             .OrderBy(z => z.Name)
             .ToListAsync(cancellationToken);
 

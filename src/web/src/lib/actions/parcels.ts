@@ -5,6 +5,8 @@ import {
   SEARCH_PARCELS,
   GET_PARCEL,
   CREATE_PARCEL,
+  EDIT_PARCEL,
+  CANCEL_PARCEL,
 } from "@/lib/graphql/queries/parcels";
 import { parseWktPoint } from "@/lib/graphql/utils";
 import type {
@@ -16,6 +18,8 @@ import type {
   SearchParcelInput,
   SortDirection,
   CreateParcelInput,
+  EditParcelInput,
+  CancelParcelInput,
 } from "@/lib/types/parcel";
 
 interface SearchParcelsResponse {
@@ -227,6 +231,32 @@ export async function createParcelAction(
   } catch (err) {
     return {
       error: err instanceof Error ? err.message : "Failed to create parcel",
+    };
+  }
+}
+
+export async function editParcelAction(
+  input: EditParcelInput,
+): Promise<{ parcel?: Partial<Parcel>; error?: string }> {
+  try {
+    const data = await gqlFetch<{ editParcel: Partial<Parcel> }>(EDIT_PARCEL, { input });
+    return { parcel: data.editParcel };
+  } catch (err) {
+    return {
+      error: err instanceof Error ? err.message : "Failed to edit parcel",
+    };
+  }
+}
+
+export async function cancelParcelAction(
+  input: CancelParcelInput,
+): Promise<{ parcel?: Partial<Parcel>; error?: string }> {
+  try {
+    const data = await gqlFetch<{ cancelParcel: Partial<Parcel> }>(CANCEL_PARCEL, { input });
+    return { parcel: data.cancelParcel };
+  } catch (err) {
+    return {
+      error: err instanceof Error ? err.message : "Failed to cancel parcel",
     };
   }
 }

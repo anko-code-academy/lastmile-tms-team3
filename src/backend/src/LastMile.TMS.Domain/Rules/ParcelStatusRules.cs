@@ -9,9 +9,9 @@ public static class ParcelStatusRules
     private static readonly Dictionary<ParcelStatus, HashSet<ParcelStatus>> AllowedTransitions = new()
     {
         [ParcelStatus.Registered] = [ParcelStatus.ReceivedAtDepot, ParcelStatus.Cancelled, ParcelStatus.Exception],
-        [ParcelStatus.ReceivedAtDepot] = [ParcelStatus.Sorted, ParcelStatus.Exception],
-        [ParcelStatus.Sorted] = [ParcelStatus.Staged, ParcelStatus.Exception],
-        [ParcelStatus.Staged] = [ParcelStatus.Loaded, ParcelStatus.Exception],
+        [ParcelStatus.ReceivedAtDepot] = [ParcelStatus.Sorted, ParcelStatus.Cancelled, ParcelStatus.Exception],
+        [ParcelStatus.Sorted] = [ParcelStatus.Staged, ParcelStatus.Cancelled, ParcelStatus.Exception],
+        [ParcelStatus.Staged] = [ParcelStatus.Loaded, ParcelStatus.Cancelled, ParcelStatus.Exception],
         [ParcelStatus.Loaded] = [ParcelStatus.OutForDelivery, ParcelStatus.Exception],
         [ParcelStatus.OutForDelivery] = [ParcelStatus.Delivered, ParcelStatus.FailedAttempt, ParcelStatus.Exception],
         [ParcelStatus.FailedAttempt] = [ParcelStatus.OutForDelivery, ParcelStatus.ReturnedToDepot, ParcelStatus.Delivered],

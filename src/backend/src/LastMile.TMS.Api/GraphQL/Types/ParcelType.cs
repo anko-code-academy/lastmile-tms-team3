@@ -1,6 +1,9 @@
 using HotChocolate.Types;
 using LastMile.TMS.Api.GraphQL.DataLoaders;
 using LastMile.TMS.Domain.Entities;
+using LastMile.TMS.Domain.Enums;
+using LastMile.TMS.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 namespace LastMile.TMS.Api.GraphQL.Types;
 
@@ -56,5 +59,18 @@ public class ParcelType : ObjectType<Parcel>
         descriptor.Field(x => x.ContentItems).Type<NonNullType<ListType<NonNullType<ParcelContentItemType>>>>();
         descriptor.Field(x => x.Watchers).Type<NonNullType<ListType<NonNullType<ParcelWatcherType>>>>();
         descriptor.Field(x => x.DeliveryConfirmation).Type<DeliveryConfirmationType>();
+        descriptor.Field("changeHistory")
+            .Type<NonNullType<ListType<NonNullType<AuditLogType>>>>()
+            .Resolve(async context =>
+            {
+                var parcel = context.Parent<Parcel>();
+                var db = context.Service<AppDbContext>();
+                var resourceId = parcel.Id.ToString();
+                return await db.AuditLogs
+                    .Where(a => a.ResourceType == AuditResourceType.Parcel && a.ResourceId == resourceId)
+                    .OrderByDescending(a => a.OccurredAt)
+                    .AsNoTracking()
+                    .ToListAsync(context.RequestAborted);
+            });
     }
 }
