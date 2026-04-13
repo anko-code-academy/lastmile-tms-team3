@@ -33,11 +33,10 @@ export async function gqlFetch<T>(
     const validationErrors = err.extensions?.validationErrors as
       | { PropertyName: string; ErrorMessage: string }[]
       | undefined;
-    if (validationErrors?.length) {
+    if (validationErrors?.length && typeof validationErrors[0] === 'object' && 'ErrorMessage' in validationErrors[0]) {
       throw new Error(validationErrors.map((e) => e.ErrorMessage).join("; "));
     }
-    const path = err.path ? ` at ${err.path.join('.')}` : '';
-    throw new Error(`${err.message}${path}`);
+    throw new Error(err.message);
   }
 
   return json.data as T;
