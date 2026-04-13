@@ -108,4 +108,14 @@ public class RouteMutation
         return await mediator.Send(
             new ReorderRouteStops.Command(input), cancellationToken);
     }
+
+    [Authorize(Policy = "AdminOrDispatcher")]
+    public async Task<RouteDto> DispatchRoute(
+        [Service] IMediator mediator,
+        DispatchRouteDto input,
+        CancellationToken cancellationToken = default)
+    {
+        return await mediator.Send(
+            new DispatchRoute.Command(input), cancellationToken);
+    }
 }

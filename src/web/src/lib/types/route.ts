@@ -102,6 +102,7 @@ export interface DeliveryRoute {
   vehiclePlate?: string;
   status: RouteStatus;
   loadedAt?: string | null;
+  dispatchedAt?: string | null;
   parcelCount: number;
   estimatedStops: number;
   estimatedDistance?: number;

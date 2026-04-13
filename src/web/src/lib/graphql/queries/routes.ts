@@ -4,6 +4,11 @@ export const GET_ROUTES = `
       nodes {
         id
         date
+        depotId
+        depot {
+          id
+          name
+        }
         zoneId
         zoneName
         driverId
@@ -32,6 +37,7 @@ export const GET_ROUTE = `
   query GetRoute($id: UUID!) {
     route(id: $id) {
       id
+      name
       date
       zoneId
       zoneName
@@ -254,6 +260,28 @@ export const REORDER_ROUTE_STOPS = `
       estimatedStops
       estimatedDistance
       estimatedDuration
+    }
+  }
+`;
+
+export const DISPATCH_ROUTE = `
+  mutation DispatchRoute($input: DispatchRouteDtoInput!) {
+    dispatchRoute(input: $input) {
+      id
+      date
+      zoneId
+      zoneName
+      driverId
+      driverName
+      vehicleId
+      vehiclePlate
+      status
+      parcelCount
+      estimatedStops
+      estimatedDistance
+      estimatedDuration
+      createdAt
+      lastModifiedAt
     }
   }
 `;

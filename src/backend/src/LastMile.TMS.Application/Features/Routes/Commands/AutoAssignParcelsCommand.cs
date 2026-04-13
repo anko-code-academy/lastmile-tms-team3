@@ -35,10 +35,16 @@ public static class AutoAssignParcels
 
             var existingParcelIds = route.RouteParcels.Select(rp => rp.ParcelId).ToHashSet();
 
+            var alreadyRoutedParcelIds = await context.RouteParcels
+                .Where(rp => rp.RouteId != route.Id)
+                .Select(rp => rp.ParcelId)
+                .ToHashSetAsync(cancellationToken);
+
             var stagedParcels = await context.Parcels
                 .Where(p => p.ZoneId == route.ZoneId
                     && p.Status == ParcelStatus.Sorted
-                    && !existingParcelIds.Contains(p.Id))
+                    && !existingParcelIds.Contains(p.Id)
+                    && !alreadyRoutedParcelIds.Contains(p.Id))
                 .ToListAsync(cancellationToken);
 
             foreach (var parcel in stagedParcels)

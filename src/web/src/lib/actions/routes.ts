@@ -15,6 +15,7 @@ import {
   GET_AVAILABLE_DRIVERS,
   OPTIMIZE_ROUTE_STOPS,
   REORDER_ROUTE_STOPS,
+  DISPATCH_ROUTE,
 } from "@/lib/graphql/queries/routes";
 import type {
   CreateRouteInput,
@@ -333,6 +334,22 @@ export async function reorderRouteStopsAction(
     return {
       error:
         err instanceof Error ? err.message : "Failed to reorder route stops",
+    };
+  }
+}
+
+export async function dispatchRouteAction(
+  routeId: string
+): Promise<{ error?: string }> {
+  try {
+    await gqlFetch<{ dispatchRoute: DeliveryRoute }>(DISPATCH_ROUTE, {
+      input: { routeId },
+    });
+    return {};
+  } catch (err) {
+    return {
+      error:
+        err instanceof Error ? err.message : "Failed to dispatch route",
     };
   }
 }
