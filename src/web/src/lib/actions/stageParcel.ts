@@ -47,14 +47,16 @@ const STAGE_PARCEL_MUTATION = `
 `;
 
 const GET_DELIVERY_ROUTES_QUERY = `
-  query GetDeliveryRoutes($date: Date) {
-    deliveryRoutes(where: { date: { eq: $date } }) {
-      id
-      name
-      status
-      date
-      driver { firstName lastName }
-      zone { name }
+  query GetDeliveryRoutes($where: DeliveryRouteFilterInput) {
+    deliveryRoutes(first: 100, where: $where) {
+      nodes {
+        id
+        name
+        status
+        date
+        driver { id firstName lastName }
+        zone { id name }
+      }
     }
   }
 `;
@@ -84,7 +86,10 @@ async function gqlRequest<T>(query: string, variables: Record<string, unknown>):
     cache: "no-store",
   });
 
-  if (!response.ok) throw new Error(`GraphQL request failed: ${response.statusText}`);
+  if (!response.ok) {
+    const body = await response.text().catch(() => "(unreadable)");
+    throw new Error(`GraphQL request failed: ${response.status} ${response.statusText} — ${body}`);
+  }
 
   const json = await response.json();
   if (json.errors?.length) throw new Error(json.errors[0]?.message ?? "GraphQL error");
@@ -117,11 +122,12 @@ interface DeliveryRouteRaw {
 }
 
 export async function getDeliveryRoutesAction(date?: string): Promise<DeliveryRoute[]> {
-  const data = await gqlRequest<{ deliveryRoutes: DeliveryRouteRaw[] }>(
+  const where = date ? { date: { eq: date } } : null;
+  const data = await gqlRequest<{ deliveryRoutes: { nodes: DeliveryRouteRaw[] } }>(
     GET_DELIVERY_ROUTES_QUERY,
-    { date: date ?? null }
+    { where }
   );
-  return data.deliveryRoutes.map((r) => ({
+  return data.deliveryRoutes.nodes.map((r) => ({
     id: r.id,
     name: r.name,
     status: r.status,

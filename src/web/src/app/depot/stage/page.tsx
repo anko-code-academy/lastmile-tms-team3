@@ -164,34 +164,11 @@ export default function StagePage() {
                 }}>
                   Select Route / Staging Area
                 </label>
-                {routes.length === 0 ? (
-                  <p style={{ fontSize: "12px", color: "#3a526e" }}>
-                    No active routes for today. Create routes in the dispatch board first.
-                  </p>
-                ) : (
-                  <select
-                    value={selectedRouteId}
-                    onChange={(e) => setSelectedRouteId(e.target.value)}
-                    style={{
-                      width: "100%",
-                      background: "rgba(255,255,255,.06)",
-                      border: "1px solid rgba(255,255,255,.12)",
-                      borderRadius: "8px",
-                      padding: ".625rem 1rem",
-                      color: "#e2e8f0",
-                      fontFamily: mono,
-                      fontSize: "13px",
-                      outline: "none",
-                    }}
-                  >
-                    <option value="">— Choose a route —</option>
-                    {routes.map((r) => (
-                      <option key={r.id} value={r.id}>
-                        {r.name}{r.driverName ? ` · ${r.driverName}` : ""}{r.zoneName ? ` · ${r.zoneName}` : ""}
-                      </option>
-                    ))}
-                  </select>
-                )}
+                <RouteList
+                  routes={routes}
+                  selectedRouteId={selectedRouteId}
+                  onSelect={setSelectedRouteId}
+                />
 
                 {/* Staging status counter */}
                 {stagingStatus && (
@@ -344,6 +321,183 @@ export default function StagePage() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+const ROUTES_PER_PAGE = 5;
+
+function RouteList({
+  routes,
+  selectedRouteId,
+  onSelect,
+}: {
+  routes: DeliveryRoute[];
+  selectedRouteId: string;
+  onSelect: (id: string) => void;
+}) {
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(0);
+
+  const filtered = routes.filter((r) => {
+    const q = search.toLowerCase();
+    return (
+      r.name.toLowerCase().includes(q) ||
+      (r.driverName ?? "").toLowerCase().includes(q) ||
+      (r.zoneName ?? "").toLowerCase().includes(q)
+    );
+  });
+
+  const totalPages = Math.ceil(filtered.length / ROUTES_PER_PAGE);
+  const safePage = Math.min(page, Math.max(0, totalPages - 1));
+  const pageItems = filtered.slice(safePage * ROUTES_PER_PAGE, (safePage + 1) * ROUTES_PER_PAGE);
+
+  function handleSearch(value: string) {
+    setSearch(value);
+    setPage(0);
+  }
+
+  if (routes.length === 0) {
+    return (
+      <p style={{ fontSize: "12px", color: "#3a526e" }}>
+        No active routes for today. Create routes in the dispatch board first.
+      </p>
+    );
+  }
+
+  return (
+    <div>
+      <input
+        value={search}
+        onChange={(e) => handleSearch(e.target.value)}
+        placeholder="Search by route name, driver or zone…"
+        style={{
+          width: "100%",
+          background: "#0d1424",
+          border: "1px solid rgba(255,255,255,.12)",
+          borderRadius: "8px",
+          padding: ".55rem .875rem",
+          color: "#e2e8f0",
+          fontFamily: mono,
+          fontSize: "12px",
+          outline: "none",
+          boxSizing: "border-box",
+          marginBottom: ".5rem",
+        }}
+      />
+
+      {filtered.length === 0 ? (
+        <p style={{ fontSize: "12px", color: "#3a526e", padding: ".5rem 0" }}>
+          No routes match &quot;{search}&quot;.
+        </p>
+      ) : (
+        <>
+          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+            {pageItems.map((r) => {
+              const selected = r.id === selectedRouteId;
+              return (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => onSelect(r.id)}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    padding: ".6rem .875rem",
+                    background: selected ? "rgba(245,158,11,.08)" : "rgba(255,255,255,.03)",
+                    border: `1px solid ${selected ? "rgba(245,158,11,.35)" : "rgba(255,255,255,.06)"}`,
+                    borderRadius: "7px",
+                    cursor: "pointer",
+                    textAlign: "left",
+                    width: "100%",
+                    transition: "border-color .12s, background .12s",
+                  }}
+                >
+                  <div>
+                    <span style={{
+                      display: "block",
+                      fontFamily: mono,
+                      fontSize: "13px",
+                      fontWeight: 600,
+                      color: selected ? "#f59e0b" : "#e2e8f0",
+                    }}>
+                      {r.name}
+                    </span>
+                    {(r.driverName || r.zoneName) && (
+                      <span style={{
+                        display: "block",
+                        fontFamily: mono,
+                        fontSize: "10px",
+                        color: "#4a5f7a",
+                        marginTop: "2px",
+                      }}>
+                        {[r.driverName, r.zoneName].filter(Boolean).join(" · ")}
+                      </span>
+                    )}
+                  </div>
+                  {selected && (
+                    <span style={{ fontSize: "10px", color: "#f59e0b", letterSpacing: ".1em" }}>
+                      SELECTED
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {totalPages > 1 && (
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginTop: ".625rem",
+              paddingTop: ".5rem",
+              borderTop: "1px solid rgba(255,255,255,.06)",
+            }}>
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                disabled={safePage === 0}
+                style={{
+                  background: "none",
+                  border: "1px solid rgba(255,255,255,.1)",
+                  borderRadius: "6px",
+                  color: safePage === 0 ? "#2a3f57" : "#e2e8f0",
+                  fontFamily: mono,
+                  fontSize: "14px",
+                  padding: ".25rem .65rem",
+                  cursor: safePage === 0 ? "not-allowed" : "pointer",
+                  lineHeight: 1,
+                }}
+              >
+                ‹
+              </button>
+              <span style={{ fontFamily: mono, fontSize: "10px", color: "#4a5f7a", letterSpacing: ".1em" }}>
+                {safePage + 1} / {totalPages}
+              </span>
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                disabled={safePage === totalPages - 1}
+                style={{
+                  background: "none",
+                  border: "1px solid rgba(255,255,255,.1)",
+                  borderRadius: "6px",
+                  color: safePage === totalPages - 1 ? "#2a3f57" : "#e2e8f0",
+                  fontFamily: mono,
+                  fontSize: "14px",
+                  padding: ".25rem .65rem",
+                  cursor: safePage === totalPages - 1 ? "not-allowed" : "pointer",
+                  lineHeight: 1,
+                }}
+              >
+                ›
+              </button>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
