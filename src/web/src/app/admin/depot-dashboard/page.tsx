@@ -35,7 +35,7 @@ const S = {
   panelStrong: "rgba(255,255,255,.04)" as const,
   border: "rgba(255,255,255,.08)" as const,
   text: "#e2e8f0" as const,
-  muted: "#4a5f7a" as const,
+  muted: "#647a96" as const,
   accent: "#f59e0b" as const,
   danger: "#ef4444" as const,
   mono: "var(--font-geist-mono, monospace)" as const,
@@ -84,6 +84,9 @@ export default function DepotDashboardPage() {
           0%, 100% { opacity: .35; transform: scale(.85); }
           50% { opacity: 1; transform: scale(1.15); }
         }
+        .dd-select { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); color: #e2e8f0; border-radius: 6px; padding: .5rem .75rem; font-size: .875rem; outline: none; font-family: var(--font-geist-mono,monospace); }
+        .dd-select:focus { border-color: rgba(245,158,11,.45); }
+        .dd-select option { background: #0f1929; color: #e2e8f0; }
       `}</style>
       <TmNavbar />
       <div style={{ maxWidth: 1280, margin: "0 auto", padding: "2rem" }}>
@@ -177,16 +180,15 @@ export default function DepotDashboardPage() {
                   })
                 }
                 disabled={depots.length === 0}
-                style={selectStyle}
+                className="dd-select"
               >
-                <option value="" style={optionStyle}>
+                <option value="">
                   All depots
                 </option>
                 {depots.map((depotOption) => (
                   <option
                     key={depotOption.id}
                     value={depotOption.id}
-                    style={optionStyle}
                   >
                     {depotOption.name}
                   </option>
@@ -221,17 +223,11 @@ export default function DepotDashboardPage() {
                     thresholdHours: event.target.value,
                   })
                 }
-                style={selectStyle}
+                className="dd-select"
               >
-                <option value="24" style={optionStyle}>
-                  24 hours
-                </option>
-                <option value="48" style={optionStyle}>
-                  48 hours
-                </option>
-                <option value="72" style={optionStyle}>
-                  72 hours
-                </option>
+                <option value="24">24 hours</option>
+                <option value="48">48 hours</option>
+                <option value="72">72 hours</option>
               </select>
             </label>
 

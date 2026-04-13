@@ -235,7 +235,7 @@ export default function SortScanPage() {
               fontFamily: mono,
               fontSize: "11px",
               letterSpacing: ".06em",
-              color: "#4a5f7a",
+              color: "#647a96",
             }}
           >
             Scan parcels to assign zones and bins for delivery.
@@ -544,6 +544,8 @@ export default function SortScanPage() {
             </div>
           </div>
         </div>
+      </div>
+      </div>
     </div>
   );
 }
@@ -558,7 +560,7 @@ function paginationBtn(disabled: boolean): React.CSSProperties {
     opacity: disabled ? 0.35 : 1,
     background: "transparent",
     border: "1px solid rgba(255,255,255,.1)",
-    color: "#4a5f7a",
+    color: "#647a96",
   };
 }
 
@@ -821,7 +823,6 @@ function ResultCard({
               : (result.zoneName ?? "—")}
           </p>
         </div>
-      </div>
       </div>
     </div>
   );

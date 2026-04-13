@@ -160,7 +160,7 @@ export default function StagePage() {
               }}>
                 <label style={{
                   display: "block", fontSize: "10px", letterSpacing: ".16em",
-                  color: "#4a5f7a", textTransform: "uppercase", marginBottom: ".5rem",
+                  color: "#647a96", textTransform: "uppercase", marginBottom: ".5rem",
                 }}>
                   Select Route / Staging Area
                 </label>
@@ -182,21 +182,21 @@ export default function StagePage() {
                     border: "1px solid rgba(255,255,255,.06)",
                   }}>
                     <div>
-                      <p style={{ fontSize: "9px", letterSpacing: ".16em", color: "#3a526e", textTransform: "uppercase", marginBottom: ".25rem" }}>Staged</p>
+                      <p style={{ fontSize: "9px", letterSpacing: ".16em", color: "#4e6480", textTransform: "uppercase", marginBottom: ".25rem" }}>Staged</p>
                       <p style={{ fontSize: "1.5rem", fontWeight: 800, color: "#10b981", letterSpacing: "-.02em", lineHeight: 1 }}>
                         {stagingStatus.stagedCount}
                       </p>
                     </div>
                     <div style={{ width: 1, background: "rgba(255,255,255,.06)" }} />
                     <div>
-                      <p style={{ fontSize: "9px", letterSpacing: ".16em", color: "#3a526e", textTransform: "uppercase", marginBottom: ".25rem" }}>Expected</p>
+                      <p style={{ fontSize: "9px", letterSpacing: ".16em", color: "#4e6480", textTransform: "uppercase", marginBottom: ".25rem" }}>Expected</p>
                       <p style={{ fontSize: "1.5rem", fontWeight: 800, color: "#e2e8f0", letterSpacing: "-.02em", lineHeight: 1 }}>
                         {stagingStatus.expectedCount}
                       </p>
                     </div>
                     <div style={{ width: 1, background: "rgba(255,255,255,.06)" }} />
                     <div>
-                      <p style={{ fontSize: "9px", letterSpacing: ".16em", color: "#3a526e", textTransform: "uppercase", marginBottom: ".25rem" }}>Remaining</p>
+                      <p style={{ fontSize: "9px", letterSpacing: ".16em", color: "#4e6480", textTransform: "uppercase", marginBottom: ".25rem" }}>Remaining</p>
                       <p style={{ fontSize: "1.5rem", fontWeight: 800, color: "#f59e0b", letterSpacing: "-.02em", lineHeight: 1 }}>
                         {Math.max(0, stagingStatus.expectedCount - stagingStatus.stagedCount)}
                       </p>
@@ -215,7 +215,7 @@ export default function StagePage() {
               }}>
                 <label style={{
                   display: "block", fontSize: "10px", letterSpacing: ".16em",
-                  color: "#4a5f7a", textTransform: "uppercase", marginBottom: ".5rem",
+                  color: "#647a96", textTransform: "uppercase", marginBottom: ".5rem",
                 }}>
                   Scan Parcel Barcode
                 </label>
@@ -281,12 +281,12 @@ export default function StagePage() {
             }}>
               <p style={{
                 fontSize: "10px", letterSpacing: ".16em",
-                color: "#4a5f7a", textTransform: "uppercase", marginBottom: ".75rem",
+                color: "#647a96", textTransform: "uppercase", marginBottom: ".75rem",
               }}>
                 Recent Scans
               </p>
               {scanHistory.length === 0 ? (
-                <p style={{ fontSize: "12px", color: "#3a526e" }}>No scans yet.</p>
+                <p style={{ fontSize: "12px", color: "#4e6480" }}>No scans yet.</p>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: ".5rem" }}>
                   {scanHistory.map((scan) => (
@@ -303,7 +303,7 @@ export default function StagePage() {
                         <p style={{ fontSize: "12px", color: "#e2e8f0", marginBottom: "2px" }}>
                           {scan.trackingNumber}
                         </p>
-                        <p style={{ fontSize: "10px", color: "#4a5f7a" }}>
+                        <p style={{ fontSize: "10px", color: "#647a96" }}>
                           {scan.routeName ?? scan.errorMessage ?? "—"}
                         </p>
                       </div>
@@ -359,7 +359,7 @@ function RouteList({
 
   if (routes.length === 0) {
     return (
-      <p style={{ fontSize: "12px", color: "#3a526e" }}>
+      <p style={{ fontSize: "12px", color: "#4e6480" }}>
         No active routes for today. Create routes in the dispatch board first.
       </p>
     );
@@ -387,7 +387,7 @@ function RouteList({
       />
 
       {filtered.length === 0 ? (
-        <p style={{ fontSize: "12px", color: "#3a526e", padding: ".5rem 0" }}>
+        <p style={{ fontSize: "12px", color: "#4e6480", padding: ".5rem 0" }}>
           No routes match &quot;{search}&quot;.
         </p>
       ) : (
@@ -429,7 +429,7 @@ function RouteList({
                         display: "block",
                         fontFamily: mono,
                         fontSize: "10px",
-                        color: "#4a5f7a",
+                        color: "#647a96",
                         marginTop: "2px",
                       }}>
                         {[r.driverName, r.zoneName].filter(Boolean).join(" · ")}
@@ -473,7 +473,7 @@ function RouteList({
               >
                 ‹
               </button>
-              <span style={{ fontFamily: mono, fontSize: "10px", color: "#4a5f7a", letterSpacing: ".1em" }}>
+              <span style={{ fontFamily: mono, fontSize: "10px", color: "#647a96", letterSpacing: ".1em" }}>
                 {safePage + 1} / {totalPages}
               </span>
               <button
@@ -536,7 +536,7 @@ function ResultCard({ result, error }: { result: StageParcelResult | null; error
           {result.trackingNumber}
         </p>
         <div style={{ background: "rgba(255,255,255,.04)", borderRadius: "8px", padding: "1rem" }}>
-          <p style={{ fontSize: "10px", color: "#4a5f7a", textTransform: "uppercase", letterSpacing: ".12em", marginBottom: ".25rem" }}>
+          <p style={{ fontSize: "10px", color: "#647a96", textTransform: "uppercase", letterSpacing: ".12em", marginBottom: ".25rem" }}>
             Correct Route
           </p>
           <p style={{ fontSize: "20px", fontWeight: 800, color: "#10b981" }}>
@@ -568,7 +568,7 @@ function ResultCard({ result, error }: { result: StageParcelResult | null; error
         borderRadius: "8px",
         padding: "1rem",
       }}>
-        <p style={{ fontSize: "10px", color: "#4a5f7a", textTransform: "uppercase", letterSpacing: ".12em", marginBottom: ".25rem" }}>
+        <p style={{ fontSize: "10px", color: "#647a96", textTransform: "uppercase", letterSpacing: ".12em", marginBottom: ".25rem" }}>
           Staging Area
         </p>
         <p style={{ fontSize: "24px", fontWeight: 900, color: "#e2e8f0", letterSpacing: "-.02em" }}>

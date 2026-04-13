@@ -714,7 +714,7 @@ export default function UsersClient() {
                     fontFamily: "var(--font-geist-mono, monospace)",
                     fontSize: "10px",
                     letterSpacing: ".18em",
-                    color: "#4a5f7a",
+                    color: "#647a96",
                     textTransform: "uppercase",
                   }}
                 >
@@ -909,7 +909,7 @@ export default function UsersClient() {
                         style={{
                           fontFamily: "var(--font-geist-mono, monospace)",
                           fontSize: ".72rem",
-                          color: "#4a5f7a",
+                          color: "#647a96",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
                           whiteSpace: "nowrap",
@@ -1308,7 +1308,7 @@ export default function UsersClient() {
               </h2>
               <p
                 style={{
-                  color: "#4a5f7a",
+                  color: "#647a96",
                   fontSize: ".875rem",
                   lineHeight: 1.65,
                 }}

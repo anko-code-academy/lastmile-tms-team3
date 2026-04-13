@@ -319,7 +319,7 @@ export default function LoginPage() {
                 <label htmlFor="email" style={{
                   fontFamily: "var(--font-geist-mono, monospace)",
                   fontSize: "10px", letterSpacing: ".15em",
-                  color: "#4a5f7a", textTransform: "uppercase",
+                  color: "#647a96", textTransform: "uppercase",
                 }}>
                   Email address
                 </label>
@@ -346,7 +346,7 @@ export default function LoginPage() {
                 <label htmlFor="password" style={{
                   fontFamily: "var(--font-geist-mono, monospace)",
                   fontSize: "10px", letterSpacing: ".15em",
-                  color: "#4a5f7a", textTransform: "uppercase",
+                  color: "#647a96", textTransform: "uppercase",
                 }}>
                   Password
                 </label>

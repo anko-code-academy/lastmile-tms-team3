@@ -15,7 +15,7 @@ const ZoneMap = dynamic(() => import("@/components/ZoneMap"), {
       border: "1px solid rgba(255,255,255,0.07)",
       background: "rgba(255,255,255,0.02)",
       display: "flex", alignItems: "center", justifyContent: "center",
-      fontFamily: "monospace", fontSize: "11px", color: "#4a5f7a", letterSpacing: ".1em",
+      fontFamily: "monospace", fontSize: "11px", color: "#647a96", letterSpacing: ".1em",
     }}>Loading map...</div>
   ),
 });
@@ -25,8 +25,8 @@ const S = {
   panel: "rgba(255,255,255,.025)" as const,
   border: "rgba(255,255,255,.07)" as const,
   text: "#e2e8f0" as const,
-  muted: "#4a5f7a" as const,
-  dim: "#3a526e" as const,
+  muted: "#647a96" as const,
+  dim: "#4e6480" as const,
   accent: "#f59e0b" as const,
   green: "#22c55e" as const,
   red: "#ef4444" as const,

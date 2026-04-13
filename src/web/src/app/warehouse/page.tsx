@@ -30,8 +30,8 @@ const S = {
   panel: "rgba(255,255,255,.025)" as const,
   border: "rgba(255,255,255,.07)" as const,
   text: "#e2e8f0" as const,
-  muted: "#4a5f7a" as const,
-  dim: "#3a526e" as const,
+  muted: "#647a96" as const,
+  dim: "#4e6480" as const,
   accent: "#f59e0b" as const,
   inputBg: "rgba(255,255,255,.05)" as const,
   inputBorder: "rgba(255,255,255,.1)" as const,
@@ -768,6 +768,9 @@ export default function WarehousePage() {
       <style>{`
 				.tm-input:focus { border-color: rgba(245,158,11,.45) !important; box-shadow: 0 0 0 2px rgba(245,158,11,.08); }
 				.tm-card:hover { border-color: rgba(245,158,11,.18) !important; }
+        .wh-select { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); color: #e2e8f0; border-radius: 8px; padding: .5rem .75rem; min-width: 260px; font-size: .875rem; outline: none; font-family: var(--font-geist-mono,monospace); }
+        .wh-select:focus { border-color: rgba(245,158,11,.45); }
+        .wh-select option { background: #0f1929; color: #e2e8f0; }
 			`}</style>
 
       <div style={{ minHeight: "100vh", background: S.bg, color: S.text, position: "relative", overflow: "hidden" }}>
@@ -942,16 +945,7 @@ export default function WarehousePage() {
                 <select
                   value={selectedDepotId}
                   onChange={(event) => setSelectedDepotId(event.target.value)}
-                  style={{
-                    background: "#0d1424",
-                    border: `1px solid ${S.inputBorder}`,
-                    color: S.text,
-                    borderRadius: 8,
-                    padding: ".6rem .8rem",
-                    minWidth: 260,
-                    fontFamily: S.mono,
-                    colorScheme: "dark",
-                  }}
+                  className="wh-select"
                 >
                   <option value="">All accessible depots</option>
                   {warehouseData.map((depot) => (

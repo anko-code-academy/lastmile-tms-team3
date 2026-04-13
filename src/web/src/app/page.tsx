@@ -362,14 +362,14 @@ export default function Home() {
             display: "flex", justifyContent: "space-between", alignItems: "center",
             marginTop: "3rem",
           }}>
-            <span style={{ fontFamily: mono, fontSize: "10px", color: "#3a526e", letterSpacing: ".15em" }}>
+            <span style={{ fontFamily: mono, fontSize: "10px", color: "#4e6480", letterSpacing: ".15em" }}>
               LAST MILE TMS · 2026
             </span>
             <div style={{ display: "flex", gap: "1.5rem" }}>
               {["DEPOT", "DISPATCH", "TRACKING"].map((s) => (
                 <div key={s} style={{ display: "flex", alignItems: "center", gap: ".35rem" }}>
                   <span className="pulse-dot" style={{ width: 5, height: 5, borderRadius: "50%", background: "#22c55e", display: "inline-block" }} />
-                  <span style={{ fontFamily: mono, fontSize: "10px", color: "#3a526e", letterSpacing: ".14em" }}>{s}</span>
+                  <span style={{ fontFamily: mono, fontSize: "10px", color: "#4e6480", letterSpacing: ".14em" }}>{s}</span>
                 </div>
               ))}
             </div>

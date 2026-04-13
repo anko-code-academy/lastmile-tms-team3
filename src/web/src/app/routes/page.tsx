@@ -16,7 +16,7 @@ const S = {
   panel: "rgba(255,255,255,.025)" as const,
   border: "rgba(255,255,255,.07)" as const,
   text: "#e2e8f0" as const,
-  muted: "#4a5f7a" as const,
+  muted: "#647a96" as const,
   accent: "#f59e0b" as const,
   red: "#ef4444" as const,
   inputBg: "rgba(255,255,255,.05)" as const,
@@ -141,23 +141,29 @@ export default function RoutesPage() {
           <TmNavbar />
           <div style={{ maxWidth: 1300, margin: "0 auto", padding: "2rem 1.5rem" }}>
             {/* Header */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "1.5rem" }}>
               <div>
-                <h1 style={{ fontSize: "1.5rem", fontWeight: 700, margin: 0 }}>Delivery Routes</h1>
-                <p style={{ color: S.muted, fontSize: ".875rem", marginTop: 4 }}>
+                <p style={{ fontFamily: "var(--font-geist-mono,monospace)", fontSize: "10px", letterSpacing: ".2em", color: S.accent, textTransform: "uppercase", marginBottom: ".375rem" }}>
+                  Dispatch
+                </p>
+                <h1 style={{ fontFamily: "var(--font-geist-mono,monospace)", fontSize: "1.5rem", fontWeight: 800, color: S.text, letterSpacing: "-.02em", lineHeight: 1, margin: 0 }}>Delivery Routes</h1>
+                <p style={{ fontFamily: "var(--font-geist-mono,monospace)", color: S.muted, fontSize: "11px", marginTop: ".375rem", letterSpacing: ".04em" }}>
                   {totalCount} route{totalCount !== 1 ? "s" : ""} total
                 </p>
               </div>
               <Link
                 href="/routes/new"
                 style={{
-                  padding: ".5rem 1.25rem",
+                  padding: ".45rem .9rem",
                   borderRadius: 6,
                   background: "rgba(245,158,11,.12)",
-                  border: "1px solid rgba(245,158,11,.3)",
+                  border: "1px solid rgba(245,158,11,.35)",
                   color: S.accent,
+                  fontFamily: "var(--font-geist-mono,monospace)",
                   fontWeight: 600,
-                  fontSize: ".875rem",
+                  fontSize: "11px",
+                  letterSpacing: ".1em",
+                  textTransform: "uppercase",
                   textDecoration: "none",
                 }}
               >
@@ -166,51 +172,60 @@ export default function RoutesPage() {
             </div>
 
             {/* Filters */}
-            <div style={{ display: "flex", gap: ".75rem", marginBottom: "1.5rem", flexWrap: "wrap", alignItems: "flex-end" }}>
-              <div>
-                <label style={{ display: "block", fontSize: ".75rem", color: S.muted, marginBottom: 4 }}>Status</label>
-                <select
-                  className="tm-select"
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value as RouteStatus | "")}
-                  style={{ width: 160 }}
+            <div style={{ background: "rgba(255,255,255,.025)", border: `1px solid ${S.border}`, borderRadius: 10, padding: "1.25rem 1.5rem", marginBottom: "1.5rem" }}>
+              <div style={{ display: "flex", gap: ".75rem", flexWrap: "wrap", alignItems: "flex-end" }}>
+                <div>
+                  <label style={{ display: "block", fontFamily: "var(--font-geist-mono,monospace)", fontSize: "10px", letterSpacing: ".14em", color: S.muted, textTransform: "uppercase", marginBottom: ".4rem" }}>Status</label>
+                  <select
+                    className="tm-select"
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value as RouteStatus | "")}
+                    style={{ width: 160 }}
+                  >
+                    <option value="">All Statuses</option>
+                    {Object.values(RouteStatus).map((s) => (
+                      <option key={s} value={s}>{s.replace("_", " ")}</option>
+                    ))}
+                  </select>
+                </div>
+                <div style={{ flex: 1 }} />
+                <button
+                  onClick={handleSearch}
+                  className="tm-btn-primary"
+                  style={{
+                    padding: ".45rem .9rem",
+                    borderRadius: 6,
+                    background: "rgba(245,158,11,.12)",
+                    border: "1px solid rgba(245,158,11,.35)",
+                    color: S.accent,
+                    fontFamily: "var(--font-geist-mono,monospace)",
+                    fontWeight: 600,
+                    fontSize: "11px",
+                    letterSpacing: ".1em",
+                    textTransform: "uppercase",
+                    cursor: "pointer",
+                  }}
                 >
-                  <option value="">All Statuses</option>
-                  {Object.values(RouteStatus).map((s) => (
-                    <option key={s} value={s}>{s.replace("_", " ")}</option>
-                  ))}
-                </select>
+                  Search
+                </button>
+                <button
+                  onClick={handleClear}
+                  style={{
+                    padding: ".45rem .9rem",
+                    borderRadius: 6,
+                    background: "transparent",
+                    border: `1px solid ${S.border}`,
+                    color: S.muted,
+                    fontFamily: "var(--font-geist-mono,monospace)",
+                    fontSize: "11px",
+                    letterSpacing: ".1em",
+                    textTransform: "uppercase",
+                    cursor: "pointer",
+                  }}
+                >
+                  Clear
+                </button>
               </div>
-              <button
-                onClick={handleSearch}
-                className="tm-btn-primary"
-                style={{
-                  padding: ".5rem 1rem",
-                  borderRadius: 6,
-                  background: "rgba(245,158,11,.1)",
-                  border: "1px solid rgba(245,158,11,.3)",
-                  color: S.accent,
-                  fontWeight: 600,
-                  fontSize: ".875rem",
-                  cursor: "pointer",
-                }}
-              >
-                Search
-              </button>
-              <button
-                onClick={handleClear}
-                style={{
-                  padding: ".5rem 1rem",
-                  borderRadius: 6,
-                  background: "transparent",
-                  border: `1px solid ${S.border}`,
-                  color: S.muted,
-                  fontSize: ".875rem",
-                  cursor: "pointer",
-                }}
-              >
-                Clear
-              </button>
             </div>
 
             {/* Error */}
@@ -221,24 +236,26 @@ export default function RoutesPage() {
             )}
 
             {/* Table */}
-            <div style={{ border: `1px solid ${S.border}`, borderRadius: 8, overflow: "hidden" }}>
+            <div style={{ background: "rgba(255,255,255,.025)", border: `1px solid ${S.border}`, borderRadius: 10, overflow: "hidden" }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
-                  <tr style={{ borderBottom: `1px solid ${S.border}` }}>
+                  <tr style={{ borderBottom: `1px solid ${S.border}`, background: "rgba(255,255,255,.025)" }}>
                     {COLS.map((col) => (
                       <th
                         key={col.label}
                         onClick={col.sortKey ? () => handleSort(col.sortKey as SortKey) : undefined}
                         style={{
-                          padding: ".75rem 1rem",
+                          padding: ".7rem 1rem",
                           textAlign: "left",
-                          fontSize: ".75rem",
+                          fontFamily: "var(--font-geist-mono,monospace)",
+                          fontSize: "11px",
                           fontWeight: 600,
-                          color: S.muted,
+                          color: col.sortKey && sortField === col.sortKey ? S.accent : S.muted,
                           textTransform: "uppercase",
-                          letterSpacing: ".06em",
+                          letterSpacing: ".12em",
                           cursor: col.sortKey ? "pointer" : "default",
                           userSelect: "none",
+                          whiteSpace: "nowrap",
                         }}
                       >
                         {col.label} {col.sortKey ? getSortIndicator(col.sortKey) : ""}
