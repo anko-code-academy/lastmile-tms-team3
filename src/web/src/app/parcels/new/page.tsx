@@ -264,14 +264,39 @@ export default function NewParcelPage() {
                 <div style={{ background: S.panel, border: `1px solid ${S.border}`, borderRadius: 10, padding: "1.5rem" }}>
                   <SectionHeader title="Service" />
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem" }}>
-                    <div>
-                      <TmLabel htmlFor="serviceType">Service Type *</TmLabel>
-                      <select id="serviceType" className="tm-select" value={serviceType} onChange={e => setServiceType(e.target.value as ServiceTypeEnum)}>
-                        <option value={ServiceType.Economy}>Economy — 5–7 business days</option>
-                        <option value={ServiceType.Standard}>Standard — 3–5 business days</option>
-                        <option value={ServiceType.Express}>Express — 1–2 business days</option>
-                        <option value={ServiceType.Overnight}>Overnight — next business day</option>
-                      </select>
+                    <div style={{ gridColumn: "1 / -1" }}>
+                      <TmLabel>Service Type *</TmLabel>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: ".5rem" }}>
+                        {([
+                          [ServiceType.Economy, "Economy", "5–7 business days"],
+                          [ServiceType.Standard, "Standard", "3–5 business days"],
+                          [ServiceType.Express, "Express", "1–2 business days"],
+                          [ServiceType.Overnight, "Overnight", "Next business day"],
+                        ] as const).map(([value, label, sub]) => {
+                          const active = serviceType === value;
+                          return (
+                            <label
+                              key={value}
+                              style={{
+                                display: "flex", flexDirection: "column", alignItems: "center",
+                                padding: ".65rem .5rem", borderRadius: 6, cursor: "pointer",
+                                background: active ? "rgba(245,158,11,.1)" : S.inputBg,
+                                border: `1px solid ${active ? "rgba(245,158,11,.45)" : S.inputBorder}`,
+                                transition: "all .15s", textAlign: "center",
+                              }}
+                            >
+                              <input
+                                type="radio" name="serviceType" value={value}
+                                checked={active}
+                                onChange={() => setServiceType(value)}
+                                style={{ accentColor: S.accent, marginBottom: ".25rem" }}
+                              />
+                              <span style={{ fontFamily: S.mono, fontSize: ".8rem", fontWeight: 600, color: active ? S.accent : S.text }}>{label}</span>
+                              <span style={{ fontFamily: S.mono, fontSize: ".65rem", color: S.muted, marginTop: ".15rem" }}>{sub}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
                     </div>
                     <div>
                       <TmLabel htmlFor="parcelType">Parcel Type</TmLabel>
@@ -287,7 +312,7 @@ export default function NewParcelPage() {
                         <option value="Temperature Controlled">Temperature Controlled</option>
                       </select>
                     </div>
-                    <div>
+                    <div style={{ gridColumn: "1 / -1" }}>
                       <TmLabel htmlFor="description">Description</TmLabel>
                       <textarea
                         id="description"
