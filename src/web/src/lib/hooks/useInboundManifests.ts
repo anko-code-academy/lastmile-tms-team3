@@ -13,13 +13,20 @@ import type {
   ReceiveWalkInParcelInput,
 } from "../types/inboundManifest";
 
-export function useInboundManifests() {
+export function useInboundManifests(params?: {
+  search?: string;
+  after?: string | null;
+}) {
   return useQuery({
-    queryKey: ["inbound-manifests"],
+    queryKey: ["inbound-manifests", params?.search ?? "", params?.after ?? null],
     queryFn: () =>
-      getInboundManifests({ status: { neq: "CLOSED" } }).then(
-        (res) => res.inboundManifests,
-      ),
+      getInboundManifests({
+        where: { status: { neq: "CLOSED" } },
+        first: 5,
+        after: params?.after ?? null,
+        search: params?.search ?? null,
+        order: [{ createdAt: "DESC" }],
+      }).then((res) => res.inboundManifests),
   });
 }
 

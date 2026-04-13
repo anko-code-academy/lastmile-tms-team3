@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect, useMemo, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import TmNavbar from "@/components/TmNavbar";
@@ -77,7 +77,31 @@ export default function ReceivingPage() {
   const { data: session } = useSession();
   const operatorName = session?.user?.name ?? "Unknown";
 
-  const { data: manifestsData, isLoading, error } = useInboundManifests();
+  // Manifest list search + paging
+  const [listSearch, setListSearch] = useState("");
+  const [listSearchDebounced, setListSearchDebounced] = useState("");
+  const [pageHistory, setPageHistory] = useState<(string | null)[]>([null]);
+
+  // Debounce search input
+  useEffect(() => {
+    const t = setTimeout(() => setListSearchDebounced(listSearch), 400);
+    return () => clearTimeout(t);
+  }, [listSearch]);
+
+  // Reset to first page when search changes
+  useEffect(() => {
+    setPageHistory([null]);
+  }, [listSearchDebounced]);
+
+  const currentCursor = useMemo(
+    () => pageHistory[pageHistory.length - 1] ?? null,
+    [pageHistory],
+  );
+
+  const { data: manifestsData, isLoading, error } = useInboundManifests({
+    search: listSearchDebounced || undefined,
+    after: currentCursor,
+  });
   const startSessionMutation = useStartReceivingSession();
   const receiveParcelMutation = useReceiveParcel();
   const completeSessionMutation = useCompleteReceivingSession();
@@ -100,6 +124,8 @@ export default function ReceivingPage() {
   const scanInputRef = useRef<HTMLInputElement>(null);
 
   const manifests = manifestsData?.nodes ?? [];
+  const pageInfo = manifestsData?.pageInfo;
+  const totalCount = manifestsData?.totalCount ?? 0;
   const selectedManifest = manifests.find((m) => m.id === selectedManifestId);
   const progress = selectedManifest ? getProgress(selectedManifest) : null;
 
@@ -246,6 +272,7 @@ export default function ReceivingPage() {
         misdirectedCount: result.misdirectedCount,
       });
       setActiveSessionId("");
+      setPageHistory([null]);
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "Failed to complete session.",
@@ -298,6 +325,16 @@ export default function ReceivingPage() {
 
   const handleScan = scanMode === "walkin" ? handleWalkInScan : handleManifestScan;
   const isScanning = receiveParcelMutation.isPending || receiveWalkInMutation.isPending;
+
+  const handleListNext = useCallback(() => {
+    if (!pageInfo?.hasNextPage || !pageInfo.endCursor) return;
+    setPageHistory((prev) => [...prev, pageInfo.endCursor!]);
+  }, [pageInfo]);
+
+  const handleListPrev = useCallback(() => {
+    if (pageHistory.length <= 1) return;
+    setPageHistory((prev) => prev.slice(0, -1));
+  }, [pageHistory]);
 
   // ── Render ──────────────────────────────────────────────
 
@@ -353,7 +390,9 @@ export default function ReceivingPage() {
                     textTransform: "uppercase",
                     padding: ".4rem .85rem",
                     borderRadius: "6px 0 0 6px",
-                    border: `1px solid ${scanMode === "manifest" ? "rgba(245,158,11,.4)" : S.border}`,
+                    borderWidth: 1,
+                    borderStyle: "solid",
+                    borderColor: scanMode === "manifest" ? "rgba(245,158,11,.4)" : S.border,
                     background: scanMode === "manifest" ? "rgba(245,158,11,.12)" : "transparent",
                     color: scanMode === "manifest" ? S.accent : S.muted,
                     cursor: scanMode === "manifest" ? "default" : "pointer",
@@ -372,8 +411,10 @@ export default function ReceivingPage() {
                     textTransform: "uppercase",
                     padding: ".4rem .85rem",
                     borderRadius: "0 6px 6px 0",
-                    border: `1px solid ${scanMode === "walkin" ? "rgba(245,158,11,.4)" : S.border}`,
-                    borderLeft: "none",
+                    borderWidth: 1,
+                    borderStyle: "solid",
+                    borderColor: scanMode === "walkin" ? "rgba(245,158,11,.4)" : S.border,
+                    marginLeft: -1,
                     background: scanMode === "walkin" ? "rgba(245,158,11,.12)" : "transparent",
                     color: scanMode === "walkin" ? S.accent : hasActiveSession ? S.dim : S.muted,
                     cursor: scanMode === "walkin" ? "default" : hasActiveSession ? "not-allowed" : "pointer",
@@ -399,54 +440,76 @@ export default function ReceivingPage() {
             </p>
           </div>
 
-          {isLoading ? (
-            <p style={{ fontFamily: S.mono, color: S.muted }}>Loading manifests...</p>
-          ) : null}
-
           {error ? (
             <p style={{ fontFamily: S.mono, color: S.red }}>{String(error)}</p>
           ) : null}
 
-          {!isLoading && manifests.length === 0 ? (
-            <div
-              style={{
-                background: S.panel,
-                border: `1px solid ${S.border}`,
-                borderRadius: 10,
-                padding: "1.25rem",
-                fontFamily: S.mono,
-                color: S.muted,
-              }}
-            >
-              No open or sealed manifests found.
-            </div>
-          ) : null}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "340px 1fr",
+              gap: "1.25rem",
+              alignItems: "start",
+            }}
+          >
+            {/* ── Left column: manifests + scan history ── */}
+            <div style={{ display: "flex", flexDirection: "column", gap: ".5rem" }}>
+              <div
+                style={{
+                  fontFamily: S.mono,
+                  fontSize: "10px",
+                  letterSpacing: ".14em",
+                  color: S.muted,
+                  textTransform: "uppercase",
+                  marginBottom: ".25rem",
+                }}
+              >
+                Manifests ({totalCount})
+              </div>
 
-          {!isLoading && (manifests.length > 0 || scanMode === "walkin") ? (
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "340px 1fr",
-                gap: "1.25rem",
-                alignItems: "start",
-              }}
-            >
-              {/* ── Left column: manifests + scan history ── */}
-              <div style={{ display: "flex", flexDirection: "column", gap: ".5rem" }}>
+              {/* Search */}
+              <input
+                value={listSearch}
+                onChange={(e) => setListSearch(e.target.value)}
+                placeholder="Search by manifest or tracking number..."
+                className="tm-input"
+                style={{
+                  width: "100%",
+                  background: S.inputBg,
+                  border: `1px solid ${S.inputBorder}`,
+                  borderRadius: 6,
+                  color: S.text,
+                  fontFamily: S.mono,
+                  fontSize: "12px",
+                  padding: ".55rem .7rem",
+                  outline: "none",
+                  boxSizing: "border-box",
+                }}
+              />
+
+              {isLoading ? (
+                <p style={{ fontFamily: S.mono, color: S.muted, fontSize: "11px", padding: "1rem 0" }}>
+                  Loading...
+                </p>
+              ) : manifests.length === 0 ? (
                 <div
                   style={{
+                    background: S.panel,
+                    border: `1px solid ${S.border}`,
+                    borderRadius: 10,
+                    padding: "1.25rem",
                     fontFamily: S.mono,
-                    fontSize: "10px",
-                    letterSpacing: ".14em",
                     color: S.muted,
-                    textTransform: "uppercase",
-                    marginBottom: ".25rem",
+                    fontSize: "12px",
                   }}
                 >
-                  Manifests ({manifests.length})
+                  {listSearchDebounced
+                    ? "No manifests match your search."
+                    : "No open or sealed manifests found."}
                 </div>
+              ) : null}
 
-                {manifests.map((manifest) => {
+              {manifests.map((manifest) => {
                   const p = getProgress(manifest);
                   const isSelected = manifest.id === selectedManifestId;
                   const isActive = manifest.id === activeManifestId;
@@ -504,7 +567,9 @@ export default function ReceivingPage() {
                             : isSelected && !isDimmed
                               ? "rgba(245,158,11,.04)"
                               : S.panel,
-                          border: `1px solid ${isActive && !isDimmed ? "rgba(245,158,11,.5)" : isSelected && !isDimmed ? "rgba(245,158,11,.4)" : S.border}`,
+                          borderWidth: 1,
+                          borderStyle: "solid",
+                          borderColor: isActive && !isDimmed ? "rgba(245,158,11,.5)" : isSelected && !isDimmed ? "rgba(245,158,11,.4)" : S.border,
                           borderRadius: 10,
                           padding: ".85rem 1rem",
                           paddingLeft: isActive && !isDimmed ? "calc(1rem + 3px)" : "1rem",
@@ -669,6 +734,38 @@ export default function ReceivingPage() {
                   );
                 })}
 
+                {/* Pagination */}
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginTop: ".5rem",
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={handleListPrev}
+                    disabled={pageHistory.length <= 1 || isLoading}
+                    style={paginationBtn(pageHistory.length <= 1 || isLoading)}
+                  >
+                    Prev
+                  </button>
+                  <span
+                    style={{ fontSize: "10px", color: "#334155", fontFamily: S.mono }}
+                  >
+                    Page {pageHistory.length}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleListNext}
+                    disabled={!pageInfo?.hasNextPage || isLoading}
+                    style={paginationBtn(!pageInfo?.hasNextPage || isLoading)}
+                  >
+                    Next
+                  </button>
+                </div>
+
                 {/* Scan history — below manifest list */}
                 {scanHistory.length > 0 && (
                   <div style={{ marginTop: ".5rem" }}>
@@ -812,9 +909,8 @@ export default function ReceivingPage() {
                 )}
               </div>
             </div>
-          ) : null}
+          </div>
         </div>
-      </div>
 
       {/* Confirmation Dialog */}
       {confirmDialog.open ? (
@@ -905,6 +1001,22 @@ export default function ReceivingPage() {
       ) : null}
     </>
   );
+}
+
+// ── Pagination Button Style ──────────────────────────────
+
+function paginationBtn(disabled: boolean): React.CSSProperties {
+  return {
+    fontFamily: S.mono,
+    fontSize: "10px",
+    padding: ".3rem .6rem",
+    borderRadius: 4,
+    cursor: disabled ? "not-allowed" : "pointer",
+    opacity: disabled ? 0.35 : 1,
+    background: "transparent",
+    border: `1px solid ${S.border}`,
+    color: S.muted,
+  };
 }
 
 // ── Scan Input Panel ─────────────────────────────────────

@@ -15,12 +15,18 @@ interface InboundManifestsResponse {
   inboundManifests: {
     totalCount: number;
     nodes: InboundManifest[];
+    pageInfo: {
+      hasNextPage: boolean;
+      hasPreviousPage: boolean;
+      startCursor: string | null;
+      endCursor: string | null;
+    };
   };
 }
 
 const INBOUND_MANIFESTS_QUERY = `
-  query GetInboundManifests($where: InboundManifestFilterInput) {
-    inboundManifests(first: 100, where: $where) {
+  query GetInboundManifests($where: InboundManifestFilterInput, $first: Int, $after: String, $search: String, $order: [InboundManifestSortInput!]) {
+    inboundManifests(first: $first, after: $after, where: $where, search: $search, order: $order) {
       totalCount
       nodes {
         id
@@ -48,6 +54,12 @@ const INBOUND_MANIFESTS_QUERY = `
           confirmedBy
         }
         createdAt
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
       }
     }
   }
@@ -103,11 +115,19 @@ const RECEIVE_WALK_IN_PARCEL_MUTATION = `
   }
 `;
 
-export async function getInboundManifests(
-  where?: Record<string, unknown>,
-): Promise<InboundManifestsResponse> {
+export async function getInboundManifests(params?: {
+  where?: Record<string, unknown>;
+  first?: number;
+  after?: string | null;
+  search?: string | null;
+  order?: Record<string, string>[] | null;
+}): Promise<InboundManifestsResponse> {
   return graphql<InboundManifestsResponse>(INBOUND_MANIFESTS_QUERY, {
-    where: where ?? null,
+    where: params?.where ?? null,
+    first: params?.first ?? 5,
+    after: params?.after ?? null,
+    search: params?.search ?? null,
+    order: params?.order ?? null,
   });
 }
 
