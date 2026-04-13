@@ -1611,17 +1611,17 @@ public class ApplicationDbSeeder(
 
         var routeParcels = new List<RouteParcel>();
         var parcelsByZone = routeReadyParcels.GroupBy(p => p.ZoneId).ToDictionary(g => g.Key, g => g.ToList());
-        var parcelIndex = 0;
+        var assignedParcelIds = new HashSet<Guid>();
 
         foreach (var route in draftRoutes)
         {
             if (!parcelsByZone.TryGetValue(route.ZoneId, out var zoneParcels)) continue;
 
-            // Assign up to 5 parcels per route, cycling through available parcels
-            var count = Math.Min(5, zoneParcels.Count);
-            for (var i = 0; i < count; i++)
+            // Assign up to 5 unassigned parcels per route
+            var available = zoneParcels.Where(p => !assignedParcelIds.Contains(p.Id)).Take(5).ToList();
+            for (var i = 0; i < available.Count; i++)
             {
-                var parcel = zoneParcels[parcelIndex % zoneParcels.Count];
+                var parcel = available[i];
                 routeParcels.Add(new RouteParcel
                 {
                     RouteId = route.Id,
@@ -1629,10 +1629,10 @@ public class ApplicationDbSeeder(
                     StopOrder = i + 1,
                     AddedAt = DateTimeOffset.UtcNow,
                 });
-                parcelIndex++;
+                assignedParcelIds.Add(parcel.Id);
             }
 
-            route.EstimatedStops = count;
+            route.EstimatedStops = available.Count;
         }
 
         await dbContext.RouteParcels.AddRangeAsync(routeParcels, cancellationToken);
