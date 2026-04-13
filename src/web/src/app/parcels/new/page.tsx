@@ -312,6 +312,16 @@ export default function NewParcelPage() {
                         <option value="Temperature Controlled">Temperature Controlled</option>
                       </select>
                     </div>
+                    <div>
+                      <TmLabel htmlFor="declaredValue">Declared Value</TmLabel>
+                      <input id="declaredValue" type="number" step="0.01" min="0" className="tm-input" value={declaredValue} onChange={e => setDeclaredValue(e.target.value)} placeholder="0.00" style={inputStyle} />
+                    </div>
+                    <div>
+                      <TmLabel htmlFor="currency">Currency</TmLabel>
+                      <select id="currency" className="tm-select" value={currency} onChange={e => setCurrency(e.target.value)}>
+                        {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.code} — {c.name}</option>)}
+                      </select>
+                    </div>
                     <div style={{ gridColumn: "1 / -1" }}>
                       <TmLabel htmlFor="description">Description</TmLabel>
                       <textarea
@@ -383,26 +393,16 @@ export default function NewParcelPage() {
                 {/* Physical Properties */}
                 <div style={{ background: S.panel, border: `1px solid ${S.border}`, borderRadius: 10, padding: "1.5rem" }}>
                   <SectionHeader title="Physical Properties" />
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
                     <div>
                       <TmLabel htmlFor="weight">Weight *</TmLabel>
                       <input id="weight" type="number" step="0.001" min="0" className="tm-input" value={weight} onChange={e => setWeight(e.target.value)} placeholder="0.00" style={inputStyle} />
                     </div>
                     <div>
                       <TmLabel htmlFor="weightUnit">Unit</TmLabel>
-                      <select id="weightUnit" className="tm-select" value={weightUnit} onChange={e => setWeightUnit(e.target.value as WeightUnitEnum)}>
+                      <select id="weightUnit" className="tm-select" value={weightUnit} onChange={e => setWeightUnit(e.target.value as WeightUnitEnum)} style={inputStyle}>
                         <option value={WeightUnit.Lb}>lb</option>
                         <option value={WeightUnit.Kg}>kg</option>
-                      </select>
-                    </div>
-                    <div>
-                      <TmLabel htmlFor="declaredValue">Declared Value</TmLabel>
-                      <input id="declaredValue" type="number" step="0.01" min="0" className="tm-input" value={declaredValue} onChange={e => setDeclaredValue(e.target.value)} placeholder="0.00" style={inputStyle} />
-                    </div>
-                    <div>
-                      <TmLabel htmlFor="currency">Currency</TmLabel>
-                      <select id="currency" className="tm-select" value={currency} onChange={e => setCurrency(e.target.value)}>
-                        {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.code} — {c.name}</option>)}
                       </select>
                     </div>
                   </div>
@@ -421,7 +421,7 @@ export default function NewParcelPage() {
                     </div>
                     <div>
                       <TmLabel htmlFor="dimensionUnit">Unit</TmLabel>
-                      <select id="dimensionUnit" className="tm-select" value={dimensionUnit} onChange={e => setDimensionUnit(e.target.value as DimensionUnitEnum)}>
+                      <select id="dimensionUnit" className="tm-select" value={dimensionUnit} onChange={e => setDimensionUnit(e.target.value as DimensionUnitEnum)} style={inputStyle}>
                         <option value={DimensionUnit.In}>in</option>
                         <option value={DimensionUnit.Cm}>cm</option>
                       </select>
