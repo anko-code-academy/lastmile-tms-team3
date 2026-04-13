@@ -7,15 +7,7 @@ import { ParcelStatusBadge } from "@/components/parcels/ParcelStatusBadge";
 type SortableParcelField = "trackingNumber" | "status" | "createdAt";
 type SortDir = "asc" | "desc";
 
-const S = {
-  panel:  "rgba(255,255,255,.025)" as const,
-  border: "rgba(255,255,255,.07)"  as const,
-  text:   "#e2e8f0"                as const,
-  muted:  "#4a5f7a"                as const,
-  dim:    "#3a526e"                as const,
-  accent: "#f59e0b"                as const,
-  mono:   "var(--font-geist-mono, monospace)" as const,
-};
+const mono = "var(--font-geist-mono, monospace)";
 
 const COLS: { label: string; field: SortableParcelField | null }[] = [
   { label: "Tracking #",  field: "trackingNumber" },
@@ -41,48 +33,50 @@ export function ParcelTable({ items, sortField, sortDir, onSort }: ParcelTablePr
 
   return (
     <>
-      <style>{`.pt-row:hover { background: rgba(255,255,255,.03); cursor: pointer; }`}</style>
-      <div style={{ background: S.panel, border: `1px solid ${S.border}`, borderRadius: 10, overflow: "hidden" }}>
+      <style>{`
+        .pt-row:hover { background: rgba(255,255,255,.04) !important; cursor: pointer; }
+        .pt-row:hover .pt-tracking { color: #fbbf24 !important; }
+      `}</style>
+      <div style={{
+        background: "rgba(255,255,255,.025)",
+        border: "1px solid rgba(255,255,255,.07)",
+        borderRadius: 10,
+        overflow: "hidden",
+      }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
-            <tr style={{ borderBottom: `1px solid ${S.border}`, background: "rgba(255,255,255,.02)" }}>
-              {COLS.map(({ label, field }) => (
-                <th
-                  key={label}
-                  onClick={field ? () => onSort(field) : undefined}
-                  style={{
-                    padding: ".75rem 1rem",
-                    textAlign: "left",
-                    fontFamily: S.mono,
-                    fontSize: "9px",
-                    letterSpacing: ".14em",
-                    color: field && sortField === field ? S.accent : S.muted,
-                    textTransform: "uppercase",
-                    fontWeight: 600,
-                    cursor: field ? "pointer" : "default",
-                    userSelect: "none",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {label}
-                  {field ? ` ${sortField === field ? (sortDir === "asc" ? "↑" : "↓") : "↕"}` : ""}
-                </th>
-              ))}
+            <tr style={{ borderBottom: "1px solid rgba(255,255,255,.08)", background: "rgba(255,255,255,.025)" }}>
+              {COLS.map(({ label, field }) => {
+                const isActive = field && sortField === field;
+                return (
+                  <th
+                    key={label}
+                    onClick={field ? () => onSort(field) : undefined}
+                    style={{
+                      padding: ".7rem 1rem",
+                      textAlign: "left",
+                      fontFamily: mono,
+                      fontSize: "11px",
+                      letterSpacing: ".12em",
+                      color: isActive ? "#f59e0b" : "#647a96",
+                      textTransform: "uppercase",
+                      fontWeight: 600,
+                      cursor: field ? "pointer" : "default",
+                      userSelect: "none",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {label}
+                    {field ? ` ${isActive ? (sortDir === "asc" ? "↑" : "↓") : "↕"}` : ""}
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
             {items.length === 0 ? (
               <tr>
-                <td
-                  colSpan={9}
-                  style={{
-                    padding: "3rem",
-                    textAlign: "center",
-                    fontFamily: S.mono,
-                    fontSize: ".875rem",
-                    color: S.dim,
-                  }}
-                >
+                <td colSpan={9} style={{ padding: "3rem", textAlign: "center", fontFamily: mono, fontSize: "13px", color: "#4e6480" }}>
                   No parcels found.
                 </td>
               </tr>
@@ -92,33 +86,52 @@ export function ParcelTable({ items, sortField, sortDir, onSort }: ParcelTablePr
                   key={p.id}
                   className="pt-row"
                   onClick={() => router.push(`/parcels/${p.id}`)}
-                  style={{ borderBottom: `1px solid rgba(255,255,255,.04)`, transition: "background .15s" }}
+                  style={{ borderBottom: "1px solid rgba(255,255,255,.04)", transition: "background .12s" }}
                 >
-                  <td style={{ padding: ".75rem 1rem", fontFamily: S.mono, fontWeight: 700, color: S.text, fontSize: ".8rem" }}>
-                    {p.trackingNumber}
+                  {/* Tracking # — amber, monospace, bold */}
+                  <td style={{ padding: ".75rem 1rem" }}>
+                    <span className="pt-tracking" style={{ fontFamily: mono, fontWeight: 700, fontSize: "13px", color: "#f59e0b", letterSpacing: ".02em" }}>
+                      {p.trackingNumber}
+                    </span>
                   </td>
-                  <td style={{ padding: ".75rem 1rem", fontSize: ".875rem", color: S.muted }}>
+
+                  {/* Recipient — bright white */}
+                  <td style={{ padding: ".75rem 1rem", fontSize: "13px", color: "#e2e8f0", fontWeight: 500 }}>
                     {p.recipientName}
                   </td>
+
+                  {/* Status — badge */}
                   <td style={{ padding: ".75rem 1rem" }}>
                     <ParcelStatusBadge status={p.status} />
                   </td>
-                  <td style={{ padding: ".75rem 1rem", fontSize: ".875rem", color: S.muted }}>
+
+                  {/* City — light sky */}
+                  <td style={{ padding: ".75rem 1rem", fontSize: "13px", color: "#93c5fd" }}>
                     {p.recipientCity}
                   </td>
-                  <td style={{ padding: ".75rem 1rem", fontFamily: S.mono, fontSize: ".8rem", color: S.dim }}>
-                    {p.zoneName ?? "—"}
+
+                  {/* Zone — cyan, monospace, smaller */}
+                  <td style={{ padding: ".75rem 1rem", fontFamily: mono, fontSize: "12px", color: "#38bdf8" }}>
+                    {p.zoneName ?? <span style={{ color: "#4e6480" }}>—</span>}
                   </td>
-                  <td style={{ padding: ".75rem 1rem", fontSize: ".875rem", color: S.muted }}>
+
+                  {/* Service — green tint */}
+                  <td style={{ padding: ".75rem 1rem", fontSize: "13px", color: "#6ee7b7" }}>
                     {p.serviceType.charAt(0) + p.serviceType.slice(1).toLowerCase()}
                   </td>
-                  <td style={{ padding: ".75rem 1rem", fontFamily: S.mono, fontSize: ".8rem", color: S.dim }}>
+
+                  {/* Weight — muted */}
+                  <td style={{ padding: ".75rem 1rem", fontFamily: mono, fontSize: "12px", color: "#7a9ab8" }}>
                     {p.weight} {p.weightUnit.toLowerCase()}
                   </td>
-                  <td style={{ padding: ".75rem 1rem", fontSize: ".875rem", color: S.muted }}>
-                    {p.parcelType ?? "—"}
+
+                  {/* Type — muted */}
+                  <td style={{ padding: ".75rem 1rem", fontSize: "13px", color: "#7a9ab8" }}>
+                    {p.parcelType ?? <span style={{ color: "#4e6480" }}>—</span>}
                   </td>
-                  <td style={{ padding: ".75rem 1rem", fontFamily: S.mono, fontSize: ".8rem", color: S.dim }}>
+
+                  {/* Created — dim monospace */}
+                  <td style={{ padding: ".75rem 1rem", fontFamily: mono, fontSize: "11px", color: "#647a96", letterSpacing: ".04em" }}>
                     {new Date(p.createdAt).toLocaleDateString()}
                   </td>
                 </tr>

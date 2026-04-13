@@ -315,18 +315,44 @@ export default function Home() {
             </div>
 
             {/* ── Navigation card groups ──────────────────────────── */}
-            <div className="fu fu-3" style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
-              {groups.filter(g => g.show && g.cards.length > 0).map((g) => (
-                <div key={g.title}>
-                  <p style={{ fontFamily: mono, fontSize: "10px", letterSpacing: ".2em", color: "#647a96", textTransform: "uppercase", marginBottom: ".75rem" }}>
-                    {g.title}
-                  </p>
-                  <div className="tm-group-grid">
-                    {g.cards.map((c) => <NavCardItem key={c.href} {...c} />)}
+            {(() => {
+              const visible = groups.filter(g => g.show && g.cards.length > 0);
+              const left  = visible.filter(g => ["Parcels","Dispatch"].includes(g.title));
+              const right = visible.filter(g => ["Warehouse","Operations","Administration"].includes(g.title));
+              const hasTwo = left.length > 0 && right.length > 0;
+              return (
+                <div className="fu fu-3" style={{ display: hasTwo ? "grid" : "block", gridTemplateColumns: "1fr 1fr", gap: "1.5rem" }}>
+                  {/* Left column */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+                    {(hasTwo ? left : visible).map((g) => (
+                      <div key={g.title}>
+                        <p style={{ fontFamily: mono, fontSize: "10px", letterSpacing: ".2em", color: "#647a96", textTransform: "uppercase", marginBottom: ".625rem" }}>
+                          {g.title}
+                        </p>
+                        <div className="tm-group-grid">
+                          {g.cards.map((c) => <NavCardItem key={c.href} {...c} />)}
+                        </div>
+                      </div>
+                    ))}
                   </div>
+                  {/* Right column */}
+                  {hasTwo && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+                      {right.map((g) => (
+                        <div key={g.title}>
+                          <p style={{ fontFamily: mono, fontSize: "10px", letterSpacing: ".2em", color: "#647a96", textTransform: "uppercase", marginBottom: ".625rem" }}>
+                            {g.title}
+                          </p>
+                          <div className="tm-group-grid">
+                            {g.cards.map((c) => <NavCardItem key={c.href} {...c} />)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              ))}
-            </div>
+              );
+            })()}
           </div>
 
           {/* ── Footer ──────────────────────────────────────────── */}
