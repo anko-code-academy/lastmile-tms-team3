@@ -6,6 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import TmNavbar from "@/components/TmNavbar";
 import RouteStatusBadge from "@/components/routes/RouteStatusBadge";
+import { ParcelStatusBadge } from "@/components/parcels/ParcelStatusBadge";
 import RouteMap from "@/components/routes/RouteMap";
 import SortableStopList from "@/components/routes/SortableStopList";
 import {
@@ -30,6 +31,7 @@ import type {
   AvailableDriver,
 } from "@/lib/types/route";
 import { RouteStatus } from "@/lib/types/route";
+import { ParcelStatus } from "@/lib/types/parcel";
 
 const S = {
   bg: "#080c14" as const,
@@ -59,6 +61,7 @@ const selectStyle: React.CSSProperties = {
 interface StagedParcel {
   id: string;
   trackingNumber: string;
+  status: string;
   routeAssignments: { routeId: string }[];
 }
 
@@ -149,6 +152,7 @@ export default function RouteDetailPage({
           nodes {
             id
             trackingNumber
+            status
             routeAssignments {
               routeId
             }
@@ -995,6 +999,7 @@ export default function RouteDetailPage({
                           >
                             {p.trackingNumber}
                           </span>
+                          <ParcelStatusBadge status={p.status as ParcelStatus} />
                         </div>
                       ))
                     )}
@@ -1072,6 +1077,7 @@ export default function RouteDetailPage({
                               rp.parcelId.slice(0, 8),
                             address:
                               rp.parcel?.recipientAddress?.city ?? "",
+                            status: rp.parcel?.status ?? "SORTED",
                           }))}
                         selectedStopId={selectedStopId}
                         onStopSelected={setSelectedStopId}
@@ -1139,14 +1145,7 @@ export default function RouteDetailPage({
                           {rp.parcel?.trackingNumber ??
                             rp.parcelId.slice(0, 8)}
                         </span>
-                        <span
-                          style={{
-                            fontSize: ".75rem",
-                            color: S.muted,
-                          }}
-                        >
-                          {rp.parcel?.status}
-                        </span>
+                        <ParcelStatusBadge status={(rp.parcel?.status ?? "REGISTERED") as ParcelStatus} />
                       </div>
                     ))}
                 </div>
