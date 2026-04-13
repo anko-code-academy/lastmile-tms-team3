@@ -1,4 +1,4 @@
-namespace LastMile.TMS.Application.Features.Routes.DTOs;
+namespace LastMile.TMS.Application.Features.Drivers.DTOs;
 
 public record AvailableDriverDto(
     Guid Id,

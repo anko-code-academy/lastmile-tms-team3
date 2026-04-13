@@ -1,3 +1,5 @@
+using FluentValidation;
+using FluentValidation.Results;
 using LastMile.TMS.Application.Common.Interfaces;
 using LastMile.TMS.Application.Features.Parcels.DTOs;
 using LastMile.TMS.Application.Features.Parcels.Mappers;
@@ -107,6 +109,21 @@ public static class CreateParcel
             if (recipientGeoLocation is not null)
             {
                 zoneId = await _zoneMatchingService.FindMatchingZoneIdAsync(recipientGeoLocation, cancellationToken);
+            }
+            else
+            {
+                throw new ValidationException(new[]
+                {
+                    new ValidationFailure("RecipientAddress", "Unable to geocode the recipient address. Please verify the address is valid.")
+                });
+            }
+
+            if (zoneId is null)
+            {
+                throw new ValidationException(new[]
+                {
+                    new ValidationFailure("RecipientAddress", "No delivery zone found for the recipient address. Please verify the address is within the service area.")
+                });
             }
 
             var trackingNumber = $"LMT-{now:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}";

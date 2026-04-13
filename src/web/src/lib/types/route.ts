@@ -159,3 +159,29 @@ export interface ReorderStopsInput {
   routeId: string;
   newOrder: ReorderStopEntry[];
 }
+
+export interface RouteMapStop {
+  parcelId: string;
+  stopOrder: number;
+  trackingNumber: string;
+  status: string;
+  latitude: number;
+  longitude: number;
+  city: string;
+  street1: string;
+}
+
+export interface RouteMapData {
+  id: string;
+  name: string;
+  status: RouteStatus;
+  driverName?: string | null;
+  vehiclePlate?: string | null;
+  depot: {
+    id: string;
+    name: string;
+    address?: { latitude: number; longitude: number } | null;
+  } | null;
+  stops: RouteMapStop[];
+  driverPosition?: { latitude: number; longitude: number } | null;
+}

@@ -6,7 +6,9 @@ using LastMile.TMS.Api.GraphQL.Mutations;
 using LastMile.TMS.Api.GraphQL.Queries;
 using LastMile.TMS.Api.GraphQL.Types;
 using LastMile.TMS.Api.Hubs;
+using LastMile.TMS.Api.Jobs;
 using LastMile.TMS.Application;
+using LastMile.TMS.Application.Common.Interfaces;
 using LastMile.TMS.Application.Services;
 using LastMile.TMS.Infrastructure;
 using LastMile.TMS.Persistence;
@@ -164,7 +166,6 @@ try
         .AddType<AuditLogQuery>()
         .AddType<DeliveryRouteQuery>()
         .AddType<DeliveryRouteMutation>()
-        .AddType<RouteQuery>()
         .AddType<RouteMutation>()
         .AddType<AddressType>()
         .AddType<DepotType>()
@@ -216,6 +217,7 @@ try
     });
     builder.Services.AddSignalR();
     builder.Services.AddScoped<IImportProgressNotifier, SignalRImportProgressNotifier>();
+    builder.Services.AddSingleton<IDriverLocationService, SignalRDriverLocationService>();
     builder.Services.AddCors(options =>
     {
         options.AddDefaultPolicy(policy =>
@@ -245,8 +247,14 @@ try
     app.UseAuthorization();
     app.MapControllers();
     app.MapHub<ImportProgressHub>("/hubs/import-progress");
+    app.MapHub<DriverLocationHub>("/hubs/driver-location");
     app.MapGraphQL("/graphql");
     app.UseHangfireDashboard("/hangfire");
+
+    RecurringJob.AddOrUpdate<DriverSimulationJob>(
+        "driver-simulation",
+        job => job.SimulateAsync(),
+        "*/5 * * * * *");
 
     if (app.Environment.IsDevelopment())
     {

@@ -148,21 +148,38 @@ export default function RoutesPage() {
                   {totalCount} route{totalCount !== 1 ? "s" : ""} total
                 </p>
               </div>
-              <Link
-                href="/routes/new"
-                style={{
-                  padding: ".5rem 1.25rem",
-                  borderRadius: 6,
-                  background: "rgba(245,158,11,.12)",
-                  border: "1px solid rgba(245,158,11,.3)",
-                  color: S.accent,
-                  fontWeight: 600,
-                  fontSize: ".875rem",
-                  textDecoration: "none",
-                }}
-              >
-                + New Route
-              </Link>
+              <div style={{ display: "flex", gap: ".5rem" }}>
+                <Link
+                  href="/routes/map"
+                  style={{
+                    padding: ".5rem 1.25rem",
+                    borderRadius: 6,
+                    background: "rgba(255,255,255,.04)",
+                    border: `1px solid ${S.border}`,
+                    color: S.muted,
+                    fontWeight: 600,
+                    fontSize: ".875rem",
+                    textDecoration: "none",
+                  }}
+                >
+                  Map View
+                </Link>
+                <Link
+                  href="/routes/new"
+                  style={{
+                    padding: ".5rem 1.25rem",
+                    borderRadius: 6,
+                    background: "rgba(245,158,11,.12)",
+                    border: "1px solid rgba(245,158,11,.3)",
+                    color: S.accent,
+                    fontWeight: 600,
+                    fontSize: ".875rem",
+                    textDecoration: "none",
+                  }}
+                >
+                  + New Route
+                </Link>
+              </div>
             </div>
 
             {/* Filters */}

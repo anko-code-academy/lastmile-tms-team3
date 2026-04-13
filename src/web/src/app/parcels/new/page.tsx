@@ -264,14 +264,39 @@ export default function NewParcelPage() {
                 <div style={{ background: S.panel, border: `1px solid ${S.border}`, borderRadius: 10, padding: "1.5rem" }}>
                   <SectionHeader title="Service" />
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem" }}>
-                    <div>
-                      <TmLabel htmlFor="serviceType">Service Type *</TmLabel>
-                      <select id="serviceType" className="tm-select" value={serviceType} onChange={e => setServiceType(e.target.value as ServiceTypeEnum)}>
-                        <option value={ServiceType.Economy}>Economy — 5–7 business days</option>
-                        <option value={ServiceType.Standard}>Standard — 3–5 business days</option>
-                        <option value={ServiceType.Express}>Express — 1–2 business days</option>
-                        <option value={ServiceType.Overnight}>Overnight — next business day</option>
-                      </select>
+                    <div style={{ gridColumn: "1 / -1" }}>
+                      <TmLabel>Service Type *</TmLabel>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: ".5rem" }}>
+                        {([
+                          [ServiceType.Economy, "Economy", "5–7 business days"],
+                          [ServiceType.Standard, "Standard", "3–5 business days"],
+                          [ServiceType.Express, "Express", "1–2 business days"],
+                          [ServiceType.Overnight, "Overnight", "Next business day"],
+                        ] as const).map(([value, label, sub]) => {
+                          const active = serviceType === value;
+                          return (
+                            <label
+                              key={value}
+                              style={{
+                                display: "flex", flexDirection: "column", alignItems: "center",
+                                padding: ".65rem .5rem", borderRadius: 6, cursor: "pointer",
+                                background: active ? "rgba(245,158,11,.1)" : S.inputBg,
+                                border: `1px solid ${active ? "rgba(245,158,11,.45)" : S.inputBorder}`,
+                                transition: "all .15s", textAlign: "center",
+                              }}
+                            >
+                              <input
+                                type="radio" name="serviceType" value={value}
+                                checked={active}
+                                onChange={() => setServiceType(value)}
+                                style={{ accentColor: S.accent, marginBottom: ".25rem" }}
+                              />
+                              <span style={{ fontFamily: S.mono, fontSize: ".8rem", fontWeight: 600, color: active ? S.accent : S.text }}>{label}</span>
+                              <span style={{ fontFamily: S.mono, fontSize: ".65rem", color: S.muted, marginTop: ".15rem" }}>{sub}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
                     </div>
                     <div>
                       <TmLabel htmlFor="parcelType">Parcel Type</TmLabel>
@@ -288,6 +313,16 @@ export default function NewParcelPage() {
                       </select>
                     </div>
                     <div>
+                      <TmLabel htmlFor="declaredValue">Declared Value</TmLabel>
+                      <input id="declaredValue" type="number" step="0.01" min="0" className="tm-input" value={declaredValue} onChange={e => setDeclaredValue(e.target.value)} placeholder="0.00" style={inputStyle} />
+                    </div>
+                    <div>
+                      <TmLabel htmlFor="currency">Currency</TmLabel>
+                      <select id="currency" className="tm-select" value={currency} onChange={e => setCurrency(e.target.value)}>
+                        {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.code} — {c.name}</option>)}
+                      </select>
+                    </div>
+                    <div style={{ gridColumn: "1 / -1" }}>
                       <TmLabel htmlFor="description">Description</TmLabel>
                       <textarea
                         id="description"
@@ -358,26 +393,16 @@ export default function NewParcelPage() {
                 {/* Physical Properties */}
                 <div style={{ background: S.panel, border: `1px solid ${S.border}`, borderRadius: 10, padding: "1.5rem" }}>
                   <SectionHeader title="Physical Properties" />
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
                     <div>
                       <TmLabel htmlFor="weight">Weight *</TmLabel>
                       <input id="weight" type="number" step="0.001" min="0" className="tm-input" value={weight} onChange={e => setWeight(e.target.value)} placeholder="0.00" style={inputStyle} />
                     </div>
                     <div>
                       <TmLabel htmlFor="weightUnit">Unit</TmLabel>
-                      <select id="weightUnit" className="tm-select" value={weightUnit} onChange={e => setWeightUnit(e.target.value as WeightUnitEnum)}>
+                      <select id="weightUnit" className="tm-select" value={weightUnit} onChange={e => setWeightUnit(e.target.value as WeightUnitEnum)} style={inputStyle}>
                         <option value={WeightUnit.Lb}>lb</option>
                         <option value={WeightUnit.Kg}>kg</option>
-                      </select>
-                    </div>
-                    <div>
-                      <TmLabel htmlFor="declaredValue">Declared Value</TmLabel>
-                      <input id="declaredValue" type="number" step="0.01" min="0" className="tm-input" value={declaredValue} onChange={e => setDeclaredValue(e.target.value)} placeholder="0.00" style={inputStyle} />
-                    </div>
-                    <div>
-                      <TmLabel htmlFor="currency">Currency</TmLabel>
-                      <select id="currency" className="tm-select" value={currency} onChange={e => setCurrency(e.target.value)}>
-                        {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.code} — {c.name}</option>)}
                       </select>
                     </div>
                   </div>
@@ -396,7 +421,7 @@ export default function NewParcelPage() {
                     </div>
                     <div>
                       <TmLabel htmlFor="dimensionUnit">Unit</TmLabel>
-                      <select id="dimensionUnit" className="tm-select" value={dimensionUnit} onChange={e => setDimensionUnit(e.target.value as DimensionUnitEnum)}>
+                      <select id="dimensionUnit" className="tm-select" value={dimensionUnit} onChange={e => setDimensionUnit(e.target.value as DimensionUnitEnum)} style={inputStyle}>
                         <option value={DimensionUnit.In}>in</option>
                         <option value={DimensionUnit.Cm}>cm</option>
                       </select>

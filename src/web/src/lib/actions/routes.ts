@@ -4,6 +4,7 @@ import {
   CREATE_ROUTE,
   GET_ROUTE,
   GET_ROUTES,
+  GET_ROUTES_MAP,
   ADD_PARCELS_TO_ROUTE,
   REMOVE_PARCEL_FROM_ROUTE,
   AUTO_ASSIGN_PARCELS,
@@ -27,6 +28,8 @@ import type {
   AvailableDriver,
   RouteStatus,
   ReorderStopsInput,
+  RouteMapData,
+  RouteMapStop,
 } from "@/lib/types/route";
 
 export interface RouteFilter {
@@ -350,6 +353,76 @@ export async function dispatchRouteAction(
     return {
       error:
         err instanceof Error ? err.message : "Failed to dispatch route",
+    };
+  }
+}
+
+export async function getRoutesForMapAction(
+  date: string
+): Promise<{ error?: string; routes?: RouteMapData[] }> {
+  try {
+    const data = await gqlFetch<{
+      routesForMap: {
+        id: string;
+        name: string;
+        status: RouteStatus;
+        driverName?: string | null;
+        vehiclePlate?: string | null;
+        depot: {
+          id: string;
+          name: string;
+          address?: { latitude: number; longitude: number } | null;
+        } | null;
+        routeParcels: {
+          parcelId: string;
+          stopOrder: number;
+          parcel: {
+            id: string;
+            trackingNumber: string;
+            status: string;
+            recipientAddress?: {
+              latitude: number;
+              longitude: number;
+              city: string;
+              street1: string;
+            } | null;
+          };
+        }[];
+      }[];
+    }>(GET_ROUTES_MAP, {
+      date,
+    });
+
+    const routes: RouteMapData[] = data.routesForMap.map((r) => ({
+      id: r.id,
+      name: r.name,
+      status: r.status,
+      driverName: r.driverName,
+      vehiclePlate: r.vehiclePlate,
+      depot: r.depot,
+      stops: r.routeParcels
+        .filter(
+          (rp) =>
+            rp.parcel?.recipientAddress?.latitude != null &&
+            rp.parcel?.recipientAddress?.longitude != null
+        )
+        .map((rp) => ({
+          parcelId: rp.parcelId,
+          stopOrder: rp.stopOrder,
+          trackingNumber: rp.parcel.trackingNumber,
+          status: rp.parcel.status,
+          latitude: rp.parcel.recipientAddress!.latitude,
+          longitude: rp.parcel.recipientAddress!.longitude,
+          city: rp.parcel.recipientAddress?.city ?? "",
+          street1: rp.parcel.recipientAddress?.street1 ?? "",
+        })),
+    }));
+
+    return { routes };
+  } catch (err) {
+    return {
+      error:
+        err instanceof Error ? err.message : "Failed to fetch routes for map",
     };
   }
 }

@@ -264,6 +264,41 @@ export const REORDER_ROUTE_STOPS = `
   }
 `;
 
+export const GET_ROUTES_MAP = `
+  query GetRoutesMap($date: LocalDate!) {
+    routesForMap(date: $date) {
+      id
+      name
+      status
+      driverName
+      vehiclePlate
+      depot {
+        id
+        name
+        address {
+          latitude
+          longitude
+        }
+      }
+      routeParcels {
+        parcelId
+        stopOrder
+        parcel {
+          id
+          trackingNumber
+          status
+          recipientAddress {
+            latitude
+            longitude
+            city
+            street1
+          }
+        }
+      }
+    }
+  }
+`;
+
 export const DISPATCH_ROUTE = `
   mutation DispatchRoute($input: DispatchRouteDtoInput!) {
     dispatchRoute(input: $input) {
