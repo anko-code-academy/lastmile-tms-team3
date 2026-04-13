@@ -45,6 +45,7 @@ public class ApplicationDbSeeder(
         await SeedParcelsAsync(cancellationToken);
         await SeedSortDemoParcelsAsync(cancellationToken);
         await SeedRouteReadyParcelsAsync(cancellationToken);
+        await SeedRouteParcelAssignmentsAsync(cancellationToken);
         await SeedInboundManifestsAsync(cancellationToken);
     }
 
@@ -1587,6 +1588,57 @@ public class ApplicationDbSeeder(
         await dbContext.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation("Seeded {Count} route-ready parcels (Sorted, unassigned) across {ZoneCount} zones", parcels.Count, zones.Count);
+    }
+
+    private async Task SeedRouteParcelAssignmentsAsync(CancellationToken cancellationToken)
+    {
+        if (await dbContext.RouteParcels.AnyAsync(cancellationToken))
+            return;
+
+        // Only assign parcels to Draft routes
+        var draftRoutes = await dbContext.DeliveryRoutes
+            .Where(r => r.Status == RouteStatus.Draft)
+            .ToListAsync(cancellationToken);
+
+        if (draftRoutes.Count == 0) return;
+
+        // Get sorted route-ready parcels grouped by zone
+        var routeReadyParcels = await dbContext.Parcels
+            .Where(p => p.TrackingNumber.StartsWith("LM-RT-") && p.Status == ParcelStatus.Sorted)
+            .ToListAsync(cancellationToken);
+
+        if (routeReadyParcels.Count == 0) return;
+
+        var routeParcels = new List<RouteParcel>();
+        var parcelsByZone = routeReadyParcels.GroupBy(p => p.ZoneId).ToDictionary(g => g.Key, g => g.ToList());
+        var parcelIndex = 0;
+
+        foreach (var route in draftRoutes)
+        {
+            if (!parcelsByZone.TryGetValue(route.ZoneId, out var zoneParcels)) continue;
+
+            // Assign up to 5 parcels per route, cycling through available parcels
+            var count = Math.Min(5, zoneParcels.Count);
+            for (var i = 0; i < count; i++)
+            {
+                var parcel = zoneParcels[parcelIndex % zoneParcels.Count];
+                routeParcels.Add(new RouteParcel
+                {
+                    RouteId = route.Id,
+                    ParcelId = parcel.Id,
+                    StopOrder = i + 1,
+                    AddedAt = DateTimeOffset.UtcNow,
+                });
+                parcelIndex++;
+            }
+
+            route.EstimatedStops = count;
+        }
+
+        await dbContext.RouteParcels.AddRangeAsync(routeParcels, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation("Seeded {Count} route-parcel assignments across {RouteCount} draft routes", routeParcels.Count, draftRoutes.Count);
     }
 
     private async Task SeedInboundManifestsAsync(CancellationToken cancellationToken)

@@ -30,6 +30,21 @@ public class DeliveryRouteQuery
             .AsNoTracking();
 
     [Authorize(Policy = "AdminOrDepotOperator")]
+    public async Task<List<DeliveryRoute>> GetRoutesForMap(
+        AppDbContext context,
+        DateOnly date,
+        CancellationToken cancellationToken)
+    {
+        return await context.DeliveryRoutes
+            .AsNoTracking()
+            .Include(r => r.Depot).ThenInclude(d => d!.Address)
+            .Include(r => r.RouteParcels)
+                .ThenInclude(rp => rp.Parcel).ThenInclude(p => p.RecipientAddress)
+            .Where(r => r.Date == date)
+            .ToListAsync(cancellationToken);
+    }
+
+    [Authorize(Policy = "AdminOrDepotOperator")]
     public async Task<StagingStatusDto?> GetStagingStatus(
         AppDbContext context,
         Guid routeId,
