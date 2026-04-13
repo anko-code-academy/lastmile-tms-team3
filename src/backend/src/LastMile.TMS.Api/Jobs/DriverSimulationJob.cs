@@ -3,7 +3,6 @@ using LastMile.TMS.Application.Common.Interfaces;
 using LastMile.TMS.Domain.Enums;
 using LastMile.TMS.Persistence;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 
 namespace LastMile.TMS.Api.Jobs;
 
@@ -11,7 +10,6 @@ public class DriverSimulationJob
 {
     private readonly IAppDbContextFactory _contextFactory;
     private readonly IDriverLocationService _locationService;
-    private readonly ILogger<DriverSimulationJob> _logger;
 
     // Static because Hangfire creates a new instance each tick.
     // Tracks progress along the route path as a continuous value.
@@ -23,12 +21,10 @@ public class DriverSimulationJob
 
     public DriverSimulationJob(
         IAppDbContextFactory contextFactory,
-        IDriverLocationService locationService,
-        ILogger<DriverSimulationJob> logger)
+        IDriverLocationService locationService)
     {
         _contextFactory = contextFactory;
         _locationService = locationService;
-        _logger = logger;
     }
 
     public async Task SimulateAsync(CancellationToken cancellationToken = default)
@@ -42,8 +38,6 @@ public class DriverSimulationJob
                 .ThenInclude(rp => rp.Parcel).ThenInclude(p => p.RecipientAddress)
             .Where(r => r.Status == RouteStatus.Dispatched || r.Status == RouteStatus.InProgress)
             .ToListAsync(cancellationToken);
-
-        _logger.LogInformation("Driver simulation tick: found {Count} active routes", activeRoutes.Count);
 
         foreach (var route in activeRoutes)
         {
@@ -66,8 +60,6 @@ public class DriverSimulationJob
             _progress[route.Id] = progress;
 
             var (lat, lng) = Interpolate(waypoints, progress);
-
-            _logger.LogInformation("Driver simulation: route {RouteId} progress={Progress:F2} → ({Lat:F6}, {Lng:F6})", route.Id, progress, lat, lng);
 
             await _locationService.UpdatePositionAsync(route.Id, lat, lng, cancellationToken);
         }

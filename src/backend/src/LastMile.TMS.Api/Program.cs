@@ -166,7 +166,6 @@ try
         .AddType<AuditLogQuery>()
         .AddType<DeliveryRouteQuery>()
         .AddType<DeliveryRouteMutation>()
-        .AddType<RouteQuery>()
         .AddType<RouteMutation>()
         .AddType<AddressType>()
         .AddType<DepotType>()

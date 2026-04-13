@@ -1,7 +1,8 @@
 using FluentAssertions;
 using LastMile.TMS.Application.Features.Routes.Commands;
 using LastMile.TMS.Application.Features.Routes.DTOs;
-using LastMile.TMS.Application.Features.Routes.Queries;
+using LastMile.TMS.Application.Features.Drivers.DTOs;
+using LastMile.TMS.Application.Features.Drivers.Queries;
 using LastMile.TMS.Application.Tests.Helpers;
 using LastMile.TMS.Domain.Entities;
 using LastMile.TMS.Domain.Enums;
