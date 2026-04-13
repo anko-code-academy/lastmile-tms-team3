@@ -122,8 +122,28 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
   html {
     @apply font-sans;
   }
+
+  /* ── TMS design system: readable defaults ── */
+  /* Minimum body copy size */
+  p, span, td, th, li, label, input, select, textarea, button {
+    font-size: max(0.8rem, 12px);
+  }
+  /* Section/field labels */
+  .tm-label {
+    font-size: 11px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: #647a96;
+  }
+  /* Muted text — bright enough to read on #080c14 */
+  .tm-muted { color: #647a96; }
+  .tm-dim   { color: #4e6480; }
 }

@@ -9,12 +9,12 @@ import { useImportProgress } from "@/lib/hooks/useImportProgress";
 const S = {
   bg: "#080c14" as const,
   panel: "rgba(255,255,255,.025)" as const,
-  border: "rgba(255,255,255,.06)" as const,
-  text: "#e5e7eb" as const,
-  muted: "#6b7280" as const,
-  green: "#10b981" as const,
+  border: "rgba(255,255,255,.07)" as const,
+  text: "#e2e8f0" as const,
+  muted: "#647a96" as const,
+  green: "#22c55e" as const,
   red: "#ef4444" as const,
-  button: "#3b82f6" as const,
+  button: "#f59e0b" as const,
 };
 
 type Step = "upload" | "preview" | "importing" | "complete";
