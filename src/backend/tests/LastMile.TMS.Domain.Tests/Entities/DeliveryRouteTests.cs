@@ -394,7 +394,7 @@ public class DeliveryRouteTests
     {
         // Arrange
         var route = CreateDraftRoute();
-        route.AddParcel(CreateParcel());
+        route.AddParcel(CreateParcel(ParcelStatus.Loaded));
 
         // Act
         route.Dispatch();
@@ -408,7 +408,7 @@ public class DeliveryRouteTests
     {
         // Arrange
         var route = CreateDraftRoute();
-        route.AddParcel(CreateParcel());
+        route.AddParcel(CreateParcel(ParcelStatus.Loaded));
         var before = DateTimeOffset.UtcNow;
 
         // Act
@@ -466,6 +466,22 @@ public class DeliveryRouteTests
         // Assert
         act.Should().Throw<InvalidOperationException>()
             .WithMessage("*vehicle*");
+    }
+
+    [Fact]
+    public void Dispatch_WhenNotAllParcelsLoaded_ShouldThrow()
+    {
+        // Arrange
+        var route = CreateDraftRoute();
+        route.AddParcel(CreateParcel(ParcelStatus.Loaded));
+        route.AddParcel(CreateParcel(ParcelStatus.Sorted)); // not loaded
+
+        // Act
+        var act = () => route.Dispatch();
+
+        // Assert
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*Loaded*");
     }
 
     [Fact]

@@ -131,6 +131,13 @@ public class DeliveryRoute : BaseAuditableEntity, IAuditTracked
         if (RouteParcels.Count == 0)
             throw new InvalidOperationException("At least one parcel must be on the route before dispatching.");
 
+        var nonLoadedParcels = RouteParcels
+            .Where(rp => rp.Parcel is not null && rp.Parcel.Status != ParcelStatus.Loaded)
+            .ToList();
+
+        if (nonLoadedParcels.Count > 0)
+            throw new InvalidOperationException("All parcels must be in Loaded status before dispatching.");
+
         Status = RouteStatus.Dispatched;
         DispatchedAt = DateTimeOffset.UtcNow;
     }
