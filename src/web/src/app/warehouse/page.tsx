@@ -10,6 +10,7 @@ import {
   useCreateBin,
   useDeleteAisle,
   useDeleteBin,
+  useFindBinByTrackingNumber,
   useUpdateAisle,
   useUpdateBin,
   useWarehouseBins,
@@ -546,6 +547,11 @@ export default function WarehousePage() {
     open: false,
   });
   const [binModal, setBinModal] = useState<BinModalState>({ open: false });
+  const [searchTrackingNumber, setSearchTrackingNumber] = useState("");
+  const [highlightedBinId, setHighlightedBinId] = useState<string | null>(null);
+  const [searchError, setSearchError] = useState<string | null>(null);
+
+  const findBinMutation = useFindBinByTrackingNumber();
 
   const { data, isLoading, error } = useWarehouseBins();
   const createAisleMutation = useCreateAisle();
@@ -660,6 +666,46 @@ export default function WarehousePage() {
       isActive: bin.isActive,
       notes: bin.notes ?? "",
     });
+  }
+
+  async function handleSearchBin(e: React.FormEvent) {
+    e.preventDefault();
+    const trackingNumber = searchTrackingNumber.trim();
+    if (!trackingNumber) return;
+
+    setHighlightedBinId(null);
+    setSearchError(null);
+
+    try {
+      const result = await findBinMutation.mutateAsync({
+        trackingNumber,
+        depotId: selectedDepotId || undefined,
+      });
+
+      if (!result.bin) {
+        if (result.notFoundReason === "NOT_IN_BIN") {
+          setSearchError("Parcel found but not assigned to a bin.");
+        } else {
+          setSearchError("No parcel found with that tracking number.");
+        }
+        return;
+      }
+
+      // Expand the depot, zone, and aisle containing the bin
+      setExpandedDepots((prev) => ({ ...prev, [result.bin!.aisle.zone.depot.id]: true }));
+      setExpandedZones((prev) => ({ ...prev, [result.bin!.aisle.zone.id]: true }));
+      setHighlightedBinId(result.bin.id);
+
+      // Scroll after React re-renders the expanded sections
+      requestAnimationFrame(() => {
+        const el = document.getElementById(`bin-${result.bin!.id}`);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      });
+    } catch {
+      setSearchError("Search failed. Please try again.");
+    }
   }
 
   async function submitAisle(e: React.FormEvent) {
@@ -915,6 +961,61 @@ export default function WarehousePage() {
               >
                 Layout View
               </button>
+            </div>
+
+            <div style={{ position: "relative" }}>
+              <form
+                onSubmit={handleSearchBin}
+                style={{
+                  display: "flex",
+                  gap: ".5rem",
+                  alignItems: "center",
+                }}
+              >
+                <input
+                  type="text"
+                  value={searchTrackingNumber}
+                  onChange={(e) => {
+                    setSearchTrackingNumber(e.target.value);
+                    if (searchError) setSearchError(null);
+                    if (highlightedBinId) setHighlightedBinId(null);
+                  }}
+                  placeholder="Parcel tracking number"
+                  className="tm-input"
+                  style={{
+                    background: S.inputBg,
+                    border: `1px solid ${S.inputBorder}`,
+                    borderRadius: 6,
+                    color: S.text,
+                    padding: ".55rem .75rem",
+                    width: 200,
+                    fontFamily: S.mono,
+                    fontSize: "12px",
+                  }}
+                />
+                <TmBtn
+                  type="submit"
+                  disabled={findBinMutation.isPending || !searchTrackingNumber.trim()}
+                >
+                  Find Bin
+                </TmBtn>
+              </form>
+              {searchError && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "100%",
+                    left: 0,
+                    fontFamily: S.mono,
+                    fontSize: "11px",
+                    color: S.red,
+                    marginTop: ".3rem",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {searchError}
+                </div>
+              )}
             </div>
 
             {!isWarehouseManager ? (
@@ -1246,13 +1347,20 @@ export default function WarehousePage() {
                                             {aisle.bins.map((bin) => (
                                               <div
                                                 key={bin.id}
+                                                id={`bin-${bin.id}`}
                                                 className="tm-card"
                                                 style={{
                                                   background:
                                                     "rgba(255,255,255,.02)",
-                                                  border: `1px solid ${S.border}`,
+                                                  border: highlightedBinId === bin.id
+                                                    ? "2px solid rgba(245,158,11,.7)"
+                                                    : `1px solid ${S.border}`,
                                                   borderRadius: 10,
                                                   padding: "1rem",
+                                                  transition: "border-color .3s ease, box-shadow .3s ease",
+                                                  boxShadow: highlightedBinId === bin.id
+                                                    ? "0 0 12px rgba(245,158,11,.2)"
+                                                    : "none",
                                                 }}
                                               >
                                                 <div
@@ -1546,14 +1654,21 @@ export default function WarehousePage() {
                                             {aisle.bins.map((bin) => (
                                               <div
                                                 key={bin.id}
+                                                id={`bin-${bin.id}`}
                                                 style={{
-                                                  border: `1px solid ${S.border}`,
+                                                  border: highlightedBinId === bin.id
+                                                    ? "2px solid rgba(245,158,11,.7)"
+                                                    : `1px solid ${S.border}`,
                                                   borderRadius: 8,
                                                   padding: ".55rem",
                                                   background:
                                                     bin.currentParcelCount > 0
                                                       ? "rgba(245,158,11,.08)"
                                                       : "rgba(255,255,255,.03)",
+                                                  transition: "border-color .3s ease, box-shadow .3s ease",
+                                                  boxShadow: highlightedBinId === bin.id
+                                                    ? "0 0 12px rgba(245,158,11,.2)"
+                                                    : "none",
                                                 }}
                                               >
                                                 <div

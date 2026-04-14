@@ -25,13 +25,6 @@ export interface DeliveryRoute {
   zoneName: string | null;
 }
 
-export interface StagingStatus {
-  routeId: string;
-  routeName: string;
-  expectedCount: number;
-  stagedCount: number;
-}
-
 export interface StagingParcel {
   id: string;
   trackingNumber: string;
@@ -68,17 +61,6 @@ const GET_DELIVERY_ROUTES_QUERY = `
         driver { id firstName lastName }
         zone { id name }
       }
-    }
-  }
-`;
-
-const GET_STAGING_STATUS_QUERY = `
-  query GetStagingStatus($routeId: UUID!) {
-    stagingStatus(routeId: $routeId) {
-      routeId
-      routeName
-      expectedCount
-      stagedCount
     }
   }
 `;
@@ -165,14 +147,6 @@ export async function getDeliveryRoutesAction(date?: string): Promise<DeliveryRo
   }));
 }
 
-export async function getStagingStatusAction(routeId: string): Promise<StagingStatus | null> {
-  const data = await gqlRequest<{ stagingStatus: StagingStatus | null }>(
-    GET_STAGING_STATUS_QUERY,
-    { routeId }
-  );
-  return data.stagingStatus;
-}
-
 interface ParcelRaw {
   id: string;
   trackingNumber: string;
@@ -183,10 +157,14 @@ interface ParcelRaw {
   recipientAddress: { city: string | null; state: string | null } | null;
 }
 
-export async function getStagingParcelsAction(routeId: string): Promise<StagingParcel[]> {
+export async function getStagingParcelsAction(routeId: string, statuses?: string[]): Promise<StagingParcel[]> {
+  const where: Record<string, unknown> = { routeId: { eq: routeId } };
+  if (statuses && statuses.length > 0) {
+    where.status = statuses.length === 1 ? { eq: statuses[0] } : { in: statuses };
+  }
   const data = await gqlRequest<{ parcels: { nodes: ParcelRaw[] } }>(
     GET_STAGING_PARCELS_QUERY,
-    { where: { routeId: { eq: routeId } } }
+    { where }
   );
   return data.parcels.nodes.map((p) => ({
     id: p.id,

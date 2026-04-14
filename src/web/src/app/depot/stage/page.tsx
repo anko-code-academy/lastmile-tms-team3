@@ -6,10 +6,8 @@ import TmNavbar from "@/components/TmNavbar";
 import {
   stageParcelAction,
   getDeliveryRoutesAction,
-  getStagingStatusAction,
   getStagingParcelsAction,
   type DeliveryRoute,
-  type StagingStatus,
   type StagingParcel,
 } from "@/lib/actions/stageParcel";
 
@@ -69,7 +67,6 @@ const ROUTES_PER_PAGE = 5;
 export default function StagePage() {
   const [routes, setRoutes] = useState<DeliveryRoute[]>([]);
   const [selectedRouteId, setSelectedRouteId] = useState<string>("");
-  const [stagingStatus, setStagingStatus] = useState<StagingStatus | null>(null);
   const [scanInput, setScanInput] = useState("");
   const [scanHistory, setScanHistory] = useState<ScanRecord[]>([]);
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog>({ open: false });
@@ -86,21 +83,13 @@ export default function StagePage() {
     });
   }, []);
 
-  // Refresh staging status when route changes or scan completes
-  useEffect(() => {
-    if (!selectedRouteId) return;
-    getStagingStatusAction(selectedRouteId).then(setStagingStatus).catch((err) => {
-      console.error("Failed to load staging status:", err);
-    });
-  }, [selectedRouteId, scanHistory]);
-
   function focusScanInput() {
     setTimeout(() => scanInputRef.current?.focus(), 0);
   }
 
   function fetchParcels(routeId: string) {
     setParcelsLoading(true);
-    getStagingParcelsAction(routeId).then(setParcels).catch((err) => {
+    getStagingParcelsAction(routeId, ["SORTED", "STAGED"]).then(setParcels).catch((err) => {
       console.error("Failed to load parcels:", err);
     }).finally(() => setParcelsLoading(false));
   }
@@ -108,7 +97,6 @@ export default function StagePage() {
   function selectRoute(id: string) {
     setSelectedRouteId(id);
     setScanInput("");
-    setStagingStatus(null);
     fetchParcels(id);
     focusScanInput();
   }
@@ -171,6 +159,8 @@ export default function StagePage() {
   }
 
   const selectedRoute = routes.find((r) => r.id === selectedRouteId) ?? null;
+  const stagedCount = parcels.filter((p) => p.status === "STAGED").length;
+  const totalCount = parcels.length;
 
   return (
     <>
@@ -395,16 +385,16 @@ export default function StagePage() {
                               {" \u00B7 "}{selectedRoute.date}
                             </div>
                           </div>
-                          {stagingStatus && (
+                          {totalCount > 0 && (
                             <span
                               style={{
                                 fontFamily: S.mono,
                                 fontSize: "12px",
                                 fontWeight: 700,
-                                color: S.accent,
+                                color: stagedCount >= totalCount ? S.green : S.accent,
                               }}
                             >
-                              {stagingStatus.stagedCount}/{stagingStatus.expectedCount}
+                              {stagedCount}/{totalCount}
                             </span>
                           )}
                         </div>
@@ -420,8 +410,8 @@ export default function StagePage() {
                         >
                           <div
                             style={{
-                              width: `${stagingStatus ? Math.round((stagingStatus.stagedCount / Math.max(stagingStatus.expectedCount, 1)) * 100) : 0}%`,
-                              background: stagingStatus && stagingStatus.stagedCount >= stagingStatus.expectedCount ? S.green : S.accent,
+                              width: `${totalCount > 0 ? Math.round((stagedCount / totalCount) * 100) : 0}%`,
+                              background: stagedCount >= totalCount && totalCount > 0 ? S.green : S.accent,
                               height: "100%",
                               transition: "width .3s ease",
                             }}

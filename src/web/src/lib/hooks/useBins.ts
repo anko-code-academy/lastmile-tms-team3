@@ -4,6 +4,7 @@ import {
   createBin,
   deleteAisle,
   deleteBin,
+  findBinByTrackingNumber,
   getWarehouseBins,
   updateAisle,
   updateBin,
@@ -85,5 +86,17 @@ export function useDeleteBin() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["warehouse-bins"] });
     },
+  });
+}
+
+export function useFindBinByTrackingNumber() {
+  return useMutation({
+    mutationFn: ({
+      trackingNumber,
+      depotId,
+    }: {
+      trackingNumber: string;
+      depotId?: string;
+    }) => findBinByTrackingNumber(trackingNumber, depotId),
   });
 }

@@ -301,3 +301,67 @@ export async function deleteBin(id: string): Promise<boolean> {
 
   return data.deleteBin;
 }
+
+const FIND_BIN_BY_TRACKING_NUMBER_QUERY = `
+  query FindBinByTrackingNumber($trackingNumber: String!, $depotId: UUID) {
+    binByTrackingNumber(trackingNumber: $trackingNumber, depotId: $depotId) {
+      bin {
+        id
+        name
+        code
+        aisleId
+        aisle {
+          id
+          name
+          zone {
+            id
+            name
+            depot {
+              id
+              name
+            }
+          }
+        }
+      }
+      notFoundReason
+    }
+  }
+`;
+
+export interface FoundBinResult {
+  id: string;
+  name: string;
+  code: string;
+  aisleId: string;
+  aisle: {
+    id: string;
+    name: string;
+    zone: {
+      id: string;
+      name: string;
+      depot: {
+        id: string;
+        name: string;
+      };
+    };
+  };
+}
+
+export interface FindBinByTrackingNumberResult {
+  bin: FoundBinResult | null;
+  notFoundReason: string | null;
+}
+
+export async function findBinByTrackingNumber(
+  trackingNumber: string,
+  depotId?: string,
+): Promise<FindBinByTrackingNumberResult> {
+  const data = await graphql<{
+    binByTrackingNumber: FindBinByTrackingNumberResult;
+  }>(FIND_BIN_BY_TRACKING_NUMBER_QUERY, {
+    trackingNumber,
+    depotId: depotId || null,
+  });
+
+  return data.binByTrackingNumber;
+}

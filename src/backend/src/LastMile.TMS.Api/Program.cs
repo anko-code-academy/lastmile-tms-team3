@@ -165,7 +165,6 @@ try
         .AddType<UserMutation>()
         .AddType<AuditLogQuery>()
         .AddType<DeliveryRouteQuery>()
-        .AddType<DeliveryRouteMutation>()
         .AddType<RouteMutation>()
         .AddType<AddressType>()
         .AddType<DepotType>()

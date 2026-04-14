@@ -95,11 +95,13 @@ public class DeliveryRouteQuery
 
         // Expected: sorted parcels in this zone not yet assigned to another route,
         // plus parcels already staged to this route. Excludes parcels assigned to a
-        // different route in the same zone to avoid inflation when routes share a zone.
+        // different route in the same zone, and excludes exception/cancelled parcels.
+        var excludedStatuses = new[] { ParcelStatus.Exception, ParcelStatus.Cancelled };
         var expectedCount = await context.Parcels
-            .Where(p => p.ZoneId == route.ZoneId &&
-                        (p.Status == ParcelStatus.Sorted && !p.RouteId.HasValue) ||
-                         p.RouteId == routeId)
+            .Where(p => !excludedStatuses.Contains(p.Status) &&
+                        p.ZoneId == route.ZoneId &&
+                        ((p.Status == ParcelStatus.Sorted && !p.RouteId.HasValue) ||
+                         p.RouteId == routeId))
             .CountAsync(cancellationToken);
 
         var stagedCount = await context.Parcels
