@@ -6,5 +6,6 @@ public record StageParcelDto(
     string? OperatorName,
     string? LocationCity,
     string? LocationState,
-    string? LocationCountryCode
+    string? LocationCountryCode,
+    bool ForceStage = false
 );
