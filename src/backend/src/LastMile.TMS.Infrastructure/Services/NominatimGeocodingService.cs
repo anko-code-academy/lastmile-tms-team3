@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using LastMile.TMS.Application.Common.Interfaces;
 using Microsoft.Extensions.Logging;
@@ -25,6 +26,8 @@ public class NominatimGeocodingService(
                 state,
                 countryCode);
 
+            logger.LogInformation("Geocoding address: {Query}", query);
+
             var queryParams = new Dictionary<string, string>
             {
                 ["q"] = query,
@@ -44,6 +47,8 @@ public class NominatimGeocodingService(
             }
 
             var json = await response.Content.ReadAsStringAsync(cancellationToken);
+            logger.LogInformation("Nominatim raw response: {Json}", json);
+
             using var doc = JsonDocument.Parse(json);
 
             if (doc.RootElement.ValueKind != JsonValueKind.Array || doc.RootElement.GetArrayLength() == 0)
@@ -61,12 +66,18 @@ public class NominatimGeocodingService(
                 return null;
             }
 
-            if (!double.TryParse(latElement.GetString(), out var lat) ||
-                !double.TryParse(lonElement.GetString(), out var lon))
+            var latStr = latElement.GetString();
+            var lonStr = lonElement.GetString();
+            logger.LogInformation("Nominatim lat='{LatStr}' lon='{LonStr}'", latStr, lonStr);
+
+            if (!double.TryParse(latStr, CultureInfo.InvariantCulture, out var lat) ||
+                !double.TryParse(lonStr, CultureInfo.InvariantCulture, out var lon))
             {
-                logger.LogWarning("Nominatim returned invalid lat/lon for address: {Query}", query);
+                logger.LogWarning("Nominatim returned invalid lat/lon for address: {Query}. lat='{LatStr}' lon='{LonStr}'", query, latStr, lonStr);
                 return null;
             }
+
+            logger.LogInformation("Geocoded '{Query}' -> lat={Lat}, lon={Lon}", query, lat, lon);
 
             return new GeocodingResult(lat, lon);
         }

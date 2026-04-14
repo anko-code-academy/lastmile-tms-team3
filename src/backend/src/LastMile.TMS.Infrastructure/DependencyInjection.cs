@@ -24,7 +24,7 @@ public static class DependencyInjection
         services.AddHttpClient<IGeocodingService, NominatimGeocodingService>(c =>
         {
             c.BaseAddress = new Uri("https://nominatim.openstreetmap.org/");
-            c.Timeout = TimeSpan.FromSeconds(5);
+            c.Timeout = TimeSpan.FromSeconds(10);
             c.DefaultRequestHeaders.Add("User-Agent", "LastMileTMS/1.0 (LastMile TMS Team 3)");
         })
             .AddPolicyHandler(retryPolicy);
