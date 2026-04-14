@@ -137,8 +137,8 @@ export default function RouteMapPage() {
               {/* Sidebar */}
               <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
                 {/* Route list */}
-                <div style={{ border: `1px solid ${S.border}`, borderRadius: 8, overflow: "hidden" }}>
-                  <div style={{ padding: ".75rem 1rem", borderBottom: `1px solid ${S.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ background: S.panel, border: `1px solid ${S.border}`, borderRadius: 10, overflow: "hidden" }}>
+                  <div style={{ padding: ".75rem 1rem", borderBottom: `1px solid rgba(255,255,255,.08)`, background: "rgba(255,255,255,.025)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <span style={{ fontWeight: 600, fontSize: ".875rem" }}>Routes</span>
                     <span style={{ fontSize: ".75rem", color: S.muted }}>{routes.length} total</span>
                   </div>
@@ -196,7 +196,7 @@ export default function RouteMapPage() {
 
                 {/* Selected route details */}
                 {selectedRoute && (
-                  <div style={{ border: `1px solid ${S.border}`, borderRadius: 8, padding: "1rem" }}>
+                  <div style={{ background: S.panel, border: `1px solid ${S.border}`, borderRadius: 10, padding: "1rem" }}>
                     <h3 style={{ fontSize: ".875rem", fontWeight: 600, margin: 0, marginBottom: ".5rem" }}>
                       {selectedRoute.name}
                     </h3>
@@ -234,7 +234,7 @@ export default function RouteMapPage() {
                 )}
 
                 {/* Legend */}
-                <div style={{ border: `1px solid ${S.border}`, borderRadius: 8, padding: ".75rem 1rem" }}>
+                <div style={{ background: S.panel, border: `1px solid ${S.border}`, borderRadius: 10, padding: ".75rem 1rem" }}>
                   <div style={{ fontSize: ".7rem", fontWeight: 600, color: S.muted, textTransform: "uppercase", letterSpacing: ".08em", marginBottom: ".5rem" }}>
                     Legend
                   </div>

@@ -18,8 +18,8 @@ const S = {
   panel: "rgba(255,255,255,.025)" as const,
   border: "rgba(255,255,255,.07)" as const,
   text: "#e2e8f0" as const,
-  muted: "#4a5f7a" as const,
-  dim: "#3a526e" as const,
+  muted: "#647a96" as const,
+  dim: "#4e6480" as const,
   accent: "#f59e0b" as const,
   inputBg: "rgba(255,255,255,.05)" as const,
   inputBorder: "rgba(255,255,255,.1)" as const,
@@ -550,16 +550,16 @@ export default function AuditLogsPage() {
                           }
                           style={{ borderBottom: `1px solid ${S.border}` }}
                         >
-                          <BodyCell>
+                          <BodyCell color="#647a96">
                             {formatOccurredAt(item.occurredAt)}
                           </BodyCell>
-                          <BodyCell>
+                          <BodyCell color="#93c5fd">
                             {item.actorUserName ?? item.actorUserId ?? "System"}
                           </BodyCell>
-                          <BodyCell>
+                          <BodyCell color="#f59e0b">
                             {item.actionType.replaceAll("_", " ")}
                           </BodyCell>
-                          <BodyCell>
+                          <BodyCell color="#38bdf8">
                             {item.resourceType.replaceAll("_", " ")}
                           </BodyCell>
                           <BodyCell>{shorten(item.summary)}</BodyCell>
@@ -652,8 +652,8 @@ function HeaderCell({
   );
 }
 
-function BodyCell({ children }: { children: React.ReactNode }) {
-  return <td style={{ padding: ".9rem 1rem", color: S.text }}>{children}</td>;
+function BodyCell({ children, color }: { children: React.ReactNode; color?: string }) {
+  return <td style={{ padding: ".9rem 1rem", color: color ?? S.text }}>{children}</td>;
 }
 
 const labelStyle: React.CSSProperties = {

@@ -41,7 +41,7 @@ const S = {
   panel: "rgba(255,255,255,.025)" as const,
   border: "rgba(255,255,255,.07)" as const,
   text: "#e2e8f0" as const,
-  muted: "#4a5f7a" as const,
+  muted: "#647a96" as const,
   accent: "#f59e0b" as const,
   inputBg: "rgba(255,255,255,.05)" as const,
   inputBorder: "rgba(255,255,255,.1)" as const,

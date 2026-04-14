@@ -11,8 +11,8 @@ const S = {
   panel: "rgba(255,255,255,.025)" as const,
   border: "rgba(255,255,255,.07)" as const,
   text: "#e2e8f0" as const,
-  muted: "#4a5f7a" as const,
-  dim: "#3a526e" as const,
+  muted: "#647a96" as const,
+  dim: "#4e6480" as const,
   accent: "#f59e0b" as const,
   inputBg: "rgba(255,255,255,.05)" as const,
   inputBorder: "rgba(255,255,255,.1)" as const,
@@ -390,7 +390,8 @@ export default function DriversPage() {
                                 padding: ".75rem 1rem",
                                 fontFamily: S.mono,
                                 fontWeight: 700,
-                                color: S.text,
+                                fontSize: "13px",
+                                color: "#f59e0b",
                               }}
                             >
                               {d.fullName}
@@ -398,8 +399,8 @@ export default function DriversPage() {
                             <td
                               style={{
                                 padding: ".75rem 1rem",
-                                fontSize: ".875rem",
-                                color: S.muted,
+                                fontSize: "13px",
+                                color: "#93c5fd",
                               }}
                             >
                               {d.email}
@@ -408,8 +409,8 @@ export default function DriversPage() {
                               style={{
                                 padding: ".75rem 1rem",
                                 fontFamily: S.mono,
-                                fontSize: ".8rem",
-                                color: S.dim,
+                                fontSize: "12px",
+                                color: "#38bdf8",
                               }}
                             >
                               {d.licenseNumber}
@@ -417,8 +418,8 @@ export default function DriversPage() {
                             <td
                               style={{
                                 padding: ".75rem 1rem",
-                                fontSize: ".875rem",
-                                color: S.muted,
+                                fontSize: "13px",
+                                color: "#7a9ab8",
                               }}
                             >
                               {d.depot?.name ?? "—"}
@@ -443,8 +444,9 @@ export default function DriversPage() {
                               style={{
                                 padding: ".75rem 1rem",
                                 fontFamily: S.mono,
-                                fontSize: ".8rem",
-                                color: S.dim,
+                                fontSize: "11px",
+                                color: "#647a96",
+                                letterSpacing: ".04em",
                               }}
                             >
                               {new Date(d.createdAt).toLocaleDateString()}

@@ -203,8 +203,12 @@ export default function SortScanPage() {
         background: "#080c14",
         color: "#e2e8f0",
         fontFamily: mono,
+        position: "relative",
+        overflow: "hidden",
       }}
     >
+      <div style={{ position: "fixed", inset: 0, zIndex: 0, backgroundImage: "linear-gradient(rgba(30,42,66,.45) 1px,transparent 1px),linear-gradient(90deg,rgba(30,42,66,.45) 1px,transparent 1px)", backgroundSize: "52px 52px", pointerEvents: "none" }} />
+      <div style={{ position: "relative", zIndex: 1 }}>
       <TmNavbar />
 
       <div
@@ -240,7 +244,7 @@ export default function SortScanPage() {
               fontFamily: mono,
               fontSize: "11px",
               letterSpacing: ".06em",
-              color: "#4a5f7a",
+              color: "#647a96",
             }}
           >
             Scan parcels to assign bins for storage based on zone.
@@ -542,6 +546,7 @@ export default function SortScanPage() {
             </div>
           </div>
         </div>
+      </div>
     </div>
     </>
   );
@@ -557,7 +562,7 @@ function paginationBtn(disabled: boolean): React.CSSProperties {
     opacity: disabled ? 0.35 : 1,
     background: "transparent",
     border: "1px solid rgba(255,255,255,.1)",
-    color: "#4a5f7a",
+    color: "#647a96",
   };
 }
 

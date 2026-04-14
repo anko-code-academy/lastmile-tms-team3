@@ -23,7 +23,7 @@ import { ParcelStatusBadge } from "@/components/parcels/ParcelStatusBadge";
 const S = {
   accent: "#f59e0b" as const,
   text: "#e2e8f0" as const,
-  muted: "#4a5f7a" as const,
+  muted: "#647a96" as const,
   red: "#ef4444" as const,
   mono: "var(--font-geist-mono, monospace)" as const,
 };

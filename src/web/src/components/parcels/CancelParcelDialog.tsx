@@ -8,7 +8,7 @@ import { cancelParcelAction } from "@/lib/actions/parcels";
 const S = {
   overlay: { position: "fixed" as const, inset: 0, background: "rgba(0,0,0,.6)", zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center" },
   dialog: { background: "#0d1627", border: "1px solid rgba(255,255,255,.1)", borderRadius: 12, padding: "1.5rem", width: "100%", maxWidth: 440 },
-  label: { fontFamily: "var(--font-geist-mono, monospace)", fontSize: "10px", letterSpacing: ".1em", color: "#4a5f7a", textTransform: "uppercase" as const, display: "block", marginBottom: ".375rem" },
+  label: { fontFamily: "var(--font-geist-mono, monospace)", fontSize: "10px", letterSpacing: ".1em", color: "#647a96", textTransform: "uppercase" as const, display: "block", marginBottom: ".375rem" },
   textarea: { width: "100%", padding: ".625rem .75rem", background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 6, color: "#e2e8f0", fontSize: ".875rem", resize: "vertical" as const, minHeight: 80 },
   btnDanger: { padding: ".5rem 1.25rem", background: "#dc2626", border: "none", borderRadius: 6, color: "#fff", fontSize: ".875rem", fontWeight: 600, cursor: "pointer" },
   btnGhost: { padding: ".5rem 1.25rem", background: "transparent", border: "1px solid rgba(255,255,255,.1)", borderRadius: 6, color: "#e2e8f0", fontSize: ".875rem", cursor: "pointer" },
@@ -49,7 +49,7 @@ export function CancelParcelDialog({ parcel, onClose, onCancelled }: Props) {
           <h2 style={{ fontFamily: "var(--font-geist-mono, monospace)", fontSize: "1rem", fontWeight: 700, color: "#e2e8f0" }}>
             Cancel Parcel
           </h2>
-          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#4a5f7a" }}>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#647a96" }}>
             <X size={18} />
           </button>
         </div>

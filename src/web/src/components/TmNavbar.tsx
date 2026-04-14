@@ -1,242 +1,109 @@
 "use client";
 
-import { useRef, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
+import Link from "next/link";
 
-interface NavItem {
-  label: string;
-  href?: string;
-  children?: { label: string; href: string }[];
-}
+const HomeIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+    <polyline points="9 22 9 12 15 12 15 22"/>
+  </svg>
+);
 
 export default function TmNavbar() {
   const { data: session } = useSession();
   const pathname = usePathname();
-  const isAdmin = session?.user?.role === "Admin";
-  const isWarehouseManager = session?.user?.role === "WarehouseManager";
-  const isAdminOrOm = isAdmin || session?.user?.role === "OperationsManager";
-  const isDepotOperator =
-    isAdmin ||
-    isAdminOrOm ||
-    session?.user?.role === "DepotOperator" ||
-    session?.user?.role === "WarehouseOperator";
-  const canManageBins = isAdmin || isWarehouseManager;
 
-  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
-  const closeTimeout = useRef<ReturnType<typeof setTimeout>>(null);
-
-  const navItems: NavItem[] = [
-    { label: "Dashboard", href: "/" },
-    { label: "Parcels", href: "/parcels" },
-    ...(isDepotOperator
-      ? [
-          {
-            label: "Warehouse",
-            children: [
-              { label: "Receive", href: "/depot/receiving" },
-              { label: "Sort", href: "/depot/sort" },
-              { label: "Stage", href: "/depot/stage" },
-              { label: "Load Out", href: "/load-out" },
-            ],
-          },
-        ]
-      : []),
-    ...(isAdminOrOm
-      ? [{ label: "Depot Dashboard", href: "/admin/depot-dashboard" }]
-      : []),
-    ...(isAdminOrOm ? [{ label: "Depots", href: "/admin/depots" }] : []),
-    ...(isAdmin ? [{ label: "Zones", href: "/admin/zones" }] : []),
-    ...(canManageBins ? [{ label: "Bins", href: "/warehouse" }] : []),
-    ...(isAdminOrOm
-      ? [
-          { label: "Drivers", href: "/admin/drivers" },
-          { label: "Vehicles", href: "/admin/vehicles" },
-        ]
-      : []),
-    ...(isAdmin ? [{ label: "Users", href: "/admin/users" }] : []),
-    ...(isAdmin
-      ? [{ label: "Audit Logs", href: "/admin/audit-logs" }]
-      : []),
-  ];
+  // Breadcrumb: convert "/admin/drivers" → ["Admin", "Drivers"]
+  const crumbs = pathname
+    .split("/")
+    .filter(Boolean)
+    .map((s) => s.charAt(0).toUpperCase() + s.slice(1).replace(/-/g, " "));
 
   const mono = "var(--font-geist-mono, monospace)";
-
-  function handleMouseEnter(label: string) {
-    if (closeTimeout.current) clearTimeout(closeTimeout.current);
-    setOpenDropdown(label);
-  }
-
-  function handleMouseLeave() {
-    closeTimeout.current = setTimeout(() => setOpenDropdown(null), 150);
-  }
-
-  function isActiveHref(href: string) {
-    return href === "/" ? pathname === "/" : pathname.startsWith(href);
-  }
-
-  function isAnyChildActive(item: NavItem) {
-    return item.children?.some((c) => isActiveHref(c.href)) ?? false;
-  }
 
   return (
     <>
       <style>{`
-        .tm-nav-link {
+        .tm-home-btn {
+          display: flex; align-items: center; gap: .4rem;
           font-family: var(--font-geist-mono, monospace);
-          font-size: 11px; letter-spacing: .14em;
-          text-decoration: none; text-transform: uppercase;
-          padding: .375rem .5rem; border-radius: 4px;
-          color: #3d4f6b;
-          transition: color .15s, background .15s;
-          white-space: nowrap;
+          font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+          padding: .35rem .7rem;
+          background: rgba(245,158,11,.08);
+          border: 1px solid rgba(245,158,11,.25);
+          border-radius: 6px;
+          color: #f59e0b;
+          text-decoration: none;
+          transition: background .15s, border-color .15s;
+          flex-shrink: 0;
         }
-        .tm-nav-link:hover { color: #e2e8f0; background: rgba(255,255,255,.04); }
-        .tm-nav-link.tm-active { color: #f59e0b; }
-        .tm-dropdown {
-          position: absolute; top: 100%; left: 0; margin-top: 4px;
-          background: #0d1424; border: 1px solid rgba(255,255,255,.07);
-          border-radius: 8px; padding: .375rem 0; min-width: 160px;
-          box-shadow: 0 8px 24px rgba(0,0,0,.4);
+        .tm-home-btn:hover {
+          background: rgba(245,158,11,.15);
+          border-color: rgba(245,158,11,.45);
         }
-        .tm-dropdown a {
-          display: block; padding: .45rem .85rem;
-          font-family: var(--font-geist-mono, monospace);
-          font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
-          color: #4a5f7a; text-decoration: none;
-          transition: color .12s, background .12s;
-        }
-        .tm-dropdown a:hover { color: #e2e8f0; background: rgba(255,255,255,.04); }
-        .tm-dropdown a.tm-active { color: #f59e0b; }
         .tm-signout {
           font-family: var(--font-geist-mono, monospace);
           font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
-          padding: .375rem .875rem;
-          background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
-          border-radius: 6px; color: #4a5f7a; cursor: pointer;
+          padding: .35rem .8rem;
+          background: rgba(255,255,255,.04);
+          border: 1px solid rgba(255,255,255,.08);
+          border-radius: 6px; color: #647a96; cursor: pointer;
           transition: border-color .15s, color .15s, background .15s;
+          flex-shrink: 0;
         }
-        .tm-signout:hover { border-color: rgba(239,68,68,.3); color: #fca5a5; background: rgba(239,68,68,.06); }
+        .tm-signout:hover {
+          border-color: rgba(239,68,68,.3);
+          color: #fca5a5;
+          background: rgba(239,68,68,.06);
+        }
       `}</style>
-      <nav
-        style={{
-          display: "flex",
-          alignItems: "center",
-          padding: "0 2rem",
-          height: "56px",
-          borderBottom: "1px solid rgba(255,255,255,.06)",
-          background: "rgba(8,12,20,.85)",
-          backdropFilter: "blur(12px)",
-          position: "sticky",
-          top: 0,
-          zIndex: 10,
-          gap: ".25rem",
-        }}
-      >
-        <span
-          style={{
-            fontFamily: mono,
-            fontSize: ".875rem",
-            fontWeight: 800,
-            letterSpacing: "-.01em",
-            color: "#e2e8f0",
-            flexShrink: 0,
-            marginRight: "1.75rem",
-          }}
-        >
-          LAST <span style={{ color: "#f59e0b" }}>MILE</span> TMS
-        </span>
-        <div style={{ display: "flex", gap: ".25rem", flex: 1 }}>
-          {navItems.map((item) => {
-            if (item.children) {
-              const isDropdownOpen = openDropdown === item.label;
-              const parentActive = isAnyChildActive(item);
-              return (
-                <div
-                  key={item.label}
-                  style={{ position: "relative" }}
-                  onMouseEnter={() => handleMouseEnter(item.label)}
-                  onMouseLeave={handleMouseLeave}
-                >
-                  <a
-                    className={`tm-nav-link${parentActive ? " tm-active" : ""}`}
-                    href={item.children[0].href}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setOpenDropdown(
-                        isDropdownOpen ? null : item.label,
-                      );
-                    }}
-                    style={{ cursor: "pointer" }}
-                  >
-                    {item.label}{" "}
-                    <span style={{ fontSize: "8px", verticalAlign: "middle" }}>
-                      &#9662;
-                    </span>
-                  </a>
-                  {isDropdownOpen && (
-                    <div className="tm-dropdown">
-                      {item.children.map((child) => (
-                        <a
-                          key={child.label}
-                          href={child.href}
-                          className={
-                            isActiveHref(child.href) ? "tm-active" : ""
-                          }
-                          onClick={() => setOpenDropdown(null)}
-                        >
-                          {child.label}
-                        </a>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            }
 
-            const isActive =
-              item.href && item.href !== "#" && isActiveHref(item.href);
-            return (
-              <a
-                key={item.label}
-                href={item.href}
-                className={`tm-nav-link${isActive ? " tm-active" : ""}`}
-              >
-                {item.label}
-              </a>
-            );
-          })}
-        </div>
-        {/* User + sign out */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "1rem",
-            flexShrink: 0,
-          }}
-        >
+      <nav style={{
+        display: "flex",
+        alignItems: "center",
+        padding: "0 2rem",
+        height: "52px",
+        borderBottom: "1px solid rgba(255,255,255,.06)",
+        background: "rgba(8,12,20,.9)",
+        backdropFilter: "blur(12px)",
+        position: "sticky",
+        top: 0,
+        zIndex: 10,
+        gap: "1rem",
+      }}>
+        {/* Logo */}
+        <span style={{ fontFamily: mono, fontSize: ".875rem", fontWeight: 800, letterSpacing: "-.01em", color: "#e2e8f0", flexShrink: 0, marginRight: ".5rem" }}>
+          LAST <span style={{ color: "#f59e0b" }}>MILE</span>
+        </span>
+
+        {/* Home button */}
+        <Link href="/" className="tm-home-btn">
+          <HomeIcon />
+          Home
+        </Link>
+
+        {/* Breadcrumb */}
+        {crumbs.length > 0 && (
+          <div style={{ display: "flex", alignItems: "center", gap: ".4rem", flex: 1, overflow: "hidden" }}>
+            <span style={{ color: "rgba(255,255,255,.15)", fontSize: "14px" }}>/</span>
+            {crumbs.map((c, i) => (
+              <span key={i} style={{ fontFamily: mono, fontSize: "11px", color: i === crumbs.length - 1 ? "#c0cfe0" : "#4e6480", letterSpacing: ".08em", whiteSpace: "nowrap" }}>
+                {c}{i < crumbs.length - 1 && <span style={{ marginLeft: ".4rem", color: "rgba(255,255,255,.15)" }}>/</span>}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Right: user + sign out */}
+        <div style={{ display: "flex", alignItems: "center", gap: ".875rem", marginLeft: "auto", flexShrink: 0 }}>
           {session?.user?.email && (
-            <span
-              style={{
-                fontFamily: mono,
-                fontSize: "10px",
-                color: "#3d4f6b",
-                letterSpacing: ".08em",
-                maxWidth: "200px",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
+            <span style={{ fontFamily: mono, fontSize: "10px", color: "#4e6480", letterSpacing: ".06em", maxWidth: "200px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {session.user.email}
             </span>
           )}
-          <button
-            type="button"
-            className="tm-signout"
-            onClick={() => signOut({ callbackUrl: "/login" })}
-          >
+          <button type="button" className="tm-signout" onClick={() => signOut({ callbackUrl: "/login" })}>
             Sign out
           </button>
         </div>

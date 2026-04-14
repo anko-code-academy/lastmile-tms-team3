@@ -272,7 +272,7 @@ export default function RouteMap({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          color: "#4a5f7a",
+          color: "#647a96",
           fontSize: ".85rem",
         }}
       >

@@ -18,7 +18,7 @@ const S = {
   panel: "rgba(255,255,255,.025)" as const,
   border: "rgba(255,255,255,.07)" as const,
   text: "#e2e8f0" as const,
-  muted: "#4a5f7a" as const,
+  muted: "#647a96" as const,
   accent: "#f59e0b" as const,
   inputBg: "rgba(255,255,255,.05)" as const,
   inputBorder: "rgba(255,255,255,.1)" as const,
@@ -317,9 +317,9 @@ export default function NewRoutePage() {
         <style>{`
           .tm-input:focus { border-color: rgba(245,158,11,.45) !important; box-shadow: 0 0 0 2px rgba(245,158,11,.08); }
           .tm-input::placeholder { color: #3a526e; }
-          .tm-select { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); color: #e2e8f0; border-radius: 6px; padding: .5rem .75rem; font-size: .875rem; width: 100%; outline: none; }
+          .tm-select { background: #0d1424; border: 1px solid rgba(255,255,255,.1); color: #e2e8f0; border-radius: 6px; padding: .5rem .75rem; font-size: .875rem; width: 100%; outline: none; font-family: var(--font-geist-mono,monospace); }
           .tm-select:focus { border-color: rgba(245,158,11,.45); }
-          .tm-select option { background: #0f1929; color: #e2e8f0; }
+          .tm-select option { background: #0d1424; color: #e2e8f0; }
         `}</style>
         <div style={{ minHeight: "100vh", background: S.bg, color: S.text, position: "relative", overflow: "hidden" }}>
           <div
@@ -345,7 +345,7 @@ export default function NewRoutePage() {
               </div>
 
               <form onSubmit={handleCreateRoute}>
-                <div style={{ border: `1px solid ${S.border}`, borderRadius: 8, padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+                <div style={{ background: "rgba(255,255,255,.025)", border: `1px solid ${S.border}`, borderRadius: 10, padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
                   {/* Date */}
                   <div>
                     <TmLabel htmlFor="date">Delivery Date *</TmLabel>
@@ -444,9 +444,9 @@ export default function NewRoutePage() {
     <>
       <style>{`
         .tm-input:focus { border-color: rgba(245,158,11,.45) !important; }
-        .tm-select { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); color: #e2e8f0; border-radius: 6px; padding: .5rem .75rem; font-size: .875rem; width: 100%; outline: none; }
+        .tm-select { background: #0d1424; border: 1px solid rgba(255,255,255,.1); color: #e2e8f0; border-radius: 6px; padding: .5rem .75rem; font-size: .875rem; width: 100%; outline: none; font-family: var(--font-geist-mono,monospace); }
         .tm-select:focus { border-color: rgba(245,158,11,.45); }
-        .tm-select option { background: #0f1929; color: #e2e8f0; }
+        .tm-select option { background: #0d1424; color: #e2e8f0; }
         .parcel-row:hover { background: rgba(255,255,255,.03); }
         .parcel-row:hover .remove-btn { opacity: 1 !important; }
         .tm-btn-primary:hover { border-color: rgba(245,158,11,.6) !important; background: rgba(245,158,11,.18) !important; }

@@ -9,10 +9,10 @@ import { editParcelAction } from "@/lib/actions/parcels";
 const S = {
   overlay: { position: "fixed" as const, inset: 0, background: "rgba(0,0,0,.65)", zIndex: 50, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto" as const, paddingTop: "2rem", paddingBottom: "2rem" },
   dialog: { background: "#0d1627", border: "1px solid rgba(255,255,255,.1)", borderRadius: 12, padding: "1.5rem", width: "100%", maxWidth: 640 },
-  label: { fontFamily: "var(--font-geist-mono, monospace)", fontSize: "10px", letterSpacing: ".1em", color: "#4a5f7a", textTransform: "uppercase" as const, display: "block", marginBottom: ".375rem", marginTop: ".75rem" },
+  label: { fontFamily: "var(--font-geist-mono, monospace)", fontSize: "10px", letterSpacing: ".1em", color: "#647a96", textTransform: "uppercase" as const, display: "block", marginBottom: ".375rem", marginTop: ".75rem" },
   input: { width: "100%", padding: ".5rem .75rem", background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 6, color: "#e2e8f0", fontSize: ".875rem", boxSizing: "border-box" as const },
   select: { width: "100%", padding: ".5rem .75rem", background: "#0d1627", border: "1px solid rgba(255,255,255,.1)", borderRadius: 6, color: "#e2e8f0", fontSize: ".875rem", boxSizing: "border-box" as const },
-  section: { fontFamily: "var(--font-geist-mono, monospace)", fontSize: "9px", letterSpacing: ".18em", color: "#4a5f7a", textTransform: "uppercase" as const, marginTop: "1.25rem", marginBottom: ".5rem", borderBottom: "1px solid rgba(255,255,255,.06)", paddingBottom: ".375rem" },
+  section: { fontFamily: "var(--font-geist-mono, monospace)", fontSize: "9px", letterSpacing: ".18em", color: "#647a96", textTransform: "uppercase" as const, marginTop: "1.25rem", marginBottom: ".5rem", borderBottom: "1px solid rgba(255,255,255,.06)", paddingBottom: ".375rem" },
   row2: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: ".75rem" },
   row3: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: ".75rem" },
   btnPrimary: { padding: ".5rem 1.25rem", background: "#2563eb", border: "none", borderRadius: 6, color: "#fff", fontSize: ".875rem", fontWeight: 600, cursor: "pointer" },
@@ -155,7 +155,7 @@ export function EditParcelDialog({ parcel, onClose, onSaved }: Props) {
           <h2 style={{ fontFamily: "var(--font-geist-mono, monospace)", fontSize: "1rem", fontWeight: 700, color: "#e2e8f0" }}>
             Edit Parcel
           </h2>
-          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#4a5f7a" }}>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#647a96" }}>
             <X size={18} />
           </button>
         </div>

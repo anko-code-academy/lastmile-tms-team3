@@ -13,8 +13,8 @@ const S = {
   panel: "rgba(255,255,255,.025)" as const,
   border: "rgba(255,255,255,.07)" as const,
   text: "#e2e8f0" as const,
-  muted: "#4a5f7a" as const,
-  dim: "#3a526e" as const,
+  muted: "#647a96" as const,
+  dim: "#4e6480" as const,
   accent: "#f59e0b" as const,
   mono: "var(--font-geist-mono, monospace)" as const,
 };
