@@ -469,7 +469,7 @@ export default function ReceivingPage() {
               <input
                 value={listSearch}
                 onChange={(e) => setListSearch(e.target.value)}
-                placeholder="Search by manifest or tracking number..."
+                placeholder="Search by manifest or tracking number"
                 className="tm-input"
                 style={{
                   width: "100%",
@@ -837,7 +837,7 @@ export default function ReceivingPage() {
                       isScanning={isScanning}
                       label="Scan Parcel Barcode"
                       buttonText="Receive"
-                      placeholder="Scan or enter tracking number..."
+                      placeholder="Scan or enter parcel tracking number"
                     />
 
                     {/* Dock/door */}
@@ -868,8 +868,8 @@ export default function ReceivingPage() {
                         onScan={handleScan}
                         isScanning={isScanning}
                         label="Scan Tracking Number"
-                        buttonText="Scan"
-                        placeholder="Scan or type tracking number..."
+                        buttonText="Receive"
+                        placeholder="Scan or enter parcel tracking number"
                         dockDoor={dockDoor}
                       />
                     )}

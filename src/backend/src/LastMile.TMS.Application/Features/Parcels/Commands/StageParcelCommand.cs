@@ -47,7 +47,7 @@ public static class StageParcel
             DepotAccessGuard.EnsureDepotAccess(_currentUser, route.DepotId);
 
             // Mis-stage: parcel is already assigned to a different route
-            if (parcel.RouteId.HasValue && parcel.RouteId.Value != route.Id)
+            if (!request.Dto.ForceStage && parcel.RouteId.HasValue && parcel.RouteId.Value != route.Id)
             {
                 return new StageParcelResultDto(
                     ParcelId: parcel.Id,

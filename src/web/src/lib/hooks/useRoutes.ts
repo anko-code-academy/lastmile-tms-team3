@@ -11,10 +11,10 @@ import {
 } from "@/lib/actions/routes";
 
 // Load-out hooks (PR #28)
-export function useDeliveryRoutes() {
+export function useDeliveryRoutes(where?: Record<string, unknown>) {
   return useQuery({
-    queryKey: ["delivery-routes"],
-    queryFn: () => getDeliveryRoutes(),
+    queryKey: ["delivery-routes", where],
+    queryFn: () => getDeliveryRoutes(where),
     select: (data) => data.deliveryRoutes,
   });
 }

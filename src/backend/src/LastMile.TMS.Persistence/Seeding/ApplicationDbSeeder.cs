@@ -1612,6 +1612,7 @@ public class ApplicationDbSeeder(
         var routeParcels = new List<RouteParcel>();
         var parcelsByZone = routeReadyParcels.GroupBy(p => p.ZoneId).ToDictionary(g => g.Key, g => g.ToList());
         var assignedParcelIds = new HashSet<Guid>();
+        var random = new Random(42);
 
         foreach (var route in draftRoutes)
         {
@@ -1630,6 +1631,15 @@ public class ApplicationDbSeeder(
                     AddedAt = DateTimeOffset.UtcNow,
                 });
                 assignedParcelIds.Add(parcel.Id);
+
+                // Set the FK so parcel-to-route queries work
+                parcel.RouteId = route.Id;
+
+                // Mark the first ~60% of parcels as already Staged
+                if (i < (available.Count * 6) / 10)
+                {
+                    parcel.Status = ParcelStatus.Staged;
+                }
             }
 
             route.EstimatedStops = available.Count;
