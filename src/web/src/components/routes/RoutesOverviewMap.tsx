@@ -121,8 +121,8 @@ export default function RoutesOverviewMap({
         source: sourceId,
         paint: {
           "line-color": color,
-          "line-width": isSelected ? 4 : 2.5,
-          "line-opacity": isSelected ? 0.9 : 0.6,
+          "line-width": isSelected ? 5 : 2,
+          "line-opacity": isSelected ? 1.0 : 0.15,
         },
       });
 
@@ -148,6 +148,8 @@ export default function RoutesOverviewMap({
 
     routes.forEach((route) => {
       const color = STATUS_COLORS[route.status] ?? "#94a3b8";
+      const isRouteSelected = route.id === selectedRouteId;
+      const markerOpacity = isRouteSelected ? 1.0 : (selectedRouteId ? 0.25 : 1.0);
       const sortedStops = [...route.stops].sort((a, b) => a.stopOrder - b.stopOrder);
 
       if (route.depot?.address?.latitude != null && route.depot?.address?.longitude != null) {
@@ -182,7 +184,7 @@ export default function RoutesOverviewMap({
         const fontSize = 9;
         const stopStyle = getStopMarkerStyle(stop.status, color);
         const textContent = stopStyle.text || String(stop.stopOrder);
-        el.style.cssText = `width:${size}px;height:${size}px;background:${stopStyle.bg};border-radius:50%;border:2px solid #fff;box-shadow:0 0 4px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:${fontSize}px;color:#080c14;cursor:pointer;`;
+        el.style.cssText = `width:${size}px;height:${size}px;background:${stopStyle.bg};border-radius:50%;border:2px solid #fff;box-shadow:0 0 4px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:${fontSize}px;color:#080c14;cursor:pointer;opacity:${markerOpacity};`;
         el.textContent = textContent;
 
         const marker = new mapboxgl.Marker({ element: el })

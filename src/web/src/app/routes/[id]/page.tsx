@@ -925,6 +925,7 @@ export default function RouteDetailPage({
                   )}
                 </div>
                 <RouteMap
+                  status={route.status}
                   depotLocation={
                     route.depot?.address?.latitude != null &&
                     route.depot?.address?.longitude != null
@@ -954,6 +955,7 @@ export default function RouteDetailPage({
                       address:
                         rp.parcel?.recipientAddress?.city ??
                         "Unknown",
+                      status: rp.parcel?.status ?? undefined,
                     }))}
                   selectedStopId={selectedStopId}
                   onStopSelected={setSelectedStopId}
