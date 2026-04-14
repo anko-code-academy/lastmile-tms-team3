@@ -98,6 +98,11 @@ export default function RouteDetailPage({
   const [dispatching, setDispatching] = useState(false);
   const [selectedStopId, setSelectedStopId] = useState<string | null>(null);
 
+  // Reason dialog state for active route changes
+  const [reason, setReason] = useState("");
+  const [showReasonDialog, setShowReasonDialog] = useState<"add" | "remove" | null>(null);
+  const [pendingRemoveParcelId, setPendingRemoveParcelId] = useState<string | null>(null);
+
   // Vehicles
   const { data: vehiclesData } = useSearchVehicles({
     sortField: "registrationPlate",
@@ -366,34 +371,60 @@ export default function RouteDetailPage({
   const assignedParcels = route?.routeParcels ?? [];
 
   // Active route handlers
-  async function handleAddParcelsToActiveRoute() {
+  function handleAddParcelsToActiveRoute() {
     if (!routeId || selectedParcelIds.size === 0) return;
+    setShowReasonDialog("add");
+  }
+
+  async function confirmAddParcelsToActiveRoute() {
+    if (!routeId || selectedParcelIds.size === 0 || !reason.trim()) return;
     setParcelLoading(true);
     setError(null);
     const result = await addParcelsToActiveRouteAction({
       routeId,
       parcelIds: Array.from(selectedParcelIds),
+      reason: reason.trim(),
     });
     setParcelLoading(false);
     if (result.error) {
       setError(result.error);
     } else {
       setSelectedParcelIds(new Set());
+      setReason("");
+      setShowReasonDialog(null);
       await loadRoute();
     }
   }
 
-  async function handleRemoveParcelFromActiveRoute(parcelId: string) {
-    if (!routeId) return;
+  function handleRemoveParcelFromActiveRoute(parcelId: string) {
+    setPendingRemoveParcelId(parcelId);
+    setShowReasonDialog("remove");
+  }
+
+  async function confirmRemoveParcelFromActiveRoute() {
+    if (!routeId || !pendingRemoveParcelId || !reason.trim()) return;
     setParcelLoading(true);
     setError(null);
-    const result = await removeParcelFromActiveRouteAction({ routeId, parcelId });
+    const result = await removeParcelFromActiveRouteAction({
+      routeId,
+      parcelId: pendingRemoveParcelId,
+      reason: reason.trim(),
+    });
     setParcelLoading(false);
     if (result.error) {
       setError(result.error);
     } else {
+      setReason("");
+      setShowReasonDialog(null);
+      setPendingRemoveParcelId(null);
       await loadRoute();
     }
+  }
+
+  function cancelReasonDialog() {
+    setShowReasonDialog(null);
+    setPendingRemoveParcelId(null);
+    setReason("");
   }
 
   // Real-time route updates via SignalR
@@ -854,83 +885,85 @@ export default function RouteDetailPage({
               </div>
             </div>
 
+            {/* Route Map — shown for all statuses when parcels are assigned */}
+            {route.parcelCount > 0 && (
+              <div style={{ marginBottom: "1.5rem" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: ".75rem",
+                  }}
+                >
+                  <span style={{ fontWeight: 600, fontSize: ".875rem" }}>
+                    Route Map
+                  </span>
+                  {isDraft && (
+                    <button
+                      onClick={handleOptimize}
+                      disabled={optimizing || parcelLoading}
+                      style={{
+                        padding: ".4rem .85rem",
+                        borderRadius: 4,
+                        background: "rgba(34,197,94,.1)",
+                        border: "1px solid rgba(34,197,94,.3)",
+                        color: S.green,
+                        fontSize: ".75rem",
+                        fontWeight: 600,
+                        cursor:
+                          optimizing || parcelLoading
+                            ? "not-allowed"
+                            : "pointer",
+                        opacity: optimizing || parcelLoading ? 0.5 : 1,
+                      }}
+                    >
+                      {optimizing
+                        ? "Optimizing..."
+                        : "Optimize Stop Order"}
+                    </button>
+                  )}
+                </div>
+                <RouteMap
+                  depotLocation={
+                    route.depot?.address?.latitude != null &&
+                    route.depot?.address?.longitude != null
+                      ? {
+                          latitude: route.depot.address.latitude,
+                          longitude: route.depot.address.longitude,
+                          name: route.depot.name ?? "Depot",
+                        }
+                      : null
+                  }
+                  stops={assignedParcels
+                    .filter(
+                      (rp) =>
+                        rp.parcel?.recipientAddress?.latitude != null &&
+                        rp.parcel?.recipientAddress?.longitude != null
+                    )
+                    .map((rp) => ({
+                      parcelId: rp.parcelId,
+                      stopOrder: rp.stopOrder,
+                      trackingNumber:
+                        rp.parcel?.trackingNumber ??
+                        rp.parcelId.slice(0, 8),
+                      latitude:
+                        rp.parcel?.recipientAddress?.latitude ?? 0,
+                      longitude:
+                        rp.parcel?.recipientAddress?.longitude ?? 0,
+                      address:
+                        rp.parcel?.recipientAddress?.city ??
+                        "Unknown",
+                    }))}
+                  selectedStopId={selectedStopId}
+                  onStopSelected={setSelectedStopId}
+                />
+              </div>
+            )}
+
             {/* Parcels (Draft routes) */}
             {isDraft && (
               <>
-                {/* Route Map + Optimize */}
-                {route.parcelCount > 0 && (
-                  <div style={{ marginBottom: "1.5rem" }}>
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        marginBottom: ".75rem",
-                      }}
-                    >
-                      <span style={{ fontWeight: 600, fontSize: ".875rem" }}>
-                        Route Map
-                      </span>
-                      <button
-                        onClick={handleOptimize}
-                        disabled={optimizing || parcelLoading}
-                        style={{
-                          padding: ".4rem .85rem",
-                          borderRadius: 4,
-                          background: "rgba(34,197,94,.1)",
-                          border: "1px solid rgba(34,197,94,.3)",
-                          color: S.green,
-                          fontSize: ".75rem",
-                          fontWeight: 600,
-                          cursor:
-                            optimizing || parcelLoading
-                              ? "not-allowed"
-                              : "pointer",
-                          opacity: optimizing || parcelLoading ? 0.5 : 1,
-                        }}
-                      >
-                        {optimizing
-                          ? "Optimizing..."
-                          : "Optimize Stop Order"}
-                      </button>
-                    </div>
-                    <RouteMap
-                      depotLocation={
-                        route.depot?.address?.latitude != null &&
-                        route.depot?.address?.longitude != null
-                          ? {
-                              latitude: route.depot.address.latitude,
-                              longitude: route.depot.address.longitude,
-                              name: route.depot.name ?? "Depot",
-                            }
-                          : null
-                      }
-                      stops={assignedParcels
-                        .filter(
-                          (rp) =>
-                            rp.parcel?.recipientAddress?.latitude != null &&
-                            rp.parcel?.recipientAddress?.longitude != null
-                        )
-                        .map((rp) => ({
-                          parcelId: rp.parcelId,
-                          stopOrder: rp.stopOrder,
-                          trackingNumber:
-                            rp.parcel?.trackingNumber ??
-                            rp.parcelId.slice(0, 8),
-                          latitude:
-                            rp.parcel?.recipientAddress?.latitude ?? 0,
-                          longitude:
-                            rp.parcel?.recipientAddress?.longitude ?? 0,
-                          address:
-                            rp.parcel?.recipientAddress?.city ??
-                            "Unknown",
-                        }))}
-                      selectedStopId={selectedStopId}
-                      onStopSelected={setSelectedStopId}
-                    />
-                  </div>
-                )}
-
                 <div
                 style={{
                   display: "grid",
@@ -1356,6 +1389,107 @@ export default function RouteDetailPage({
                     </div>
                   </div>
                 </div>
+
+                {/* Reason dialog for active route changes */}
+                {showReasonDialog && (
+                  <div
+                    style={{
+                      border: `1px solid rgba(245,158,11,.3)`,
+                      borderRadius: 8,
+                      padding: "1rem 1.25rem",
+                      marginBottom: "1.5rem",
+                      background: "rgba(245,158,11,.04)",
+                    }}
+                  >
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: ".8rem",
+                        fontWeight: 600,
+                        marginBottom: ".5rem",
+                        color: S.accent,
+                      }}
+                    >
+                      Reason for change <span style={{ color: S.red }}>*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={reason}
+                      onChange={(e) => setReason(e.target.value)}
+                      placeholder={
+                        showReasonDialog === "add"
+                          ? "e.g. Customer requested additional pickup"
+                          : "e.g. Parcel damaged during loading"
+                      }
+                      autoFocus
+                      style={{
+                        width: "100%",
+                        padding: ".5rem .75rem",
+                        borderRadius: 6,
+                        background: S.inputBg,
+                        border: `1px solid ${S.inputBorder}`,
+                        color: S.text,
+                        fontSize: ".85rem",
+                        outline: "none",
+                        boxSizing: "border-box",
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && reason.trim()) {
+                          showReasonDialog === "add"
+                            ? confirmAddParcelsToActiveRoute()
+                            : confirmRemoveParcelFromActiveRoute();
+                        } else if (e.key === "Escape") {
+                          cancelReasonDialog();
+                        }
+                      }}
+                    />
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: ".5rem",
+                        marginTop: ".75rem",
+                        justifyContent: "flex-end",
+                      }}
+                    >
+                      <button
+                        onClick={cancelReasonDialog}
+                        style={{
+                          padding: ".4rem .85rem",
+                          borderRadius: 4,
+                          background: "transparent",
+                          border: `1px solid ${S.border}`,
+                          color: S.muted,
+                          fontSize: ".8rem",
+                          cursor: "pointer",
+                        }}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={() =>
+                          showReasonDialog === "add"
+                            ? confirmAddParcelsToActiveRoute()
+                            : confirmRemoveParcelFromActiveRoute()
+                        }
+                        disabled={!reason.trim() || parcelLoading}
+                        className="tm-btn-primary"
+                        style={{
+                          padding: ".4rem .85rem",
+                          borderRadius: 4,
+                          background: "rgba(245,158,11,.1)",
+                          border: "1px solid rgba(245,158,11,.3)",
+                          color: S.accent,
+                          fontWeight: 600,
+                          fontSize: ".8rem",
+                          cursor: !reason.trim() || parcelLoading ? "not-allowed" : "pointer",
+                          opacity: !reason.trim() || parcelLoading ? 0.5 : 1,
+                        }}
+                      >
+                        {parcelLoading ? "Saving..." : "Confirm"}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </>
             )}
 

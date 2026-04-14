@@ -7,6 +7,7 @@ using LastMile.TMS.Domain.Entities;
 using LastMile.TMS.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
+using System.Text.Json;
 
 namespace LastMile.TMS.Application.Tests.Routes;
 
@@ -89,7 +90,7 @@ public class AddParcelsToActiveRouteTests : IDisposable
     }
 
     [Fact]
-    public async Task AddsStagedParcelToDispatchedRoute_AndTransitionsToLoaded()
+    public async Task AddsStagedParcelToDispatchedRoute_AndTransitionsToOutForDelivery()
     {
         // Arrange — create and dispatch a route with one parcel
         var route = await CreateAndDispatchRoute();
@@ -105,14 +106,14 @@ public class AddParcelsToActiveRouteTests : IDisposable
 
         // Act
         var result = await _handler.Handle(
-            new AddParcelsToActiveRoute.Command(new AddParcelsToRouteDto(route.Id, [stagedParcel.Id])),
+            new AddParcelsToActiveRoute.Command(new AddParcelsToRouteDto(route.Id, [stagedParcel.Id], "Test reason")),
             CancellationToken.None);
 
         // Assert
         result.ParcelCount.Should().Be(2);
         // Re-fetch from DB to verify status change (bypass change tracker cache)
         var refreshed = await _context.Parcels.AsNoTracking().FirstAsync(p => p.Id == stagedParcel.Id);
-        refreshed.Status.Should().Be(ParcelStatus.Loaded);
+        refreshed.Status.Should().Be(ParcelStatus.OutForDelivery);
     }
 
     [Fact]
@@ -140,7 +141,7 @@ public class AddParcelsToActiveRouteTests : IDisposable
 
         // Act — try to add to route (should be skipped)
         var result = await _handler.Handle(
-            new AddParcelsToActiveRoute.Command(new AddParcelsToRouteDto(route.Id, [parcel.Id])),
+            new AddParcelsToActiveRoute.Command(new AddParcelsToRouteDto(route.Id, [parcel.Id], "Test reason")),
             CancellationToken.None);
 
         // Assert — parcel not added
@@ -151,7 +152,7 @@ public class AddParcelsToActiveRouteTests : IDisposable
     public async Task Throws_WhenRouteNotFound()
     {
         var act = () => _handler.Handle(
-            new AddParcelsToActiveRoute.Command(new AddParcelsToRouteDto(Guid.NewGuid(), [])),
+            new AddParcelsToActiveRoute.Command(new AddParcelsToRouteDto(Guid.NewGuid(), [], "Test reason")),
             CancellationToken.None);
 
         await act.Should().ThrowAsync<InvalidOperationException>()
@@ -170,11 +171,61 @@ public class AddParcelsToActiveRouteTests : IDisposable
         _context.SaveChanges();
 
         var act = () => _handler.Handle(
-            new AddParcelsToActiveRoute.Command(new AddParcelsToRouteDto(routeResult.Id, [stagedParcel.Id])),
+            new AddParcelsToActiveRoute.Command(new AddParcelsToRouteDto(routeResult.Id, [stagedParcel.Id], "Test reason")),
             CancellationToken.None);
 
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*Dispatched*In Progress*");
+    }
+
+    [Fact]
+    public async Task CreatesAuditLog_WhenParcelsAddedToActiveRoute()
+    {
+        // Arrange
+        var route = await CreateAndDispatchRoute();
+        var stagedParcel = CreateParcel(ParcelStatus.Staged, _zone.Id);
+        _context.Parcels.Add(stagedParcel);
+        _context.SaveChanges();
+
+        var reason = "Customer requested additional pickup";
+
+        // Act
+        await _handler.Handle(
+            new AddParcelsToActiveRoute.Command(
+                new AddParcelsToRouteDto(route.Id, [stagedParcel.Id], reason)),
+            CancellationToken.None);
+
+        // Assert
+        var auditLog = await _context.AuditLogs
+            .FirstOrDefaultAsync(a =>
+                a.ResourceType == AuditResourceType.DeliveryRoute &&
+                a.ResourceId == route.Id.ToString());
+
+        auditLog.Should().NotBeNull();
+        auditLog!.ActionType.Should().Be(AuditActionType.Update);
+        auditLog.OccurredAt.Should().BeCloseTo(DateTimeOffset.UtcNow, TimeSpan.FromSeconds(5));
+        auditLog.ActorUserId.Should().Be("test-user-id");
+        auditLog.ActorUserName.Should().Be("testuser");
+        auditLog.Summary.Should().Be(reason);
+        auditLog.BeforeValuesJson.Should().NotBeNull();
+        auditLog.AfterValuesJson.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task Throws_WhenReasonIsEmpty_AndAddingToActiveRoute()
+    {
+        var route = await CreateAndDispatchRoute();
+        var stagedParcel = CreateParcel(ParcelStatus.Staged, _zone.Id);
+        _context.Parcels.Add(stagedParcel);
+        _context.SaveChanges();
+
+        var act = () => _handler.Handle(
+            new AddParcelsToActiveRoute.Command(
+                new AddParcelsToRouteDto(route.Id, [stagedParcel.Id], "")),
+            CancellationToken.None);
+
+        await act.Should().ThrowAsync<ArgumentException>()
+            .WithMessage("*reason*");
     }
 
     private async Task<DeliveryRoute> CreateAndDispatchRoute()

@@ -103,11 +103,13 @@ export interface CreateRouteInput {
 export interface AddParcelsToRouteInput {
   routeId: string;
   parcelIds: string[];
+  reason?: string;
 }
 
 export interface RemoveParcelFromRouteInput {
   routeId: string;
   parcelId: string;
+  reason?: string;
 }
 
 export interface AssignDriverToRouteInput {

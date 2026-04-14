@@ -95,7 +95,7 @@ public class RemoveParcelFromActiveRouteTests : IDisposable
 
         // Act
         var result = await _handler.Handle(
-            new RemoveParcelFromActiveRoute.Command(new RemoveParcelFromRouteDto(route.Id, parcel.Id)),
+            new RemoveParcelFromActiveRoute.Command(new RemoveParcelFromRouteDto(route.Id, parcel.Id, "Test reason")),
             CancellationToken.None);
 
         // Assert
@@ -138,7 +138,7 @@ public class RemoveParcelFromActiveRouteTests : IDisposable
 
         // Act — remove middle parcel
         var result = await _handler.Handle(
-            new RemoveParcelFromActiveRoute.Command(new RemoveParcelFromRouteDto(route.Id, middleParcelId)),
+            new RemoveParcelFromActiveRoute.Command(new RemoveParcelFromRouteDto(route.Id, middleParcelId, "Test reason")),
             CancellationToken.None);
 
         // Assert — remaining parcels renumbered
@@ -149,7 +149,7 @@ public class RemoveParcelFromActiveRouteTests : IDisposable
     public async Task Throws_WhenRouteNotFound()
     {
         var act = () => _handler.Handle(
-            new RemoveParcelFromActiveRoute.Command(new RemoveParcelFromRouteDto(Guid.NewGuid(), Guid.NewGuid())),
+            new RemoveParcelFromActiveRoute.Command(new RemoveParcelFromRouteDto(Guid.NewGuid(), Guid.NewGuid(), "Test reason")),
             CancellationToken.None);
 
         await act.Should().ThrowAsync<InvalidOperationException>()
@@ -172,11 +172,55 @@ public class RemoveParcelFromActiveRouteTests : IDisposable
         await _context.SaveChangesAsync();
 
         var act = () => _handler.Handle(
-            new RemoveParcelFromActiveRoute.Command(new RemoveParcelFromRouteDto(route.Id, parcel.Id)),
+            new RemoveParcelFromActiveRoute.Command(new RemoveParcelFromRouteDto(route.Id, parcel.Id, "Test reason")),
             CancellationToken.None);
 
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*Dispatched*In Progress*");
+    }
+
+    [Fact]
+    public async Task CreatesAuditLog_WhenParcelRemovedFromActiveRoute()
+    {
+        // Arrange
+        var (route, parcel) = await CreateAndDispatchRouteWithParcel();
+
+        var reason = "Parcel damaged during loading";
+
+        // Act
+        await _handler.Handle(
+            new RemoveParcelFromActiveRoute.Command(
+                new RemoveParcelFromRouteDto(route.Id, parcel.Id, reason)),
+            CancellationToken.None);
+
+        // Assert
+        var auditLog = await _context.AuditLogs
+            .FirstOrDefaultAsync(a =>
+                a.ResourceType == AuditResourceType.DeliveryRoute &&
+                a.ResourceId == route.Id.ToString());
+
+        auditLog.Should().NotBeNull();
+        auditLog!.ActionType.Should().Be(AuditActionType.Update);
+        auditLog.OccurredAt.Should().BeCloseTo(DateTimeOffset.UtcNow, TimeSpan.FromSeconds(5));
+        auditLog.ActorUserId.Should().Be("test-user-id");
+        auditLog.ActorUserName.Should().Be("testuser");
+        auditLog.Summary.Should().Be(reason);
+        auditLog.BeforeValuesJson.Should().NotBeNull();
+        auditLog.AfterValuesJson.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task Throws_WhenReasonIsEmpty_AndRemovingFromActiveRoute()
+    {
+        var (route, parcel) = await CreateAndDispatchRouteWithParcel();
+
+        var act = () => _handler.Handle(
+            new RemoveParcelFromActiveRoute.Command(
+                new RemoveParcelFromRouteDto(route.Id, parcel.Id, "")),
+            CancellationToken.None);
+
+        await act.Should().ThrowAsync<ArgumentException>()
+            .WithMessage("*reason*");
     }
 
     private async Task<DeliveryRoute> CreateAndDispatchRoute()
