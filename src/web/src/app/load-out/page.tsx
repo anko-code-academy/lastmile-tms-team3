@@ -10,7 +10,7 @@ import {
   type DeliveryRoute,
   type StagingParcel,
 } from "@/lib/actions/stageParcel";
-import { loadParcel, completeLoading } from "@/lib/api/routes";
+import { loadParcel } from "@/lib/api/routes";
 import { downloadManifest } from "@/lib/api/routes";
 
 const S = {
@@ -160,44 +160,6 @@ export default function LoadOutPage() {
         focusScanInput();
       }
     });
-  }
-
-  async function handleCompleteLoading(forceComplete = false) {
-    if (!selectedRouteId) return;
-
-    try {
-      const result = await completeLoading({
-        routeId: selectedRouteId,
-        operatorName,
-        forceComplete,
-      }).then((res) => res.completeLoading);
-
-      if (!result.isSuccess && !forceComplete) {
-        const names = result.unloadedParcels
-          .map((p) => p.trackingNumber)
-          .join(", ");
-        setConfirmDialog({
-          open: true,
-          title: "Unloaded Parcels",
-          message: `${result.unloadedParcelCount} parcel(s) not yet loaded: ${names}. Complete loading anyway?`,
-          onConfirm: () => {
-            setConfirmDialog({ open: false });
-            handleCompleteLoading(true);
-          },
-        });
-        return;
-      }
-
-      toast.success(
-        forceComplete
-          ? "Loading completed with unloaded parcels."
-          : "Loading completed successfully.",
-      );
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to complete loading.",
-      );
-    }
   }
 
   return (
@@ -436,6 +398,7 @@ export default function LoadOutPage() {
                             </span>
                             <button
                               type="button"
+                              disabled={loadedCount === 0}
                               onClick={async () => {
                                 try {
                                   await downloadManifest(selectedRoute.id);
@@ -450,13 +413,14 @@ export default function LoadOutPage() {
                                 textTransform: "uppercase",
                                 padding: ".35rem .7rem",
                                 borderRadius: 5,
-                                border: "1px solid rgba(245,158,11,.35)",
-                                background: "rgba(245,158,11,.12)",
-                                color: S.accent,
-                                cursor: "pointer",
+                                border: loadedCount > 0 ? "1px solid rgba(245,158,11,.35)" : `1px solid ${S.border}`,
+                                background: loadedCount > 0 ? "rgba(245,158,11,.12)" : "transparent",
+                                color: loadedCount > 0 ? S.accent : S.dim,
+                                cursor: loadedCount > 0 ? "pointer" : "not-allowed",
+                                opacity: loadedCount > 0 ? 1 : 0.5,
                               }}
                             >
-                              PDF
+                              {"\u2913"} Manifest
                             </button>
                           </div>
                         </div>
@@ -653,34 +617,6 @@ export default function LoadOutPage() {
                           )}
                         </div>
                       </div>
-
-                      {/* Complete Loading */}
-                      <button
-                        type="button"
-                        onClick={() => handleCompleteLoading()}
-                        style={{
-                          width: "100%",
-                          fontFamily: S.mono,
-                          fontSize: "11px",
-                          letterSpacing: ".1em",
-                          textTransform: "uppercase",
-                          padding: ".75rem",
-                          borderRadius: 8,
-                          border:
-                            loadedCount >= totalCount && totalCount > 0
-                              ? "1px solid rgba(34,197,94,.4)"
-                              : "1px solid rgba(245,158,11,.35)",
-                          background:
-                            loadedCount >= totalCount && totalCount > 0
-                              ? "rgba(34,197,94,.1)"
-                              : "rgba(245,158,11,.08)",
-                          color:
-                            loadedCount >= totalCount && totalCount > 0 ? S.green : S.accent,
-                          cursor: "pointer",
-                        }}
-                      >
-                        Complete Loading
-                      </button>
                     </>
                   )}
                 </div>

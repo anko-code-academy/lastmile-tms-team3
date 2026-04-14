@@ -42,26 +42,6 @@ export interface LoadParcelResult {
   assignedRouteId?: string | null;
 }
 
-export interface CompleteLoadingInput {
-  routeId: string;
-  operatorName?: string;
-  forceComplete?: boolean;
-}
-
-export interface UnloadedParcel {
-  parcelId: string;
-  trackingNumber: string;
-  status: string;
-}
-
-export interface CompleteLoadingResult {
-  routeId: string;
-  isSuccess: boolean;
-  hasUnloadedParcels: boolean;
-  unloadedParcelCount: number;
-  unloadedParcels: UnloadedParcel[];
-}
-
 // Route creation types (LMTT3-40)
 export interface RouteParcelItem {
   parcelId: string;

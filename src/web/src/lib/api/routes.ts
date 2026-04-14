@@ -3,8 +3,6 @@ import type {
   DeliveryRoute,
   LoadParcelInput,
   LoadParcelResult,
-  CompleteLoadingInput,
-  CompleteLoadingResult,
 } from "../types/route";
 
 interface DeliveryRoutesResponse {
@@ -60,22 +58,6 @@ const LOAD_PARCEL_MUTATION = `
   }
 `;
 
-const COMPLETE_LOADING_MUTATION = `
-  mutation CompleteLoading($input: CompleteLoadingDtoInput!) {
-    completeLoading(input: $input) {
-      routeId
-      isSuccess
-      hasUnloadedParcels
-      unloadedParcelCount
-      unloadedParcels {
-        parcelId
-        trackingNumber
-        status
-      }
-    }
-  }
-`;
-
 export async function getDeliveryRoutes(
   where?: Record<string, unknown>,
 ): Promise<DeliveryRoutesResponse> {
@@ -90,15 +72,6 @@ export async function loadParcel(
   return graphql<{ loadParcel: LoadParcelResult }>(LOAD_PARCEL_MUTATION, {
     input,
   });
-}
-
-export async function completeLoading(
-  input: CompleteLoadingInput,
-): Promise<{ completeLoading: CompleteLoadingResult }> {
-  return graphql<{ completeLoading: CompleteLoadingResult }>(
-    COMPLETE_LOADING_MUTATION,
-    { input },
-  );
 }
 
 export async function downloadManifest(routeId: string): Promise<void> {
