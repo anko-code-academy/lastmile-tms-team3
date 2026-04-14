@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition, useCallback, useEffect } from "react";
+import { useRef, useState, useTransition, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import TmNavbar from "@/components/TmNavbar";
@@ -115,55 +115,52 @@ export default function LoadOutPage() {
   const loadedCount = parcels.filter((p) => p.status === "LOADED").length;
   const totalCount = parcels.length;
 
-  const handleScan = useCallback(
-    (forceLoad = false) => {
-      const trackingNumber = scanInput.trim();
-      if (!trackingNumber || !selectedRouteId) return;
+  function handleScan(forceLoad = false) {
+    const trackingNumber = scanInput.trim();
+    if (!trackingNumber || !selectedRouteId) return;
 
-      startTransition(async () => {
-        try {
-          const result = await loadParcel({
-            trackingNumber,
-            routeId: selectedRouteId,
-            operatorName,
-            forceLoad,
-          }).then((res) => res.loadParcel);
+    startTransition(async () => {
+      try {
+        const result = await loadParcel({
+          trackingNumber,
+          routeId: selectedRouteId,
+          operatorName,
+          forceLoad,
+        }).then((res) => res.loadParcel);
 
-          if (result.isWrongRoute && !forceLoad) {
-            setConfirmDialog({
-              open: true,
-              title: "Wrong Route",
-              message: `Parcel ${trackingNumber} is assigned to route "${result.assignedRouteName ?? "unknown"}". Load anyway?`,
-              onConfirm: () => {
-                setConfirmDialog({ open: false });
-                handleScan(true);
-              },
-            });
-            return;
-          }
-
-          const outcome: ScanOutcome = forceLoad ? "force-loaded" : "loaded";
-          addScanRecord(trackingNumber, outcome, selectedRoute?.name ?? null);
-          fetchParcels(selectedRouteId);
-
-          toast.success(
-            forceLoad
-              ? `Parcel ${trackingNumber} force-loaded.`
-              : `Parcel ${trackingNumber} loaded.`,
-          );
-          setScanInput("");
-          focusScanInput();
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : "Failed to load parcel.";
-          addScanRecord(trackingNumber, "error", null, msg);
-          toast.error(msg);
-          setScanInput("");
-          focusScanInput();
+        if (result.isWrongRoute && !forceLoad) {
+          setConfirmDialog({
+            open: true,
+            title: "Wrong Route",
+            message: `Parcel ${trackingNumber} is assigned to route "${result.assignedRouteName ?? "unknown"}". Load anyway?`,
+            onConfirm: () => {
+              setConfirmDialog({ open: false });
+              handleScan(true);
+            },
+          });
+          return;
         }
-      });
-    },
-    [scanInput, selectedRouteId, operatorName, selectedRoute],
-  );
+
+        const outcome: ScanOutcome = forceLoad ? "force-loaded" : "loaded";
+        addScanRecord(trackingNumber, outcome, selectedRoute?.name ?? null);
+        fetchParcels(selectedRouteId);
+
+        toast.success(
+          forceLoad
+            ? `Parcel ${trackingNumber} force-loaded.`
+            : `Parcel ${trackingNumber} loaded.`,
+        );
+        setScanInput("");
+        focusScanInput();
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Failed to load parcel.";
+        addScanRecord(trackingNumber, "error", null, msg);
+        toast.error(msg);
+        setScanInput("");
+        focusScanInput();
+      }
+    });
+  }
 
   async function handleCompleteLoading(forceComplete = false) {
     if (!selectedRouteId) return;

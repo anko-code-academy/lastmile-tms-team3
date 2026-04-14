@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition, useCallback, useEffect } from "react";
+import { useRef, useState, useTransition, useEffect } from "react";
 import { toast } from "sonner";
 import TmNavbar from "@/components/TmNavbar";
 import {
@@ -8,7 +8,6 @@ import {
   getDeliveryRoutesAction,
   getStagingStatusAction,
   getStagingParcelsAction,
-  type StageParcelResult,
   type DeliveryRoute,
   type StagingStatus,
   type StagingParcel,
@@ -87,12 +86,9 @@ export default function StagePage() {
     });
   }, []);
 
-  // Refresh staging status when route changes
+  // Refresh staging status when route changes or scan completes
   useEffect(() => {
-    if (!selectedRouteId) {
-      setStagingStatus(null);
-      return;
-    }
+    if (!selectedRouteId) return;
     getStagingStatusAction(selectedRouteId).then(setStagingStatus).catch((err) => {
       console.error("Failed to load staging status:", err);
     });
@@ -112,6 +108,7 @@ export default function StagePage() {
   function selectRoute(id: string) {
     setSelectedRouteId(id);
     setScanInput("");
+    setStagingStatus(null);
     fetchParcels(id);
     focusScanInput();
   }
@@ -123,58 +120,55 @@ export default function StagePage() {
     ]);
   }
 
-  const handleScan = useCallback(
-    (forceStage = false) => {
-      const trackingNumber = scanInput.trim();
-      if (!trackingNumber || !selectedRouteId) return;
+  function handleScan(forceStage = false) {
+    const trackingNumber = scanInput.trim();
+    if (!trackingNumber || !selectedRouteId) return;
 
-      startTransition(async () => {
-        try {
-          const result = await stageParcelAction({
-            trackingNumber,
-            routeId: selectedRouteId,
-            operatorName: null,
-            locationCity: null,
-            locationState: null,
-            locationCountryCode: null,
-            forceStage,
+    startTransition(async () => {
+      try {
+        const result = await stageParcelAction({
+          trackingNumber,
+          routeId: selectedRouteId,
+          operatorName: null,
+          locationCity: null,
+          locationState: null,
+          locationCountryCode: null,
+          forceStage,
+        });
+
+        if (result.isMisstage && !forceStage) {
+          setConfirmDialog({
+            open: true,
+            title: "Wrong Route",
+            message: `Parcel ${trackingNumber} is assigned to route "${result.assignedRouteName ?? "unknown"}". Stage anyway?`,
+            onConfirm: () => {
+              setConfirmDialog({ open: false });
+              handleScan(true);
+            },
           });
-
-          if (result.isMisstage && !forceStage) {
-            setConfirmDialog({
-              open: true,
-              title: "Wrong Route",
-              message: `Parcel ${trackingNumber} is assigned to route "${result.assignedRouteName ?? "unknown"}". Stage anyway?`,
-              onConfirm: () => {
-                setConfirmDialog({ open: false });
-                handleScan(true);
-              },
-            });
-            return;
-          }
-
-          const outcome: ScanOutcome = forceStage ? "force-staged" : "staged";
-          addScanRecord(trackingNumber, outcome, result.routeName);
-          fetchParcels(selectedRouteId);
-
-          toast.success(
-            forceStage
-              ? `Parcel ${trackingNumber} force-staged.`
-              : `Parcel ${trackingNumber} staged.`,
-          );
-          setScanInput("");
-          focusScanInput();
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : "Unknown error";
-          addScanRecord(trackingNumber, "error", null, msg);
-          toast.error(msg);
-          setScanInput("");
-          focusScanInput();
+          return;
         }
-      });
-    },
-    [scanInput, selectedRouteId],
-  );
+
+        const outcome: ScanOutcome = forceStage ? "force-staged" : "staged";
+        addScanRecord(trackingNumber, outcome, result.routeName);
+        fetchParcels(selectedRouteId);
+
+        toast.success(
+          forceStage
+            ? `Parcel ${trackingNumber} force-staged.`
+            : `Parcel ${trackingNumber} staged.`,
+        );
+        setScanInput("");
+        focusScanInput();
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Unknown error";
+        addScanRecord(trackingNumber, "error", null, msg);
+        toast.error(msg);
+        setScanInput("");
+        focusScanInput();
+      }
+    });
+  }
 
   const selectedRoute = routes.find((r) => r.id === selectedRouteId) ?? null;
 
@@ -705,37 +699,6 @@ export default function StagePage() {
         </div>
       ) : null}
     </>
-  );
-}
-
-function Counter({ label, value, color }: { label: string; value: number; color: string }) {
-  return (
-    <div style={{ textAlign: "center" }}>
-      <div
-        style={{
-          fontFamily: S.mono,
-          fontSize: "1.25rem",
-          fontWeight: 800,
-          color,
-          letterSpacing: "-.02em",
-          lineHeight: 1,
-        }}
-      >
-        {value}
-      </div>
-      <div
-        style={{
-          fontFamily: S.mono,
-          fontSize: "9px",
-          color: S.muted,
-          letterSpacing: ".1em",
-          textTransform: "uppercase",
-          marginTop: ".25rem",
-        }}
-      >
-        {label}
-      </div>
-    </div>
   );
 }
 
