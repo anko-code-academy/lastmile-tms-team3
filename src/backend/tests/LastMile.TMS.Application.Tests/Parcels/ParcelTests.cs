@@ -318,6 +318,149 @@ public class ParcelCommandTests : IDisposable
             e.ErrorMessage.Contains("geocode"));
     }
 
+    [Fact]
+    public async Task CreateParcel_CustomerDropOff_StatusIsReceivedAtDepot()
+    {
+        var zone = new Zone
+        {
+            Id = Guid.NewGuid(),
+            Name = "Zone DropOff",
+            IsActive = true,
+            Boundary = new Polygon(new LinearRing(new[]
+            {
+                new Coordinate(-74.1, 40.7),
+                new Coordinate(-73.9, 40.7),
+                new Coordinate(-73.9, 40.8),
+                new Coordinate(-74.1, 40.8),
+                new Coordinate(-74.1, 40.7)
+            })) { SRID = 4326 }
+        };
+        _context.Zones.Add(zone);
+        await _context.SaveChangesAsync();
+
+        var recipientAddress = new CreateAddressDto(
+            "456 Recipient St", null, "NewYork", "NY", "10001", "US");
+
+        var createDto = new CreateParcelDto(
+            Description: "Customer drop-off parcel",
+            ServiceType: ServiceType.Standard,
+            RecipientAddress: recipientAddress,
+            ShipperAddress: new CreateAddressDto("123 S St", null, "LA", "CA", "90001", "US"),
+            Weight: 1m,
+            WeightUnit: WeightUnit.Kg,
+            Length: 10m, Width: 10m, Height: 10m,
+            DimensionUnit: DimensionUnit.Cm,
+            DeclaredValue: 50m,
+            IsCustomerDropOff: true
+        );
+
+        var handler = new CreateParcel.Handler(
+            _context,
+            _currentUser,
+            new FakeZoneMatchingService(zone.Id),
+            new FakeGeocodingService(),
+            new StubManifestAssignmentService()
+        );
+
+        var result = await handler.Handle(new CreateParcel.Command(createDto), CancellationToken.None);
+
+        result.Status.Should().Be(ParcelStatus.ReceivedAtDepot);
+    }
+
+    [Fact]
+    public async Task CreateParcel_CustomerDropOff_SkipsManifestAssignment()
+    {
+        var zone = new Zone
+        {
+            Id = Guid.NewGuid(),
+            Name = "Zone Drop",
+            IsActive = true,
+            Boundary = new Polygon(new LinearRing(new[]
+            {
+                new Coordinate(-74.1, 40.7),
+                new Coordinate(-73.9, 40.7),
+                new Coordinate(-73.9, 40.8),
+                new Coordinate(-74.1, 40.8),
+                new Coordinate(-74.1, 40.7)
+            })) { SRID = 4326 }
+        };
+        _context.Zones.Add(zone);
+        await _context.SaveChangesAsync();
+
+        var spyManifestService = new SpyManifestAssignmentService();
+
+        var createDto = new CreateParcelDto(
+            Description: "Drop-off",
+            ServiceType: ServiceType.Standard,
+            RecipientAddress: new CreateAddressDto("456 R St", null, "NYC", "NY", "10001", "US"),
+            ShipperAddress: new CreateAddressDto("123 S St", null, "LA", "CA", "90001", "US"),
+            Weight: 1m,
+            WeightUnit: WeightUnit.Kg,
+            Length: 10m, Width: 10m, Height: 10m,
+            DimensionUnit: DimensionUnit.Cm,
+            DeclaredValue: 50m,
+            IsCustomerDropOff: true
+        );
+
+        var handler = new CreateParcel.Handler(
+            _context,
+            _currentUser,
+            new FakeZoneMatchingService(zone.Id),
+            new FakeGeocodingService(),
+            spyManifestService
+        );
+
+        await handler.Handle(new CreateParcel.Command(createDto), CancellationToken.None);
+
+        spyManifestService.AssignCalled.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task CreateParcel_NotCustomerDropOff_StatusIsRegistered()
+    {
+        var zone = new Zone
+        {
+            Id = Guid.NewGuid(),
+            Name = "Zone Normal",
+            IsActive = true,
+            Boundary = new Polygon(new LinearRing(new[]
+            {
+                new Coordinate(-74.1, 40.7),
+                new Coordinate(-73.9, 40.7),
+                new Coordinate(-73.9, 40.8),
+                new Coordinate(-74.1, 40.8),
+                new Coordinate(-74.1, 40.7)
+            })) { SRID = 4326 }
+        };
+        _context.Zones.Add(zone);
+        await _context.SaveChangesAsync();
+
+        var createDto = new CreateParcelDto(
+            Description: "Normal parcel",
+            ServiceType: ServiceType.Standard,
+            RecipientAddress: new CreateAddressDto("456 R St", null, "NYC", "NY", "10001", "US"),
+            ShipperAddress: new CreateAddressDto("123 S St", null, "LA", "CA", "90001", "US"),
+            Weight: 1m,
+            WeightUnit: WeightUnit.Kg,
+            Length: 10m, Width: 10m, Height: 10m,
+            DimensionUnit: DimensionUnit.Cm,
+            DeclaredValue: 50m,
+            IsCustomerDropOff: false
+        );
+
+        var handler = new CreateParcel.Handler(
+            _context,
+            _currentUser,
+            new FakeZoneMatchingService(zone.Id),
+            new FakeGeocodingService(),
+            new StubManifestAssignmentService()
+        );
+
+        var result = await handler.Handle(new CreateParcel.Command(createDto), CancellationToken.None);
+
+        result.Status.Should().Be(ParcelStatus.Registered);
+    }
+
     public void Dispose()
     {
         _context.Dispose();
@@ -931,6 +1074,28 @@ public class StubManifestAssignmentService : LastMile.TMS.Application.Services.I
         IReadOnlyList<(Guid ParcelId, Guid DepotId)> parcelDepotPairs,
         CancellationToken cancellationToken = default)
     {
+        return Task.CompletedTask;
+    }
+}
+
+public class SpyManifestAssignmentService : LastMile.TMS.Application.Services.IManifestAssignmentService
+{
+    public bool AssignCalled { get; private set; }
+
+    public Task<LastMile.TMS.Domain.Entities.InboundManifest> AssignParcelToManifestAsync(
+        LastMile.TMS.Application.Common.Interfaces.IAppDbContext context,
+        Guid parcelId, Guid depotId, CancellationToken cancellationToken = default)
+    {
+        AssignCalled = true;
+        return Task.FromResult(new LastMile.TMS.Domain.Entities.InboundManifest());
+    }
+
+    public Task AssignParcelsToManifestsAsync(
+        LastMile.TMS.Application.Common.Interfaces.IAppDbContext context,
+        IReadOnlyList<(Guid ParcelId, Guid DepotId)> parcelDepotPairs,
+        CancellationToken cancellationToken = default)
+    {
+        AssignCalled = true;
         return Task.CompletedTask;
     }
 }

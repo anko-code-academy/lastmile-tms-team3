@@ -135,7 +135,9 @@ public static class CreateParcel
                 BarcodeData = trackingNumber,
                 Description = request.Dto.Description,
                 ServiceType = request.Dto.ServiceType,
-                Status = ParcelStatus.Registered,
+                Status = request.Dto.IsCustomerDropOff
+                    ? ParcelStatus.ReceivedAtDepot
+                    : ParcelStatus.Registered,
                 RecipientAddressId = recipientAddress.Id,
                 RecipientAddress = recipientAddress,
                 ShipperAddressId = shipperAddress.Id,
@@ -158,8 +160,8 @@ public static class CreateParcel
 
             context.Parcels.Add(parcel);
 
-            // Assign parcel to inbound manifest based on depot
-            if (zoneId.HasValue)
+            // Assign parcel to inbound manifest based on depot (skip for customer drop-off)
+            if (!request.Dto.IsCustomerDropOff && zoneId.HasValue)
             {
                 var zone = await context.Zones.FindAsync(new object[] { zoneId.Value }, cancellationToken);
                 if (zone is not null)

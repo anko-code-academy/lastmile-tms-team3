@@ -1,19 +1,17 @@
 namespace LastMile.TMS.Application.Features.Parcels.DTOs;
 
-public record ReceiveParcelDto(
+public record ReceiveWalkInParcelDto(
     string TrackingNumber,
-    Guid SessionId,
+    string? DockDoor,
     string? OperatorName,
     string? LocationCity,
     string? LocationState,
     string? LocationCountryCode
 );
 
-public record ReceiveParcelResultDto(
+public record ReceiveWalkInParcelResultDto(
     Guid ParcelId,
     string TrackingNumber,
     string Status,
-    bool IsUnexpected,
-    bool IsAlreadyReceived,
-    Guid SessionId
+    bool IsMisdirected
 );

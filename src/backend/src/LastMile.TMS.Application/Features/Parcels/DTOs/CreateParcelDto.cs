@@ -17,5 +17,6 @@ public record CreateParcelDto(
     decimal DeclaredValue,
     string Currency = "USD",
     string? ParcelType = null,
-    string? Notes = null
+    string? Notes = null,
+    bool IsCustomerDropOff = false
 );

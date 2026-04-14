@@ -10,6 +10,7 @@ public record CompleteReceivingSessionResultDto(
     int ExpectedCount,
     int ReceivedCount,
     int MissingCount,
+    int MisdirectedCount,
     List<MissingParcelDto> MissingParcels
 );
 

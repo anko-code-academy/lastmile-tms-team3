@@ -82,6 +82,15 @@ public class ParcelMutation
     }
 
     [Authorize(Policy = "AdminOrDepotOperator")]
+    public async Task<ReceiveWalkInParcelResultDto> ReceiveWalkInParcel(
+        [Service] IMediator mediator,
+        ReceiveWalkInParcelDto input,
+        CancellationToken cancellationToken = default)
+    {
+        return await mediator.Send(new ReceiveWalkInParcel.Command(input), cancellationToken);
+    }
+
+    [Authorize(Policy = "AdminOrDepotOperator")]
     public async Task<CompleteReceivingSessionResultDto> CompleteReceivingSession(
         [Service] IMediator mediator,
         CompleteReceivingSessionDto input,
