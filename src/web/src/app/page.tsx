@@ -151,13 +151,13 @@ export default function Home() {
       title: "Parcels",
       show: true,
       cards: [
-        { href: "/parcels",       label: "Parcels",       sub: "Browse & track",   icon: Icons.parcels   },
+        { href: "/parcels",       label: "All Parcels",   sub: "Browse & track",   icon: Icons.parcels   },
         { href: "/parcels/new",   label: "New Parcel",    sub: "Register parcel",  icon: Icons.newParcel },
         { href: "/parcels/import",label: "Import",        sub: "Bulk CSV / XLSX",  icon: Icons.import    },
       ],
     },
     {
-      title: "Warehouse",
+      title: "Warehouse operations",
       show: isDepotOp,
       cards: [
         { href: "/depot/receiving", label: "Receive",   sub: "Inbound manifests", icon: Icons.receive },
@@ -175,23 +175,17 @@ export default function Home() {
       ],
     },
     {
-      title: "Operations",
-      show: isAdminOrOm,
-      cards: [
-        { href: "/admin/depot-dashboard", label: "Depot Dashboard", sub: "Live parcel stats",  icon: Icons.dashboard },
-        { href: "/admin/depots",          label: "Depots",           sub: "Manage depots",      icon: Icons.depots    },
-        { href: "/admin/drivers",         label: "Drivers",          sub: "Driver registry",    icon: Icons.drivers   },
-        { href: "/admin/vehicles",        label: "Vehicles",         sub: "Fleet registry",     icon: Icons.vehicles  },
-      ],
-    },
-    {
       title: "Administration",
-      show: isAdmin || isWhMgr,
+      show: isAdminOrOm || isWhMgr,
       cards: [
-        ...(isAdmin   ? [{ href: "/admin/zones",      label: "Zones",       sub: "Delivery zones",  icon: Icons.zones     }] : []),
-        ...(isAdmin   ? [{ href: "/admin/users",      label: "Users",       sub: "User accounts",   icon: Icons.users     }] : []),
-        ...(isWhMgr   ? [{ href: "/warehouse",        label: "Bins",        sub: "Warehouse layout",icon: Icons.bins      }] : []),
-        ...(isAdmin   ? [{ href: "/admin/audit-logs", label: "Audit Logs",  sub: "Activity history",icon: Icons.auditLogs }] : []),
+        ...(isAdminOrOm ? [{ href: "/admin/depot-dashboard", label: "Depot Dashboard", sub: "Live parcel stats",  icon: Icons.dashboard }] : []),
+        ...(isAdminOrOm ? [{ href: "/admin/depots",          label: "Depots",           sub: "Manage depots",      icon: Icons.depots    }] : []),
+        ...(isAdminOrOm ? [{ href: "/admin/drivers",         label: "Drivers",          sub: "Driver registry",    icon: Icons.drivers   }] : []),
+        ...(isAdminOrOm ? [{ href: "/admin/vehicles",        label: "Vehicles",         sub: "Fleet registry",     icon: Icons.vehicles  }] : []),
+        ...(isAdmin     ? [{ href: "/admin/zones",           label: "Zones",            sub: "Delivery zones",     icon: Icons.zones     }] : []),
+        ...(isAdmin     ? [{ href: "/admin/users",           label: "Users",            sub: "User accounts",      icon: Icons.users     }] : []),
+        ...(isWhMgr     ? [{ href: "/warehouse",             label: "Bins",             sub: "Warehouse layout",   icon: Icons.bins      }] : []),
+        ...(isAdmin     ? [{ href: "/admin/audit-logs",      label: "Audit Logs",       sub: "Activity history",   icon: Icons.auditLogs }] : []),
       ],
     },
   ];
@@ -318,7 +312,7 @@ export default function Home() {
             {(() => {
               const visible = groups.filter(g => g.show && g.cards.length > 0);
               const left  = visible.filter(g => ["Parcels","Dispatch"].includes(g.title));
-              const right = visible.filter(g => ["Warehouse","Operations","Administration"].includes(g.title));
+              const right = visible.filter(g => ["Warehouse operations","Administration"].includes(g.title));
               const hasTwo = left.length > 0 && right.length > 0;
               return (
                 <div className="fu fu-3" style={{ display: hasTwo ? "grid" : "block", gridTemplateColumns: "1fr 1fr", gap: "1.5rem" }}>
