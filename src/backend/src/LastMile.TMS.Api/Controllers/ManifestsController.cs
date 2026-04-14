@@ -36,9 +36,6 @@ public class ManifestsController : ControllerBase
         if (route == null)
             return NotFound($"Route {routeId} not found");
 
-        if (route.LoadedAt == null)
-            return BadRequest("Route has not been loaded yet.");
-
         var pdfBytes = _manifestService.GenerateManifest(route);
         var fileName = $"manifest-{route.Name}-{route.Date:yyyy-MM-dd}.pdf";
         return File(pdfBytes, "application/pdf", fileName);
