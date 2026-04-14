@@ -94,9 +94,13 @@ function parseWkt(wkt: string | null): GeoJsonPolygonDto | null {
 }
 
 function mapZone(raw: Record<string, unknown>): ZoneDto {
+  const boundary = raw.boundary;
   return {
     ...raw,
-    boundary: parseWkt(raw.boundary as string | null),
+    boundary:
+      typeof boundary === "string"
+        ? parseWkt(boundary)
+        : (boundary as GeoJsonPolygonDto | null),
   } as ZoneDto;
 }
 

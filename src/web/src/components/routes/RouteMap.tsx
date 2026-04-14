@@ -3,8 +3,17 @@
 import { useEffect, useRef } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
+import { RouteStatus } from "@/lib/types/route";
+import { fetchRoundTripPath } from "@/lib/mapbox/directions";
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN!;
+
+const STATUS_COLORS: Record<RouteStatus, string> = {
+  [RouteStatus.Draft]: "#94a3b8",
+  [RouteStatus.Dispatched]: "#3b82f6",
+  [RouteStatus.InProgress]: "#f59e0b",
+  [RouteStatus.Completed]: "#22c55e",
+};
 
 interface StopData {
   parcelId: string;
@@ -13,6 +22,7 @@ interface StopData {
   latitude: number;
   longitude: number;
   address: string;
+  status?: string;
 }
 
 interface RouteMapProps {
@@ -20,6 +30,19 @@ interface RouteMapProps {
   stops: StopData[];
   selectedStopId: string | null;
   onStopSelected: (parcelId: string | null) => void;
+  status: RouteStatus;
+}
+
+const STOP_STATUS_STYLES: Record<string, { bg: string; text: string }> = {
+  DELIVERED: { bg: "#22c55e", text: "\u2713" },
+  FAILED_ATTEMPT: { bg: "#ef4444", text: "!" },
+};
+
+function getStopColor(stopStatus: string | undefined, routeColor: string): { bg: string; text: string } {
+  if (!stopStatus) return { bg: routeColor, text: "" };
+  const mapped = STOP_STATUS_STYLES[stopStatus];
+  if (mapped) return mapped;
+  return { bg: routeColor, text: "" };
 }
 
 export default function RouteMap({
@@ -27,6 +50,7 @@ export default function RouteMap({
   stops,
   selectedStopId,
   onStopSelected,
+  status,
 }: RouteMapProps) {
   const containerRef = useRef<HTMLDivElement>(null!);
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -36,10 +60,12 @@ export default function RouteMap({
   const onStopSelectedRef = useRef(onStopSelected);
   onStopSelectedRef.current = onStopSelected;
 
-  // Sync markers + route line when stops change
+  // Effect: markers only (no line drawing)
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !map.isStyleLoaded()) return;
+
+    const color = STATUS_COLORS[status] ?? "#94a3b8";
 
     // Remove old markers
     markersRef.current.forEach((m) => {
@@ -51,20 +77,13 @@ export default function RouteMap({
     });
     markersRef.current = [];
 
-    // Build route line coordinates: depot → stops → depot
-    const lineCoords: [number, number][] = [];
-    if (depotLocation) {
-      lineCoords.push([depotLocation.longitude, depotLocation.latitude]);
-    }
-
-    // Sort stops by order for the line
     const sortedStops = [...stops].sort((a, b) => a.stopOrder - b.stopOrder);
 
     // Add depot marker
     if (depotLocation) {
       const depotEl = document.createElement("div");
       depotEl.style.cssText =
-        "width:28px;height:28px;background:#f59e0b;border-radius:50%;border:3px solid #fff;box-shadow:0 0 8px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#080c14;";
+        `width:28px;height:28px;background:#f59e0b;border-radius:50%;border:3px solid #fff;box-shadow:0 0 8px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#080c14;`;
       depotEl.textContent = "D";
 
       const depotMarker = new mapboxgl.Marker({ element: depotEl })
@@ -81,11 +100,15 @@ export default function RouteMap({
     // Add stop markers
     sortedStops.forEach((stop) => {
       const isSelected = stop.parcelId === selectedStopId;
+      const stopColor = getStopColor(stop.status, color);
       const el = document.createElement("div");
-      el.style.cssText = isSelected
-        ? "width:24px;height:24px;background:#f59e0b;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 3px #f59e0b,0 0 8px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;color:#080c14;cursor:pointer;"
-        : "width:20px;height:20px;background:rgba(245,158,11,.85);border-radius:50%;border:2px solid #fff;box-shadow:0 0 6px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:10px;color:#080c14;cursor:pointer;";
-      el.textContent = String(stop.stopOrder);
+
+      if (isSelected) {
+        el.style.cssText = `width:24px;height:24px;background:${stopColor.bg};border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 3px ${stopColor.bg},0 0 8px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;color:#080c14;cursor:pointer;`;
+      } else {
+        el.style.cssText = `width:20px;height:20px;background:${stopColor.bg};border-radius:50%;border:2px solid #fff;box-shadow:0 0 6px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:10px;color:#080c14;cursor:pointer;`;
+      }
+      el.textContent = stopColor.text || String(stop.stopOrder);
 
       const marker = new mapboxgl.Marker({ element: el })
         .setLngLat([stop.longitude, stop.latitude])
@@ -104,15 +127,50 @@ export default function RouteMap({
       });
 
       markersRef.current.push(marker);
-      lineCoords.push([stop.longitude, stop.latitude]);
     });
 
-    // Close route line back to depot
+    // Fit bounds or fly to selected stop
+    const allCoords: [number, number][] = [];
+    if (depotLocation) {
+      allCoords.push([depotLocation.longitude, depotLocation.latitude]);
+    }
+    sortedStops.forEach((s) => allCoords.push([s.longitude, s.latitude]));
+
+    if (selectedStopId) {
+      const selected = sortedStops.find((s) => s.parcelId === selectedStopId);
+      if (selected) {
+        map.flyTo({
+          center: [selected.longitude, selected.latitude],
+          zoom: Math.max(map.getZoom(), 14),
+          duration: 600,
+        });
+      }
+    } else if (allCoords.length > 0) {
+      const bounds = new mapboxgl.LngLatBounds();
+      allCoords.forEach((c) => bounds.extend(c as mapboxgl.LngLatLike));
+      map.fitBounds(bounds, { padding: 60, maxZoom: 15, duration: 600 });
+    }
+  }, [stops, selectedStopId, depotLocation, status]);
+
+  // Effect: route line — straight-line initially, then road-following
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !map.isStyleLoaded()) return;
+
+    const color = STATUS_COLORS[status] ?? "#94a3b8";
+
+    // Build straight-line coordinates as initial draw
+    const lineCoords: [number, number][] = [];
+    if (depotLocation) {
+      lineCoords.push([depotLocation.longitude, depotLocation.latitude]);
+    }
+    const sortedStops = [...stops].sort((a, b) => a.stopOrder - b.stopOrder);
+    sortedStops.forEach((s) => lineCoords.push([s.longitude, s.latitude]));
     if (depotLocation && lineCoords.length > 1) {
       lineCoords.push([depotLocation.longitude, depotLocation.latitude]);
     }
 
-    // Update route line source
+    // Draw straight line immediately
     const routeSource = map.getSource("route-line") as
       | mapboxgl.GeoJSONSource
       | undefined;
@@ -121,27 +179,36 @@ export default function RouteMap({
         type: "FeatureCollection",
         features:
           lineCoords.length >= 2
-            ? [
-                {
-                  type: "Feature",
-                  geometry: {
-                    type: "LineString",
-                    coordinates: lineCoords,
-                  },
-                  properties: {},
-                },
-              ]
+            ? [{ type: "Feature", geometry: { type: "LineString", coordinates: lineCoords }, properties: {} }]
             : [],
       });
     }
 
-    // Fit bounds
-    if (lineCoords.length > 0) {
-      const bounds = new mapboxgl.LngLatBounds();
-      lineCoords.forEach((c) => bounds.extend(c as mapboxgl.LngLatLike));
-      map.fitBounds(bounds, { padding: 60, maxZoom: 15, duration: 600 });
-    }
-  }, [stops, selectedStopId, depotLocation]);
+    map.setPaintProperty("route-line-layer", "line-color", color);
+
+    // Then fetch road-following path
+    if (stops.length === 0) return;
+
+    let cancelled = false;
+
+    fetchRoundTripPath({
+      depot: depotLocation
+        ? { latitude: depotLocation.latitude, longitude: depotLocation.longitude }
+        : null,
+      stops: sortedStops.map((s) => ({ latitude: s.latitude, longitude: s.longitude, stopOrder: s.stopOrder })),
+    }).then((roadCoords) => {
+      if (cancelled) return;
+      const src = map.getSource("route-line") as mapboxgl.GeoJSONSource | undefined;
+      if (src && roadCoords.length >= 2) {
+        src.setData({
+          type: "FeatureCollection",
+          features: [{ type: "Feature", geometry: { type: "LineString", coordinates: roadCoords }, properties: {} }],
+        });
+      }
+    });
+
+    return () => { cancelled = true; };
+  }, [stops, depotLocation, status]);
 
   // Map init
   useEffect(() => {
@@ -167,7 +234,7 @@ export default function RouteMap({
         type: "line",
         source: "route-line",
         paint: {
-          "line-color": "#f59e0b",
+          "line-color": "#94a3b8",
           "line-width": 3,
           "line-opacity": 0.7,
         },

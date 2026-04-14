@@ -77,6 +77,40 @@ public class DeliveryRoute : BaseAuditableEntity, IAuditTracked
         RecalculateEstimatedStops();
     }
 
+    public void AddParcelToActiveRoute(Parcel parcel)
+    {
+        if (Status != RouteStatus.Dispatched && Status != RouteStatus.InProgress)
+            throw new InvalidOperationException("Parcels can only be added to an active route in Dispatched or In Progress status.");
+
+        if (RouteParcels.Any(rp => rp.ParcelId == parcel.Id))
+            throw new InvalidOperationException($"Parcel '{parcel.Id}' is already assigned to this route.");
+
+        var routeParcel = new RouteParcel
+        {
+            RouteId = Id,
+            ParcelId = parcel.Id,
+            Parcel = parcel,
+            StopOrder = RouteParcels.Count + 1,
+            AddedAt = DateTimeOffset.UtcNow
+        };
+
+        RouteParcels.Add(routeParcel);
+        RecalculateEstimatedStops();
+    }
+
+    public void RemoveParcelFromActiveRoute(Guid parcelId)
+    {
+        if (Status != RouteStatus.Dispatched && Status != RouteStatus.InProgress)
+            throw new InvalidOperationException("Parcels can only be removed from an active route in Dispatched or In Progress status.");
+
+        var routeParcel = RouteParcels.FirstOrDefault(rp => rp.ParcelId == parcelId)
+            ?? throw new InvalidOperationException($"Parcel '{parcelId}' not found on this route.");
+
+        RouteParcels.Remove(routeParcel);
+        ReorderStops();
+        RecalculateEstimatedStops();
+    }
+
     public void AssignDriver(Driver driver)
     {
         ArgumentNullException.ThrowIfNull(driver);

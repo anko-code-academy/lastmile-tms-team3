@@ -79,7 +79,7 @@ public class ManifestAssignmentService : IManifestAssignmentService
                     manifest = new InboundManifest
                     {
                         Id = Guid.NewGuid(),
-                        ManifestNumber = $"MFT-{now:yyyyMMdd}-{nextSeq:D3}",
+                        ManifestNumber = $"MFT-{now:yyyyMMdd}-{nextSeq:D3}-{Guid.NewGuid().ToString("N")[..4].ToUpperInvariant()}",
                         DepotId = depotId,
                         Status = InboundManifestStatus.Open,
                         MaxParcels = _random.Next(8, 11),
@@ -119,7 +119,7 @@ public class ManifestAssignmentService : IManifestAssignmentService
         var manifest = new InboundManifest
         {
             Id = Guid.NewGuid(),
-            ManifestNumber = $"MFT-{now:yyyyMMdd}-{(todayManifests + 1):D3}",
+            ManifestNumber = $"MFT-{now:yyyyMMdd}-{(todayManifests + 1):D3}-{Guid.NewGuid().ToString("N")[..4].ToUpperInvariant()}",
             DepotId = depotId,
             Status = InboundManifestStatus.Open,
             MaxParcels = _random.Next(8, 11),
