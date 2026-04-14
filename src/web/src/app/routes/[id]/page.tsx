@@ -1337,12 +1337,19 @@ export default function RouteDetailPage({
                             <div
                               key={rp.parcelId}
                               className="parcel-row"
+                              onClick={() => setSelectedStopId(
+                                rp.parcelId === selectedStopId ? null : rp.parcelId
+                              )}
                               style={{
                                 padding: ".5rem 1rem",
                                 borderBottom: `1px solid ${S.border}`,
                                 display: "flex",
                                 alignItems: "center",
                                 gap: ".75rem",
+                                cursor: "pointer",
+                                background: rp.parcelId === selectedStopId
+                                  ? "rgba(245,158,11,.06)"
+                                  : "transparent",
                               }}
                             >
                               <span
@@ -1368,7 +1375,10 @@ export default function RouteDetailPage({
                               <ParcelStatusBadge status={(rp.parcel?.status ?? "LOADED") as ParcelStatus} />
                               <button
                                 className="remove-btn"
-                                onClick={() => handleRemoveParcelFromActiveRoute(rp.parcelId)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRemoveParcelFromActiveRoute(rp.parcelId);
+                                }}
                                 disabled={parcelLoading}
                                 title="Remove parcel from route"
                                 style={{
@@ -1520,12 +1530,20 @@ export default function RouteDetailPage({
                     assignedParcels.map((rp, i) => (
                       <div
                         key={rp.parcelId}
+                        className="parcel-row"
+                        onClick={() => setSelectedStopId(
+                          rp.parcelId === selectedStopId ? null : rp.parcelId
+                        )}
                         style={{
                           padding: ".5rem 1rem",
                           borderBottom: `1px solid ${S.border}`,
                           display: "flex",
                           alignItems: "center",
                           gap: ".75rem",
+                          cursor: "pointer",
+                          background: rp.parcelId === selectedStopId
+                            ? "rgba(245,158,11,.06)"
+                            : "transparent",
                         }}
                       >
                         <span

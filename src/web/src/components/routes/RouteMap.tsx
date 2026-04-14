@@ -167,8 +167,17 @@ export default function RouteMap({
     // Update route line color
     map.setPaintProperty("route-line-layer", "line-color", color);
 
-    // Fit bounds
-    if (lineCoords.length > 0) {
+    // Fit bounds or fly to selected stop
+    if (selectedStopId) {
+      const selected = sortedStops.find((s) => s.parcelId === selectedStopId);
+      if (selected) {
+        map.flyTo({
+          center: [selected.longitude, selected.latitude],
+          zoom: Math.max(map.getZoom(), 14),
+          duration: 600,
+        });
+      }
+    } else if (lineCoords.length > 0) {
       const bounds = new mapboxgl.LngLatBounds();
       lineCoords.forEach((c) => bounds.extend(c as mapboxgl.LngLatLike));
       map.fitBounds(bounds, { padding: 60, maxZoom: 15, duration: 600 });
