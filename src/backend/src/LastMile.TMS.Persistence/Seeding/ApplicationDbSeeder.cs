@@ -808,7 +808,7 @@ public class ApplicationDbSeeder(
         await dbContext.Addresses.AddRangeAsync(shipperByZone.Values, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        var parcelsPerZone = 25;
+        var parcelsPerZone = 40;
         var parcels = new List<Parcel>();
         var seq = 1;
 
