@@ -808,7 +808,7 @@ public class ApplicationDbSeeder(
         await dbContext.Addresses.AddRangeAsync(shipperByZone.Values, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        var parcelsPerZone = 10;
+        var parcelsPerZone = 25;
         var parcels = new List<Parcel>();
         var seq = 1;
 
@@ -884,9 +884,8 @@ public class ApplicationDbSeeder(
         if (await dbContext.RouteParcels.AnyAsync(cancellationToken))
             return;
 
-        var draftRoutes = await dbContext.DeliveryRoutes
-            .Where(r => r.Status == RouteStatus.Draft).ToListAsync(cancellationToken);
-        if (draftRoutes.Count == 0) return;
+        var allRoutes = await dbContext.DeliveryRoutes.ToListAsync(cancellationToken);
+        if (allRoutes.Count == 0) return;
 
         var routeReadyParcels = await dbContext.Parcels
             .Where(p => p.TrackingNumber.StartsWith("LM-RT-") && p.Status == ParcelStatus.Sorted)
@@ -896,12 +895,15 @@ public class ApplicationDbSeeder(
         var routeParcels = new List<RouteParcel>();
         var parcelsByZone = routeReadyParcels.GroupBy(p => p.ZoneId).ToDictionary(g => g.Key, g => g.ToList());
         var assigned = new HashSet<Guid>();
+        var random = new Random(77);
 
-        foreach (var route in draftRoutes)
+        foreach (var route in allRoutes)
         {
             if (!parcelsByZone.TryGetValue(route.ZoneId, out var zoneParcels)) continue;
 
-            var available = zoneParcels.Where(p => !assigned.Contains(p.Id)).Take(5).ToList();
+            var available = zoneParcels.Where(p => !assigned.Contains(p.Id)).Take(6).ToList();
+            if (available.Count == 0) continue;
+
             for (var i = 0; i < available.Count; i++)
             {
                 var parcel = available[i];
@@ -915,16 +917,74 @@ public class ApplicationDbSeeder(
                 assigned.Add(parcel.Id);
                 parcel.RouteId = route.Id;
 
-                // Mark first ~60% as Staged
-                if (i < (available.Count * 6) / 10)
-                    parcel.Status = ParcelStatus.Staged;
+                // Transition parcel status to match route status
+                switch (route.Status)
+                {
+                    case RouteStatus.Draft:
+                        // Keep as Sorted — will be transitioned when dispatched
+                        break;
+                    case RouteStatus.Dispatched:
+                        parcel.TransitionToStatus(ParcelStatus.Staged);
+                        parcel.TransitionToStatus(ParcelStatus.Loaded);
+                        parcel.TransitionToStatus(ParcelStatus.OutForDelivery);
+                        break;
+                    case RouteStatus.InProgress:
+                        var inProgRoll = random.Next(10);
+                        if (inProgRoll < 6)
+                        {
+                            parcel.TransitionToStatus(ParcelStatus.Staged);
+                            parcel.TransitionToStatus(ParcelStatus.Loaded);
+                            parcel.TransitionToStatus(ParcelStatus.OutForDelivery);
+                        }
+                        else if (inProgRoll < 9)
+                        {
+                            parcel.TransitionToStatus(ParcelStatus.Staged);
+                            parcel.TransitionToStatus(ParcelStatus.Loaded);
+                            parcel.TransitionToStatus(ParcelStatus.OutForDelivery);
+                            parcel.TransitionToStatus(ParcelStatus.Delivered);
+                        }
+                        else
+                        {
+                            parcel.TransitionToStatus(ParcelStatus.Staged);
+                            parcel.TransitionToStatus(ParcelStatus.Loaded);
+                            parcel.TransitionToStatus(ParcelStatus.OutForDelivery);
+                            parcel.TransitionToStatus(ParcelStatus.FailedAttempt);
+                        }
+                        break;
+                    case RouteStatus.Completed:
+                        var completedRoll = random.Next(10);
+                        if (completedRoll < 7)
+                        {
+                            parcel.TransitionToStatus(ParcelStatus.Staged);
+                            parcel.TransitionToStatus(ParcelStatus.Loaded);
+                            parcel.TransitionToStatus(ParcelStatus.OutForDelivery);
+                            parcel.TransitionToStatus(ParcelStatus.Delivered);
+                        }
+                        else if (completedRoll < 9)
+                        {
+                            parcel.TransitionToStatus(ParcelStatus.Staged);
+                            parcel.TransitionToStatus(ParcelStatus.Loaded);
+                            parcel.TransitionToStatus(ParcelStatus.OutForDelivery);
+                            parcel.TransitionToStatus(ParcelStatus.FailedAttempt);
+                        }
+                        else
+                        {
+                            parcel.TransitionToStatus(ParcelStatus.Staged);
+                            parcel.TransitionToStatus(ParcelStatus.Loaded);
+                            parcel.TransitionToStatus(ParcelStatus.OutForDelivery);
+                            parcel.TransitionToStatus(ParcelStatus.FailedAttempt);
+                            parcel.TransitionToStatus(ParcelStatus.ReturnedToDepot);
+                        }
+                        break;
+                }
             }
+
             route.EstimatedStops = available.Count;
         }
 
         await dbContext.RouteParcels.AddRangeAsync(routeParcels, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
-        logger.LogInformation("Seeded {Count} route-parcel assignments across {RouteCount} draft routes", routeParcels.Count, draftRoutes.Count);
+        logger.LogInformation("Seeded {Count} route-parcel assignments across {RouteCount} routes (all statuses)", routeParcels.Count, allRoutes.Count);
     }
 
     // ── Inbound Manifests ────────────────────────────────────────────────
@@ -959,7 +1019,7 @@ public class ApplicationDbSeeder(
         var allManifests = new List<InboundManifest>();
         var manifestSeq = 1;
         var now = DateTimeOffset.UtcNow;
-        var perDepot = 12;
+        var perDepot = 20;
 
         foreach (var depot in depots)
         {
