@@ -238,24 +238,26 @@ export default function RoutesPage() {
             )}
 
             {/* Table */}
-            <div style={{ border: `1px solid ${S.border}`, borderRadius: 8, overflow: "hidden" }}>
+            <div style={{ background: "rgba(255,255,255,.025)", border: `1px solid ${S.border}`, borderRadius: 10, overflow: "hidden" }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
-                  <tr style={{ borderBottom: `1px solid ${S.border}` }}>
+                  <tr style={{ borderBottom: `1px solid rgba(255,255,255,.08)`, background: "rgba(255,255,255,.025)" }}>
                     {COLS.map((col) => (
                       <th
                         key={col.label}
                         onClick={col.sortKey ? () => handleSort(col.sortKey as SortKey) : undefined}
                         style={{
-                          padding: ".75rem 1rem",
+                          padding: ".7rem 1rem",
                           textAlign: "left",
-                          fontSize: ".75rem",
+                          fontFamily: "var(--font-geist-mono,monospace)",
+                          fontSize: "11px",
                           fontWeight: 600,
-                          color: S.muted,
+                          color: sortColumn === col.sortKey ? S.accent : S.muted,
                           textTransform: "uppercase",
-                          letterSpacing: ".06em",
+                          letterSpacing: ".12em",
                           cursor: col.sortKey ? "pointer" : "default",
                           userSelect: "none",
+                          whiteSpace: "nowrap",
                         }}
                       >
                         {col.label} {col.sortKey ? getSortIndicator(col.sortKey) : ""}
@@ -281,34 +283,43 @@ export default function RoutesPage() {
                       <tr
                         key={route.id}
                         className="rt-row"
-                        style={{ borderBottom: `1px solid ${S.border}` }}
                         onClick={() => router.push(`/routes/${route.id}`)}
+                        style={{ borderBottom: `1px solid rgba(255,255,255,.04)`, transition: "background .12s" }}
                       >
-                        <td style={{ padding: ".75rem 1rem", fontSize: ".875rem", fontFamily: "var(--font-geist-mono,monospace)" }}>
+                        {/* Date — amber monospace */}
+                        <td style={{ padding: ".75rem 1rem", fontFamily: "var(--font-geist-mono,monospace)", fontSize: "13px", fontWeight: 700, color: "#f59e0b", letterSpacing: ".02em" }}>
                           {route.date}
                         </td>
-                        <td style={{ padding: ".75rem 1rem", fontSize: ".875rem" }}>
-                          {route.depot?.name ?? "\u2014"}
+                        {/* Depot — bright white */}
+                        <td style={{ padding: ".75rem 1rem", fontSize: "13px", color: "#e2e8f0", fontWeight: 500 }}>
+                          {route.depot?.name ?? <span style={{ color: "#4e6480" }}>—</span>}
                         </td>
-                        <td style={{ padding: ".75rem 1rem", fontSize: ".875rem" }}>
-                          {route.zoneName ?? "\u2014"}
+                        {/* Zone — cyan monospace */}
+                        <td style={{ padding: ".75rem 1rem", fontFamily: "var(--font-geist-mono,monospace)", fontSize: "12px", color: "#38bdf8" }}>
+                          {route.zoneName ?? <span style={{ color: "#4e6480" }}>—</span>}
                         </td>
-                        <td style={{ padding: ".75rem 1rem", fontSize: ".875rem" }}>
-                          {route.driverName ?? "\u2014"}
+                        {/* Driver — sky blue */}
+                        <td style={{ padding: ".75rem 1rem", fontSize: "13px", color: "#93c5fd" }}>
+                          {route.driverName ?? <span style={{ color: "#4e6480" }}>—</span>}
                         </td>
-                        <td style={{ padding: ".75rem 1rem", fontSize: ".875rem", fontFamily: "var(--font-geist-mono,monospace)" }}>
-                          {route.vehiclePlate ?? "\u2014"}
+                        {/* Vehicle — green tint monospace */}
+                        <td style={{ padding: ".75rem 1rem", fontFamily: "var(--font-geist-mono,monospace)", fontSize: "12px", color: "#6ee7b7" }}>
+                          {route.vehiclePlate ?? <span style={{ color: "#4e6480" }}>—</span>}
                         </td>
-                        <td style={{ padding: ".75rem 1rem", fontSize: ".875rem", textAlign: "center" }}>
+                        {/* Parcels — muted, centered */}
+                        <td style={{ padding: ".75rem 1rem", fontFamily: "var(--font-geist-mono,monospace)", fontSize: "13px", color: "#7a9ab8", textAlign: "center" }}>
                           {route.parcelCount}
                         </td>
-                        <td style={{ padding: ".75rem 1rem", fontSize: ".875rem", textAlign: "center" }}>
+                        {/* Stops — muted, centered */}
+                        <td style={{ padding: ".75rem 1rem", fontFamily: "var(--font-geist-mono,monospace)", fontSize: "13px", color: "#7a9ab8", textAlign: "center" }}>
                           {route.estimatedStops}
                         </td>
+                        {/* Status — badge */}
                         <td style={{ padding: ".75rem 1rem" }}>
                           <RouteStatusBadge status={route.status} />
                         </td>
-                        <td style={{ padding: ".75rem 1rem", fontSize: ".8rem", color: S.muted }}>
+                        {/* Created — dim monospace */}
+                        <td style={{ padding: ".75rem 1rem", fontFamily: "var(--font-geist-mono,monospace)", fontSize: "11px", color: "#647a96", letterSpacing: ".04em" }}>
                           {new Date(route.createdAt).toLocaleDateString()}
                         </td>
                         <td style={{ padding: ".5rem .5rem", textAlign: "center" }}>
