@@ -171,6 +171,9 @@ export const SEARCH_PARCELS = `
         }
         zone {
           name
+          depot {
+            name
+          }
         }
         parcelType
         weight

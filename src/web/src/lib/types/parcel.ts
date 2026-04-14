@@ -127,6 +127,7 @@ export interface ParcelListItem {
   recipientName: string;
   recipientCity: string;
   zoneName?: string;
+  depotName?: string;
   parcelType?: string;
   weight: number;
   weightUnit: WeightUnit;

@@ -58,6 +58,9 @@ interface ParcelConnectionNode {
   };
   zone?: {
     name?: string | null;
+    depot?: {
+      name?: string | null;
+    } | null;
   } | null;
   parcelType?: string | null;
   weight: number;
@@ -182,6 +185,7 @@ function mapParcelNodeToListItem(node: ParcelConnectionNode): ParcelListItem {
       "",
     recipientCity: node.recipientAddress.city,
     zoneName: node.zone?.name ?? undefined,
+    depotName: node.zone?.depot?.name ?? undefined,
     parcelType: node.parcelType ?? undefined,
     weight: node.weight,
     weightUnit: node.weightUnit,
