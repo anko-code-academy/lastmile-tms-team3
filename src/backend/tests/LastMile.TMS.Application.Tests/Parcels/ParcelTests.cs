@@ -9,6 +9,8 @@ using LastMile.TMS.Application.Features.Parcels.Validators;
 using LastMile.TMS.Application.Tests.Helpers;
 using LastMile.TMS.Domain.Entities;
 using LastMile.TMS.Domain.Enums;
+using Microsoft.Extensions.Logging;
+using NSubstitute;
 using NetTopologySuite.Geometries;
 
 namespace LastMile.TMS.Application.Tests.Parcels;
@@ -88,7 +90,8 @@ public class ParcelCommandTests : IDisposable
             _currentUser,
             mockZoneMatchingService,
             mockGeocodingService,
-            new StubManifestAssignmentService()
+            new StubManifestAssignmentService(),
+            Substitute.For<ILogger<CreateParcel.Handler>>()
         );
 
         var command = new CreateParcel.Command(createDto);
@@ -140,7 +143,8 @@ public class ParcelCommandTests : IDisposable
             _currentUser,
             mockZoneMatchingService,
             mockGeocodingService,
-            new StubManifestAssignmentService()
+            new StubManifestAssignmentService(),
+            Substitute.For<ILogger<CreateParcel.Handler>>()
         );
 
         var command = new CreateParcel.Command(createDto);
@@ -220,7 +224,8 @@ public class ParcelCommandTests : IDisposable
             _currentUser,
             mockZoneMatchingService,
             mockGeocodingService,
-            new StubManifestAssignmentService()
+            new StubManifestAssignmentService(),
+            Substitute.For<ILogger<CreateParcel.Handler>>()
         );
 
         var command = new CreateParcel.Command(createDto);
@@ -262,7 +267,8 @@ public class ParcelCommandTests : IDisposable
             _currentUser,
             mockZoneMatchingService,
             mockGeocodingService,
-            new StubManifestAssignmentService()
+            new StubManifestAssignmentService(),
+            Substitute.For<ILogger<CreateParcel.Handler>>()
         );
 
         var command = new CreateParcel.Command(createDto);
@@ -303,7 +309,8 @@ public class ParcelCommandTests : IDisposable
             _currentUser,
             mockZoneMatchingService,
             mockGeocodingService,
-            new StubManifestAssignmentService()
+            new StubManifestAssignmentService(),
+            Substitute.For<ILogger<CreateParcel.Handler>>()
         );
 
         var command = new CreateParcel.Command(createDto);
@@ -359,7 +366,8 @@ public class ParcelCommandTests : IDisposable
             _currentUser,
             new FakeZoneMatchingService(zone.Id),
             new FakeGeocodingService(),
-            new StubManifestAssignmentService()
+            new StubManifestAssignmentService(),
+            Substitute.For<ILogger<CreateParcel.Handler>>()
         );
 
         var result = await handler.Handle(new CreateParcel.Command(createDto), CancellationToken.None);
@@ -407,7 +415,8 @@ public class ParcelCommandTests : IDisposable
             _currentUser,
             new FakeZoneMatchingService(zone.Id),
             new FakeGeocodingService(),
-            spyManifestService
+            spyManifestService,
+            Substitute.For<ILogger<CreateParcel.Handler>>()
         );
 
         await handler.Handle(new CreateParcel.Command(createDto), CancellationToken.None);
@@ -453,7 +462,8 @@ public class ParcelCommandTests : IDisposable
             _currentUser,
             new FakeZoneMatchingService(zone.Id),
             new FakeGeocodingService(),
-            new StubManifestAssignmentService()
+            new StubManifestAssignmentService(),
+            Substitute.For<ILogger<CreateParcel.Handler>>()
         );
 
         var result = await handler.Handle(new CreateParcel.Command(createDto), CancellationToken.None);
