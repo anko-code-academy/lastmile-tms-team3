@@ -13,7 +13,7 @@ public static class ParcelStatusRules
         [ParcelStatus.Sorted] = [ParcelStatus.Staged, ParcelStatus.Cancelled, ParcelStatus.Exception],
         [ParcelStatus.Staged] = [ParcelStatus.Loaded, ParcelStatus.Cancelled, ParcelStatus.Exception],
         [ParcelStatus.Loaded] = [ParcelStatus.OutForDelivery, ParcelStatus.Exception],
-        [ParcelStatus.OutForDelivery] = [ParcelStatus.Delivered, ParcelStatus.FailedAttempt, ParcelStatus.Exception],
+        [ParcelStatus.OutForDelivery] = [ParcelStatus.Delivered, ParcelStatus.FailedAttempt, ParcelStatus.Staged, ParcelStatus.Exception],
         [ParcelStatus.FailedAttempt] = [ParcelStatus.OutForDelivery, ParcelStatus.ReturnedToDepot, ParcelStatus.Delivered],
         [ParcelStatus.ReturnedToDepot] = [],
         [ParcelStatus.Delivered] = [],

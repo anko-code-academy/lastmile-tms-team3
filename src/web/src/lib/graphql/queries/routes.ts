@@ -320,3 +320,25 @@ export const DISPATCH_ROUTE = `
     }
   }
 `;
+
+export const ADD_PARCELS_TO_ACTIVE_ROUTE = `
+  mutation AddParcelsToActiveRoute($input: AddParcelsToRouteDtoInput!) {
+    addParcelsToActiveRoute(input: $input) {
+      id
+      status
+      parcelCount
+      estimatedStops
+    }
+  }
+`;
+
+export const REMOVE_PARCEL_FROM_ACTIVE_ROUTE = `
+  mutation RemoveParcelFromActiveRoute($input: RemoveParcelFromRouteDtoInput!) {
+    removeParcelFromActiveRoute(input: $input) {
+      id
+      status
+      parcelCount
+      estimatedStops
+    }
+  }
+`;

@@ -217,6 +217,7 @@ try
     builder.Services.AddSignalR();
     builder.Services.AddScoped<IImportProgressNotifier, SignalRImportProgressNotifier>();
     builder.Services.AddSingleton<IDriverLocationService, SignalRDriverLocationService>();
+    builder.Services.AddScoped<IRouteNotificationService, SignalRRouteNotificationService>();
     builder.Services.AddCors(options =>
     {
         options.AddDefaultPolicy(policy =>

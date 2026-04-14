@@ -17,6 +17,8 @@ import {
   OPTIMIZE_ROUTE_STOPS,
   REORDER_ROUTE_STOPS,
   DISPATCH_ROUTE,
+  ADD_PARCELS_TO_ACTIVE_ROUTE,
+  REMOVE_PARCEL_FROM_ACTIVE_ROUTE,
 } from "@/lib/graphql/queries/routes";
 import type {
   CreateRouteInput,
@@ -353,6 +355,44 @@ export async function dispatchRouteAction(
     return {
       error:
         err instanceof Error ? err.message : "Failed to dispatch route",
+    };
+  }
+}
+
+export async function addParcelsToActiveRouteAction(
+  input: AddParcelsToRouteInput
+): Promise<{ error?: string }> {
+  try {
+    await gqlFetch<{ addParcelsToActiveRoute: DeliveryRoute }>(
+      ADD_PARCELS_TO_ACTIVE_ROUTE,
+      { input }
+    );
+    return {};
+  } catch (err) {
+    return {
+      error:
+        err instanceof Error
+          ? err.message
+          : "Failed to add parcels to active route",
+    };
+  }
+}
+
+export async function removeParcelFromActiveRouteAction(
+  input: RemoveParcelFromRouteInput
+): Promise<{ error?: string }> {
+  try {
+    await gqlFetch<{ removeParcelFromActiveRoute: DeliveryRoute }>(
+      REMOVE_PARCEL_FROM_ACTIVE_ROUTE,
+      { input }
+    );
+    return {};
+  } catch (err) {
+    return {
+      error:
+        err instanceof Error
+          ? err.message
+          : "Failed to remove parcel from active route",
     };
   }
 }

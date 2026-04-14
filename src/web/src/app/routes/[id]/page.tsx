@@ -23,8 +23,11 @@ import {
   optimizeRouteStopsAction,
   reorderRouteStopsAction,
   dispatchRouteAction,
+  addParcelsToActiveRouteAction,
+  removeParcelFromActiveRouteAction,
 } from "@/lib/actions/routes";
 import { useSearchVehicles } from "@/lib/hooks/useVehicles";
+import { useRouteUpdates } from "@/lib/hooks/useRouteUpdates";
 import { graphql } from "@/lib/api/graphql";
 import type {
   DeliveryRoute,
@@ -139,9 +142,11 @@ export default function RouteDetailPage({
     return () => { cancelled = true; };
   }, [route?.date]);
 
-  // Load staged parcels when route is loaded (for draft routes)
+  // Load staged parcels when route is loaded (for draft and active routes)
   useEffect(() => {
-    if (!route || route.status !== RouteStatus.Draft || !route.zoneId) {
+    if (!route || !route.zoneId) return;
+    const isActive = route.status === RouteStatus.Dispatched || route.status === RouteStatus.InProgress;
+    if (route.status !== RouteStatus.Draft && !isActive) {
       return;
     }
 
@@ -163,10 +168,9 @@ export default function RouteDetailPage({
 
     graphql<{ parcels: { nodes: StagedParcel[] } }>(GET_STAGED_PARCELS, {
       first: 50,
-      where: {
-        status: { eq: "SORTED" },
-        zoneId: { eq: route.zoneId },
-      },
+      where: isActive
+        ? { status: { eq: "STAGED" }, zoneId: { eq: route.zoneId } }
+        : { status: { eq: "SORTED" }, zoneId: { eq: route.zoneId } },
     })
       .then((data) => {
         if (!cancelled) {
@@ -358,7 +362,44 @@ export default function RouteDetailPage({
   }
 
   const isDraft = route?.status === RouteStatus.Draft;
+  const isActiveRoute = route?.status === RouteStatus.Dispatched || route?.status === RouteStatus.InProgress;
   const assignedParcels = route?.routeParcels ?? [];
+
+  // Active route handlers
+  async function handleAddParcelsToActiveRoute() {
+    if (!routeId || selectedParcelIds.size === 0) return;
+    setParcelLoading(true);
+    setError(null);
+    const result = await addParcelsToActiveRouteAction({
+      routeId,
+      parcelIds: Array.from(selectedParcelIds),
+    });
+    setParcelLoading(false);
+    if (result.error) {
+      setError(result.error);
+    } else {
+      setSelectedParcelIds(new Set());
+      await loadRoute();
+    }
+  }
+
+  async function handleRemoveParcelFromActiveRoute(parcelId: string) {
+    if (!routeId) return;
+    setParcelLoading(true);
+    setError(null);
+    const result = await removeParcelFromActiveRouteAction({ routeId, parcelId });
+    setParcelLoading(false);
+    if (result.error) {
+      setError(result.error);
+    } else {
+      await loadRoute();
+    }
+  }
+
+  // Real-time route updates via SignalR
+  useRouteUpdates(isActiveRoute ? routeId : null, () => {
+    loadRoute();
+  });
 
   if (loading) {
     return (
@@ -1092,8 +1133,234 @@ export default function RouteDetailPage({
               </>
             )}
 
-            {/* Non-draft: show assigned parcels as read-only */}
-            {!isDraft && route.parcelCount > 0 && (
+            {/* Active route (Dispatched / InProgress): interactive parcel management */}
+            {isActiveRoute && (
+              <>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: "1.5rem",
+                    marginBottom: "1.5rem",
+                  }}
+                >
+                  {/* Available staged parcels for active route */}
+                  <div
+                    style={{
+                      border: `1px solid ${S.border}`,
+                      borderRadius: 8,
+                      overflow: "hidden",
+                    }}
+                  >
+                    <div
+                      style={{
+                        padding: ".75rem 1rem",
+                        borderBottom: `1px solid ${S.border}`,
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <span style={{ fontWeight: 600, fontSize: ".875rem" }}>
+                        Available Parcels ({stagedParcels.length})
+                      </span>
+                    </div>
+                    <div style={{ maxHeight: 300, overflow: "auto" }}>
+                      {stagedParcels.length === 0 ? (
+                        <div
+                          style={{
+                            padding: "1.5rem",
+                            textAlign: "center",
+                            color: S.muted,
+                            fontSize: ".8rem",
+                          }}
+                        >
+                          No staged parcels available for this zone
+                        </div>
+                      ) : (
+                        stagedParcels.map((p) => (
+                          <div
+                            key={p.id}
+                            className="parcel-row"
+                            onClick={() => toggleParcel(p.id)}
+                            style={{
+                              padding: ".5rem 1rem",
+                              borderBottom: `1px solid ${S.border}`,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: ".75rem",
+                              cursor: "pointer",
+                              background: selectedParcelIds.has(p.id)
+                                ? "rgba(245,158,11,.06)"
+                                : "transparent",
+                            }}
+                          >
+                            <span
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleParcel(p.id);
+                              }}
+                              style={{
+                                width: 16,
+                                height: 16,
+                                borderRadius: 3,
+                                border: `1.5px solid ${selectedParcelIds.has(p.id) ? S.accent : "rgba(255,255,255,.2)"}`,
+                                background: selectedParcelIds.has(p.id)
+                                  ? S.accent
+                                  : "transparent",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                cursor: "pointer",
+                                flexShrink: 0,
+                                fontSize: 11,
+                                color: "#080c14",
+                                fontWeight: 700,
+                                lineHeight: 1,
+                              }}
+                            >
+                              {selectedParcelIds.has(p.id) ? "\u2713" : ""}
+                            </span>
+                            <span
+                              style={{
+                                fontFamily: S.mono,
+                                fontSize: ".8rem",
+                              }}
+                            >
+                              {p.trackingNumber}
+                            </span>
+                            <ParcelStatusBadge status={p.status as ParcelStatus} />
+                          </div>
+                        ))
+                      )}
+                    </div>
+                    {selectedParcelIds.size > 0 && (
+                      <div
+                        style={{
+                          padding: ".75rem 1rem",
+                          borderTop: `1px solid ${S.border}`,
+                        }}
+                      >
+                        <button
+                          onClick={handleAddParcelsToActiveRoute}
+                          disabled={parcelLoading}
+                          className="tm-btn-primary"
+                          style={{
+                            width: "100%",
+                            padding: ".4rem .75rem",
+                            borderRadius: 4,
+                            background: "rgba(245,158,11,.1)",
+                            border: "1px solid rgba(245,158,11,.3)",
+                            color: S.accent,
+                            fontWeight: 600,
+                            fontSize: ".8rem",
+                            cursor: parcelLoading ? "not-allowed" : "pointer",
+                          }}
+                        >
+                          Add {selectedParcelIds.size} Selected Parcel
+                          {selectedParcelIds.size !== 1 ? "s" : ""} to Route
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Assigned parcels for active route */}
+                  <div
+                    style={{
+                      border: `1px solid ${S.border}`,
+                      borderRadius: 8,
+                      overflow: "hidden",
+                    }}
+                  >
+                    <div
+                      style={{
+                        padding: ".75rem 1rem",
+                        borderBottom: `1px solid ${S.border}`,
+                      }}
+                    >
+                      <span style={{ fontWeight: 600, fontSize: ".875rem" }}>
+                        Assigned Parcels ({route.parcelCount})
+                      </span>
+                    </div>
+                    <div style={{ maxHeight: 340, overflow: "auto" }}>
+                      {route.parcelCount === 0 ? (
+                        <div
+                          style={{
+                            padding: "1.5rem",
+                            textAlign: "center",
+                            color: S.muted,
+                            fontSize: ".8rem",
+                          }}
+                        >
+                          No parcels assigned yet.
+                        </div>
+                      ) : (
+                        assignedParcels
+                          .slice()
+                          .sort((a, b) => a.stopOrder - b.stopOrder)
+                          .map((rp, i) => (
+                            <div
+                              key={rp.parcelId}
+                              className="parcel-row"
+                              style={{
+                                padding: ".5rem 1rem",
+                                borderBottom: `1px solid ${S.border}`,
+                                display: "flex",
+                                alignItems: "center",
+                                gap: ".75rem",
+                              }}
+                            >
+                              <span
+                                style={{
+                                  color: S.accent,
+                                  fontSize: ".75rem",
+                                  fontWeight: 600,
+                                  minWidth: 24,
+                                }}
+                              >
+                                #{rp.stopOrder || i + 1}
+                              </span>
+                              <span
+                                style={{
+                                  fontFamily: S.mono,
+                                  fontSize: ".8rem",
+                                  flex: 1,
+                                }}
+                              >
+                                {rp.parcel?.trackingNumber ??
+                                  rp.parcelId.slice(0, 8)}
+                              </span>
+                              <ParcelStatusBadge status={(rp.parcel?.status ?? "LOADED") as ParcelStatus} />
+                              <button
+                                className="remove-btn"
+                                onClick={() => handleRemoveParcelFromActiveRoute(rp.parcelId)}
+                                disabled={parcelLoading}
+                                title="Remove parcel from route"
+                                style={{
+                                  background: "none",
+                                  border: "none",
+                                  color: S.red,
+                                  cursor: parcelLoading ? "not-allowed" : "pointer",
+                                  fontSize: ".85rem",
+                                  padding: ".15rem .35rem",
+                                  borderRadius: 3,
+                                  opacity: parcelLoading ? 0.4 : 0.7,
+                                  lineHeight: 1,
+                                }}
+                              >
+                                &times;
+                              </button>
+                            </div>
+                          ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Completed routes: read-only parcel list */}
+            {!isDraft && !isActiveRoute && route.parcelCount > 0 && (
               <div
                 style={{
                   border: `1px solid ${S.border}`,

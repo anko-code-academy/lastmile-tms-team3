@@ -1,0 +1,61 @@
+using LastMile.TMS.Application.Common.Interfaces;
+using LastMile.TMS.Application.Features.Routes.DTOs;
+using LastMile.TMS.Application.Features.Routes.Mappers;
+using LastMile.TMS.Domain.Enums;
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+
+namespace LastMile.TMS.Application.Features.Routes.Commands;
+
+public static class AddParcelsToActiveRoute
+{
+    public record Command(AddParcelsToRouteDto Dto) : IRequest<RouteDto>;
+
+    public class Handler : IRequestHandler<Command, RouteDto>
+    {
+        private readonly IAppDbContextFactory _contextFactory;
+        private readonly ICurrentUserService _currentUser;
+
+        public Handler(IAppDbContextFactory contextFactory, ICurrentUserService currentUser)
+        {
+            _contextFactory = contextFactory;
+            _currentUser = currentUser;
+        }
+
+        public async Task<RouteDto> Handle(Command request, CancellationToken cancellationToken)
+        {
+            using var context = _contextFactory.CreateDbContext();
+
+            var route = await context.DeliveryRoutes
+                .Include(r => r.RouteParcels)
+                    .ThenInclude(rp => rp.Parcel)
+                .Include(r => r.Zone)
+                .Include(r => r.Driver)
+                .Include(r => r.Vehicle)
+                .FirstOrDefaultAsync(r => r.Id == request.Dto.RouteId, cancellationToken)
+                ?? throw new InvalidOperationException($"Route with ID '{request.Dto.RouteId}' was not found.");
+
+            // Only add parcels that are Staged and not already on any route
+            var alreadyRoutedParcelIds = await context.RouteParcels
+                .Where(rp => request.Dto.ParcelIds.Contains(rp.ParcelId))
+                .Select(rp => rp.ParcelId)
+                .ToHashSetAsync(cancellationToken);
+
+            var parcels = await context.Parcels
+                .Where(p => request.Dto.ParcelIds.Contains(p.Id)
+                    && p.Status == ParcelStatus.Staged
+                    && !alreadyRoutedParcelIds.Contains(p.Id))
+                .ToListAsync(cancellationToken);
+
+            foreach (var parcel in parcels)
+            {
+                parcel.TransitionToStatus(ParcelStatus.Loaded);
+                route.AddParcelToActiveRoute(parcel);
+            }
+
+            await context.SaveChangesAsync(cancellationToken);
+
+            return RouteMapper.ToDto(route);
+        }
+    }
+}

@@ -539,4 +539,151 @@ public class DeliveryRouteTests
         route.ParcelCount.Should().Be(2);
         route.EstimatedStops.Should().Be(1);
     }
+
+    // === Active Route (Dispatched / InProgress) Tests ===
+
+    private DeliveryRoute CreateDispatchedRoute()
+    {
+        var route = CreateDraftRoute();
+        route.AddParcel(CreateParcel(ParcelStatus.Loaded));
+        route.Dispatch();
+        return route;
+    }
+
+    [Fact]
+    public void AddParcelToActiveRoute_WhenDispatched_ShouldAddParcel()
+    {
+        // Arrange
+        var route = CreateDispatchedRoute();
+        var parcel = CreateParcel(ParcelStatus.Staged);
+
+        // Act
+        route.AddParcelToActiveRoute(parcel);
+
+        // Assert
+        route.RouteParcels.Should().Contain(rp => rp.ParcelId == parcel.Id);
+        route.ParcelCount.Should().Be(2);
+    }
+
+    [Fact]
+    public void AddParcelToActiveRoute_WhenInProgress_ShouldAddParcel()
+    {
+        // Arrange
+        var route = CreateDispatchedRoute();
+        route.Status = RouteStatus.InProgress;
+        var parcel = CreateParcel(ParcelStatus.Staged);
+
+        // Act
+        route.AddParcelToActiveRoute(parcel);
+
+        // Assert
+        route.RouteParcels.Should().Contain(rp => rp.ParcelId == parcel.Id);
+    }
+
+    [Fact]
+    public void AddParcelToActiveRoute_WhenDraft_ShouldThrow()
+    {
+        // Arrange
+        var route = CreateDraftRoute();
+        var parcel = CreateParcel(ParcelStatus.Staged);
+
+        // Act
+        var act = () => route.AddParcelToActiveRoute(parcel);
+
+        // Assert
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*Dispatched*In Progress*");
+    }
+
+    [Fact]
+    public void AddParcelToActiveRoute_WhenCompleted_ShouldThrow()
+    {
+        // Arrange
+        var route = CreateDispatchedRoute();
+        route.Status = RouteStatus.Completed;
+        var parcel = CreateParcel(ParcelStatus.Staged);
+
+        // Act
+        var act = () => route.AddParcelToActiveRoute(parcel);
+
+        // Assert
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*Dispatched*In Progress*");
+    }
+
+    [Fact]
+    public void RemoveParcelFromActiveRoute_WhenDispatched_ShouldRemoveParcel()
+    {
+        // Arrange
+        var route = CreateDispatchedRoute();
+        var parcelId = route.RouteParcels.First().ParcelId;
+
+        // Act
+        route.RemoveParcelFromActiveRoute(parcelId);
+
+        // Assert
+        route.RouteParcels.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void RemoveParcelFromActiveRoute_WhenInProgress_ShouldRemoveParcel()
+    {
+        // Arrange
+        var route = CreateDispatchedRoute();
+        route.Status = RouteStatus.InProgress;
+        var parcelId = route.RouteParcels.First().ParcelId;
+
+        // Act
+        route.RemoveParcelFromActiveRoute(parcelId);
+
+        // Assert
+        route.RouteParcels.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void RemoveParcelFromActiveRoute_WhenDraft_ShouldThrow()
+    {
+        // Arrange
+        var route = CreateDraftRoute();
+        var parcel = CreateParcel();
+        route.AddParcel(parcel);
+
+        // Act
+        var act = () => route.RemoveParcelFromActiveRoute(parcel.Id);
+
+        // Assert
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*Dispatched*In Progress*");
+    }
+
+    [Fact]
+    public void RemoveParcelFromActiveRoute_WhenParcelNotOnRoute_ShouldThrow()
+    {
+        // Arrange
+        var route = CreateDispatchedRoute();
+
+        // Act
+        var act = () => route.RemoveParcelFromActiveRoute(Guid.NewGuid());
+
+        // Assert
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*not found*");
+    }
+
+    [Fact]
+    public void RemoveParcelFromActiveRoute_ShouldRecalculateStops()
+    {
+        // Arrange
+        var route = CreateDispatchedRoute();
+        var extraParcel = CreateParcel(ParcelStatus.Loaded);
+        route.AddParcelToActiveRoute(extraParcel);
+        route.EstimatedStops.Should().Be(2);
+
+        // Act
+        route.RemoveParcelFromActiveRoute(extraParcel.Id);
+
+        // Assert
+        route.ParcelCount.Should().Be(1);
+        route.EstimatedStops.Should().Be(1);
+    }
 }
