@@ -91,7 +91,7 @@ export default function LoadOutPage() {
 
   function fetchParcels(routeId: string) {
     setParcelsLoading(true);
-    getStagingParcelsAction(routeId).then(setParcels).catch((err) => {
+    getStagingParcelsAction(routeId, ["STAGED", "LOADED"]).then(setParcels).catch((err) => {
       console.error("Failed to load parcels:", err);
     }).finally(() => setParcelsLoading(false));
   }
