@@ -1,10 +1,10 @@
 using LastMile.TMS.Application.Common.Interfaces;
-using LastMile.TMS.Application.Features.Routes.DTOs;
+using LastMile.TMS.Application.Features.Drivers.DTOs;
 using LastMile.TMS.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
-namespace LastMile.TMS.Application.Features.Routes.Queries;
+namespace LastMile.TMS.Application.Features.Drivers.Queries;
 
 public static class GetAvailableDrivers
 {

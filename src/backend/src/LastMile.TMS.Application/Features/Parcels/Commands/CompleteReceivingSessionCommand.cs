@@ -35,9 +35,9 @@ public static class CompleteReceivingSession
             var manifestParcels = session.Manifest.Parcels.ToList();
             var expectedCount = manifestParcels.Count;
 
-            // Count parcels that were received (ReceivedAtDepot or beyond) from this manifest
-            var receivedParcels = manifestParcels.Where(p => p.Status != ParcelStatus.Registered).ToList();
-            var receivedCount = receivedParcels.Count;
+            // Count parcels by status at completion time
+            var receivedCount = manifestParcels.Count(p => p.Status == ParcelStatus.ReceivedAtDepot);
+            var misdirectedCount = manifestParcels.Count(p => p.Status == ParcelStatus.Exception);
 
             // Find parcels that are still Registered → these are missing
             var missingParcels = manifestParcels
@@ -70,6 +70,7 @@ public static class CompleteReceivingSession
                 expectedCount,
                 receivedCount,
                 missingParcels.Count,
+                misdirectedCount,
                 missingParcels.Select(p => new MissingParcelDto(p.TrackingNumber, p.Status.ToString())).ToList());
         }
     }

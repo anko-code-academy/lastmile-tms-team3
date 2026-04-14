@@ -1,3 +1,5 @@
+using FluentValidation;
+using FluentValidation.Results;
 using LastMile.TMS.Application.Common.Interfaces;
 using LastMile.TMS.Application.Features.Parcels.DTOs;
 using LastMile.TMS.Application.Features.Parcels.Mappers;
@@ -5,6 +7,7 @@ using LastMile.TMS.Application.Services;
 using LastMile.TMS.Domain.Entities;
 using LastMile.TMS.Domain.Enums;
 using MediatR;
+using Microsoft.Extensions.Logging;
 using NetTopologySuite.Geometries;
 
 namespace LastMile.TMS.Application.Features.Parcels.Commands;
@@ -20,14 +23,16 @@ public static class CreateParcel
         private readonly IZoneMatchingService _zoneMatchingService;
         private readonly IGeocodingService _geocodingService;
         private readonly IManifestAssignmentService _manifestAssignmentService;
+        private readonly ILogger<Handler> _logger;
 
-        public Handler(IAppDbContextFactory contextFactory, ICurrentUserService currentUser, IZoneMatchingService zoneMatchingService, IGeocodingService geocodingService, IManifestAssignmentService manifestAssignmentService)
+        public Handler(IAppDbContextFactory contextFactory, ICurrentUserService currentUser, IZoneMatchingService zoneMatchingService, IGeocodingService geocodingService, IManifestAssignmentService manifestAssignmentService, ILogger<Handler> logger)
         {
             _contextFactory = contextFactory;
             _currentUser = currentUser;
             _zoneMatchingService = zoneMatchingService;
             _geocodingService = geocodingService;
             _manifestAssignmentService = manifestAssignmentService;
+            _logger = logger;
         }
 
         public async Task<ParcelDto> Handle(Command request, CancellationToken cancellationToken)
@@ -36,8 +41,8 @@ public static class CreateParcel
 
             var now = DateTimeOffset.UtcNow;
 
-            // Geocode both addresses in parallel
-            var recipientTask = ResolveCoordinatesAsync(
+            // Geocode addresses sequentially — Nominatim allows max 1 req/sec
+            var (recipientLat, recipientLon) = await ResolveCoordinatesAsync(
                 request.Dto.RecipientAddress.Street1,
                 request.Dto.RecipientAddress.City,
                 request.Dto.RecipientAddress.State,
@@ -47,7 +52,7 @@ public static class CreateParcel
                 request.Dto.RecipientAddress.Longitude,
                 cancellationToken);
 
-            var shipperTask = ResolveCoordinatesAsync(
+            var (shipperLat, shipperLon) = await ResolveCoordinatesAsync(
                 request.Dto.ShipperAddress.Street1,
                 request.Dto.ShipperAddress.City,
                 request.Dto.ShipperAddress.State,
@@ -57,13 +62,11 @@ public static class CreateParcel
                 request.Dto.ShipperAddress.Longitude,
                 cancellationToken);
 
-            await Task.WhenAll(recipientTask, shipperTask);
-
-            var (recipientLat, recipientLon) = recipientTask.Result;
-            var (shipperLat, shipperLon) = shipperTask.Result;
-
             var recipientGeoLocation = CreatePoint(recipientLat, recipientLon);
             var shipperGeoLocation = CreatePoint(shipperLat, shipperLon);
+
+            _logger.LogInformation("Recipient geolocation: {Geo}", recipientGeoLocation?.ToString() ?? "null");
+            _logger.LogInformation("Shipper geolocation: {Geo}", shipperGeoLocation?.ToString() ?? "null");
 
             var recipientAddress = new Address
             {
@@ -106,7 +109,24 @@ public static class CreateParcel
             Guid? zoneId = null;
             if (recipientGeoLocation is not null)
             {
+                _logger.LogInformation("Looking up zone for point: X={X}, Y={Y}, SRID={SRID}", recipientGeoLocation.X, recipientGeoLocation.Y, recipientGeoLocation.SRID);
                 zoneId = await _zoneMatchingService.FindMatchingZoneIdAsync(recipientGeoLocation, cancellationToken);
+                _logger.LogInformation("Zone match result: {ZoneId}", zoneId?.ToString() ?? "null");
+            }
+            else
+            {
+                throw new ValidationException(new[]
+                {
+                    new ValidationFailure("RecipientAddress", "Unable to geocode the recipient address. Please verify the address is valid.")
+                });
+            }
+
+            if (zoneId is null)
+            {
+                throw new ValidationException(new[]
+                {
+                    new ValidationFailure("RecipientAddress", "No delivery zone found for the recipient address. Please verify the address is within the service area.")
+                });
             }
 
             var trackingNumber = $"LMT-{now:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}";
@@ -118,7 +138,9 @@ public static class CreateParcel
                 BarcodeData = trackingNumber,
                 Description = request.Dto.Description,
                 ServiceType = request.Dto.ServiceType,
-                Status = ParcelStatus.Registered,
+                Status = request.Dto.IsCustomerDropOff
+                    ? ParcelStatus.ReceivedAtDepot
+                    : ParcelStatus.Registered,
                 RecipientAddressId = recipientAddress.Id,
                 RecipientAddress = recipientAddress,
                 ShipperAddressId = shipperAddress.Id,
@@ -141,8 +163,8 @@ public static class CreateParcel
 
             context.Parcels.Add(parcel);
 
-            // Assign parcel to inbound manifest based on depot
-            if (zoneId.HasValue)
+            // Assign parcel to inbound manifest based on depot (skip for customer drop-off)
+            if (!request.Dto.IsCustomerDropOff && zoneId.HasValue)
             {
                 var zone = await context.Zones.FindAsync(new object[] { zoneId.Value }, cancellationToken);
                 if (zone is not null)

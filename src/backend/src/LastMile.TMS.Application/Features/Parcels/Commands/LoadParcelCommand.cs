@@ -70,6 +70,9 @@ public static class LoadParcel
                 request.Dto.LocationState,
                 request.Dto.LocationCountryCode);
 
+            if (route.LoadedAt == null)
+                route.LoadedAt = DateTimeOffset.UtcNow;
+
             await context.SaveChangesAsync(cancellationToken);
 
             return new LoadParcelResultDto(

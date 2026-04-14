@@ -18,6 +18,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { ParcelStatusBadge } from "@/components/parcels/ParcelStatusBadge";
 
 const S = {
   accent: "#f59e0b" as const,
@@ -32,6 +33,7 @@ interface StopItem {
   stopOrder: number;
   trackingNumber: string;
   address: string;
+  status: string;
 }
 
 interface SortableStopListProps {
@@ -205,6 +207,9 @@ function SortableStopItem({
       <span style={{ fontFamily: S.mono, fontSize: ".8rem", flex: 1 }}>
         {stop.trackingNumber}
       </span>
+
+      {/* Status */}
+      <ParcelStatusBadge status={stop.status as import("@/lib/types/parcel").ParcelStatus} />
 
       {/* Address */}
       <span style={{ fontSize: ".75rem", color: S.muted, flex: 1 }}>

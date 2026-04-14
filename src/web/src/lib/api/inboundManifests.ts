@@ -7,18 +7,26 @@ import type {
   ReceiveParcelResult,
   CompleteReceivingSessionInput,
   CompleteReceivingSessionResult,
+  ReceiveWalkInParcelInput,
+  ReceiveWalkInParcelResult,
 } from "../types/inboundManifest";
 
 interface InboundManifestsResponse {
   inboundManifests: {
     totalCount: number;
     nodes: InboundManifest[];
+    pageInfo: {
+      hasNextPage: boolean;
+      hasPreviousPage: boolean;
+      startCursor: string | null;
+      endCursor: string | null;
+    };
   };
 }
 
 const INBOUND_MANIFESTS_QUERY = `
-  query GetInboundManifests($where: InboundManifestFilterInput) {
-    inboundManifests(first: 100, where: $where) {
+  query GetInboundManifests($where: InboundManifestFilterInput, $first: Int, $after: String, $search: String, $order: [InboundManifestSortInput!]) {
+    inboundManifests(first: $first, after: $after, where: $where, search: $search, order: $order) {
       totalCount
       nodes {
         id
@@ -47,6 +55,12 @@ const INBOUND_MANIFESTS_QUERY = `
         }
         createdAt
       }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
     }
   }
 `;
@@ -68,6 +82,7 @@ const RECEIVE_PARCEL_MUTATION = `
       trackingNumber
       status
       isUnexpected
+      isAlreadyReceived
       sessionId
     }
   }
@@ -80,6 +95,7 @@ const COMPLETE_RECEIVING_SESSION_MUTATION = `
       expectedCount
       receivedCount
       missingCount
+      misdirectedCount
       missingParcels {
         trackingNumber
         status
@@ -88,11 +104,30 @@ const COMPLETE_RECEIVING_SESSION_MUTATION = `
   }
 `;
 
-export async function getInboundManifests(
-  where?: Record<string, unknown>,
-): Promise<InboundManifestsResponse> {
+const RECEIVE_WALK_IN_PARCEL_MUTATION = `
+  mutation ReceiveWalkInParcel($input: ReceiveWalkInParcelDtoInput!) {
+    receiveWalkInParcel(input: $input) {
+      parcelId
+      trackingNumber
+      status
+      isMisdirected
+    }
+  }
+`;
+
+export async function getInboundManifests(params?: {
+  where?: Record<string, unknown>;
+  first?: number;
+  after?: string | null;
+  search?: string | null;
+  order?: Record<string, string>[] | null;
+}): Promise<InboundManifestsResponse> {
   return graphql<InboundManifestsResponse>(INBOUND_MANIFESTS_QUERY, {
-    where: where ?? null,
+    where: params?.where ?? null,
+    first: params?.first ?? 5,
+    after: params?.after ?? null,
+    search: params?.search ?? null,
+    order: params?.order ?? null,
   });
 }
 
@@ -119,6 +154,15 @@ export async function completeReceivingSession(
 ): Promise<{ completeReceivingSession: CompleteReceivingSessionResult }> {
   return graphql<{ completeReceivingSession: CompleteReceivingSessionResult }>(
     COMPLETE_RECEIVING_SESSION_MUTATION,
+    { input },
+  );
+}
+
+export async function receiveWalkInParcel(
+  input: ReceiveWalkInParcelInput,
+): Promise<{ receiveWalkInParcel: ReceiveWalkInParcelResult }> {
+  return graphql<{ receiveWalkInParcel: ReceiveWalkInParcelResult }>(
+    RECEIVE_WALK_IN_PARCEL_MUTATION,
     { input },
   );
 }

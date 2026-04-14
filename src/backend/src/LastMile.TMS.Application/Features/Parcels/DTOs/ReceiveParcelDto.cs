@@ -14,5 +14,6 @@ public record ReceiveParcelResultDto(
     string TrackingNumber,
     string Status,
     bool IsUnexpected,
+    bool IsAlreadyReceived,
     Guid SessionId
 );

@@ -42,26 +42,6 @@ export interface LoadParcelResult {
   assignedRouteId?: string | null;
 }
 
-export interface CompleteLoadingInput {
-  routeId: string;
-  operatorName?: string;
-  forceComplete?: boolean;
-}
-
-export interface UnloadedParcel {
-  parcelId: string;
-  trackingNumber: string;
-  status: string;
-}
-
-export interface CompleteLoadingResult {
-  routeId: string;
-  isSuccess: boolean;
-  hasUnloadedParcels: boolean;
-  unloadedParcelCount: number;
-  unloadedParcels: UnloadedParcel[];
-}
-
 // Route creation types (LMTT3-40)
 export interface RouteParcelItem {
   parcelId: string;
@@ -123,11 +103,13 @@ export interface CreateRouteInput {
 export interface AddParcelsToRouteInput {
   routeId: string;
   parcelIds: string[];
+  reason?: string;
 }
 
 export interface RemoveParcelFromRouteInput {
   routeId: string;
   parcelId: string;
+  reason?: string;
 }
 
 export interface AssignDriverToRouteInput {
@@ -158,4 +140,30 @@ export interface ReorderStopEntry {
 export interface ReorderStopsInput {
   routeId: string;
   newOrder: ReorderStopEntry[];
+}
+
+export interface RouteMapStop {
+  parcelId: string;
+  stopOrder: number;
+  trackingNumber: string;
+  status: string;
+  latitude: number;
+  longitude: number;
+  city: string;
+  street1: string;
+}
+
+export interface RouteMapData {
+  id: string;
+  name: string;
+  status: RouteStatus;
+  driverName?: string | null;
+  vehiclePlate?: string | null;
+  depot: {
+    id: string;
+    name: string;
+    address?: { latitude: number; longitude: number } | null;
+  } | null;
+  stops: RouteMapStop[];
+  driverPosition?: { latitude: number; longitude: number } | null;
 }

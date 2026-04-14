@@ -2,6 +2,7 @@ using HotChocolate.Authorization;
 using HotChocolate.Data;
 using HotChocolate.Types;
 using LastMile.TMS.Api.GraphQL.Types.Filters;
+using LastMile.TMS.Api.GraphQL.Types.Sorting;
 using LastMile.TMS.Application.Common.Interfaces;
 using LastMile.TMS.Domain.Entities;
 using LastMile.TMS.Persistence;
@@ -16,10 +17,13 @@ public class InboundManifestQuery
     [UsePaging(IncludeTotalCount = true, MaxPageSize = 100)]
     [UseProjection]
     [UseFiltering(typeof(InboundManifestFilterInput))]
+    [UseSorting(typeof(InboundManifestSortInput))]
     public IQueryable<InboundManifest> GetInboundManifests(
         AppDbContext context,
-        [Service] ICurrentUserService currentUser)
+        [Service] ICurrentUserService currentUser,
+        string? search = null)
         => context.InboundManifests
             .AsNoTracking()
-            .ApplyWarehouseScope(currentUser);
+            .ApplyWarehouseScope(currentUser)
+            .ApplySearch(search);
 }

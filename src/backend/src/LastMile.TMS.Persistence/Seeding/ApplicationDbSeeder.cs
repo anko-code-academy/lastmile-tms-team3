@@ -45,6 +45,7 @@ public class ApplicationDbSeeder(
         await SeedParcelsAsync(cancellationToken);
         await SeedSortDemoParcelsAsync(cancellationToken);
         await SeedRouteReadyParcelsAsync(cancellationToken);
+        await SeedRouteParcelAssignmentsAsync(cancellationToken);
         await SeedInboundManifestsAsync(cancellationToken);
     }
 
@@ -1002,78 +1003,64 @@ public class ApplicationDbSeeder(
     {
         0 =>
         [
-            ParcelStatus.Registered,
-            ParcelStatus.Registered,
+            ParcelStatus.Registered, ParcelStatus.Registered, ParcelStatus.Registered,
+            ParcelStatus.Registered, ParcelStatus.Registered,
+            ParcelStatus.ReceivedAtDepot, ParcelStatus.ReceivedAtDepot,
+            ParcelStatus.ReceivedAtDepot, ParcelStatus.ReceivedAtDepot,
             ParcelStatus.ReceivedAtDepot,
-            ParcelStatus.ReceivedAtDepot,
-            ParcelStatus.ReceivedAtDepot,
+            ParcelStatus.Sorted, ParcelStatus.Sorted, ParcelStatus.Sorted,
             ParcelStatus.Sorted,
-            ParcelStatus.Sorted,
-            ParcelStatus.Sorted,
+            ParcelStatus.Staged, ParcelStatus.Staged, ParcelStatus.Staged,
             ParcelStatus.Staged,
-            ParcelStatus.Staged,
-            ParcelStatus.Staged,
-            ParcelStatus.Loaded,
-            ParcelStatus.Loaded,
+            ParcelStatus.Loaded, ParcelStatus.Loaded, ParcelStatus.Loaded,
+            ParcelStatus.OutForDelivery, ParcelStatus.OutForDelivery,
             ParcelStatus.OutForDelivery,
-            ParcelStatus.OutForDelivery,
-            ParcelStatus.Delivered,
-            ParcelStatus.Delivered,
-            ParcelStatus.FailedAttempt,
-            ParcelStatus.FailedAttempt,
+            ParcelStatus.Delivered, ParcelStatus.Delivered,
+            ParcelStatus.Delivered, ParcelStatus.Delivered,
+            ParcelStatus.FailedAttempt, ParcelStatus.FailedAttempt,
             ParcelStatus.ReturnedToDepot,
-            ParcelStatus.Cancelled,
-            ParcelStatus.Exception,
-            ParcelStatus.Exception,
+            ParcelStatus.Cancelled, ParcelStatus.Cancelled,
+            ParcelStatus.Exception, ParcelStatus.Exception,
         ],
         1 =>
         [
-            ParcelStatus.Registered,
-            ParcelStatus.ReceivedAtDepot,
-            ParcelStatus.ReceivedAtDepot,
-            ParcelStatus.ReceivedAtDepot,
-            ParcelStatus.ReceivedAtDepot,
-            ParcelStatus.Sorted,
-            ParcelStatus.Sorted,
-            ParcelStatus.Sorted,
-            ParcelStatus.Sorted,
-            ParcelStatus.Staged,
-            ParcelStatus.Staged,
+            ParcelStatus.Registered, ParcelStatus.Registered, ParcelStatus.Registered,
+            ParcelStatus.ReceivedAtDepot, ParcelStatus.ReceivedAtDepot,
+            ParcelStatus.ReceivedAtDepot, ParcelStatus.ReceivedAtDepot,
+            ParcelStatus.ReceivedAtDepot, ParcelStatus.ReceivedAtDepot,
+            ParcelStatus.Sorted, ParcelStatus.Sorted, ParcelStatus.Sorted,
+            ParcelStatus.Sorted, ParcelStatus.Sorted,
+            ParcelStatus.Staged, ParcelStatus.Staged, ParcelStatus.Staged,
+            ParcelStatus.Loaded, ParcelStatus.Loaded, ParcelStatus.Loaded,
             ParcelStatus.Loaded,
-            ParcelStatus.Loaded,
-            ParcelStatus.Loaded,
-            ParcelStatus.OutForDelivery,
-            ParcelStatus.Delivered,
-            ParcelStatus.Delivered,
-            ParcelStatus.Delivered,
-            ParcelStatus.FailedAttempt,
+            ParcelStatus.OutForDelivery, ParcelStatus.OutForDelivery,
+            ParcelStatus.Delivered, ParcelStatus.Delivered,
+            ParcelStatus.Delivered, ParcelStatus.Delivered,
+            ParcelStatus.FailedAttempt, ParcelStatus.FailedAttempt,
             ParcelStatus.ReturnedToDepot,
-            ParcelStatus.Cancelled,
-            ParcelStatus.Exception,
+            ParcelStatus.Cancelled, ParcelStatus.Cancelled,
+            ParcelStatus.Exception, ParcelStatus.Exception,
         ],
         _ =>
         [
-            ParcelStatus.Registered,
-            ParcelStatus.Registered,
-            ParcelStatus.Registered,
-            ParcelStatus.ReceivedAtDepot,
-            ParcelStatus.ReceivedAtDepot,
+            ParcelStatus.Registered, ParcelStatus.Registered,
+            ParcelStatus.Registered, ParcelStatus.Registered,
+            ParcelStatus.ReceivedAtDepot, ParcelStatus.ReceivedAtDepot,
+            ParcelStatus.ReceivedAtDepot, ParcelStatus.ReceivedAtDepot,
+            ParcelStatus.Sorted, ParcelStatus.Sorted, ParcelStatus.Sorted,
             ParcelStatus.Sorted,
-            ParcelStatus.Sorted,
-            ParcelStatus.Staged,
-            ParcelStatus.Staged,
-            ParcelStatus.Staged,
-            ParcelStatus.Staged,
-            ParcelStatus.Loaded,
+            ParcelStatus.Staged, ParcelStatus.Staged, ParcelStatus.Staged,
+            ParcelStatus.Staged, ParcelStatus.Staged,
+            ParcelStatus.Loaded, ParcelStatus.Loaded, ParcelStatus.Loaded,
+            ParcelStatus.OutForDelivery, ParcelStatus.OutForDelivery,
             ParcelStatus.OutForDelivery,
-            ParcelStatus.OutForDelivery,
+            ParcelStatus.Delivered, ParcelStatus.Delivered,
             ParcelStatus.Delivered,
-            ParcelStatus.FailedAttempt,
+            ParcelStatus.FailedAttempt, ParcelStatus.FailedAttempt,
             ParcelStatus.FailedAttempt,
             ParcelStatus.ReturnedToDepot,
-            ParcelStatus.Cancelled,
-            ParcelStatus.Exception,
-            ParcelStatus.Exception,
+            ParcelStatus.Cancelled, ParcelStatus.Cancelled,
+            ParcelStatus.Exception, ParcelStatus.Exception,
             ParcelStatus.Exception,
         ],
     };
@@ -1322,7 +1309,7 @@ public class ApplicationDbSeeder(
         var recipients = new List<Address>();
         var parcels = new List<Parcel>();
 
-        for (var i = 1; i <= 12; i++)
+        for (var i = 1; i <= 24; i++)
         {
             var zone = zones[(i - 1) % zones.Count];
             var cityInfo = cities[(i - 1) % cities.Length];
@@ -1478,7 +1465,7 @@ public class ApplicationDbSeeder(
         await dbContext.Addresses.AddRangeAsync(shipperAddressesByZone.Values, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        var parcelsPerZone = 15;
+        var parcelsPerZone = 25;
         var parcels = new List<Parcel>();
         var seq = 1;
 
@@ -1587,6 +1574,120 @@ public class ApplicationDbSeeder(
         await dbContext.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation("Seeded {Count} route-ready parcels (Sorted, unassigned) across {ZoneCount} zones", parcels.Count, zones.Count);
+    }
+
+    private async Task SeedRouteParcelAssignmentsAsync(CancellationToken cancellationToken)
+    {
+        if (await dbContext.RouteParcels.AnyAsync(cancellationToken))
+            return;
+
+        var allRoutes = await dbContext.DeliveryRoutes.ToListAsync(cancellationToken);
+        if (allRoutes.Count == 0) return;
+
+        var routeReadyParcels = await dbContext.Parcels
+            .Where(p => p.TrackingNumber.StartsWith("LM-RT-") && p.Status == ParcelStatus.Sorted)
+            .ToListAsync(cancellationToken);
+
+        if (routeReadyParcels.Count == 0) return;
+
+        var routeParcels = new List<RouteParcel>();
+        var parcelsByZone = routeReadyParcels.GroupBy(p => p.ZoneId).ToDictionary(g => g.Key, g => g.ToList());
+        var assignedParcelIds = new HashSet<Guid>();
+        var random = new Random(77);
+
+        foreach (var route in allRoutes)
+        {
+            if (!parcelsByZone.TryGetValue(route.ZoneId, out var zoneParcels)) continue;
+
+            var available = zoneParcels.Where(p => !assignedParcelIds.Contains(p.Id)).Take(6).ToList();
+            if (available.Count == 0) continue;
+
+            for (var i = 0; i < available.Count; i++)
+            {
+                var parcel = available[i];
+                routeParcels.Add(new RouteParcel
+                {
+                    RouteId = route.Id,
+                    ParcelId = parcel.Id,
+                    StopOrder = i + 1,
+                    AddedAt = DateTimeOffset.UtcNow,
+                });
+                assignedParcelIds.Add(parcel.Id);
+
+                // Set the FK so parcel-to-route queries work
+                parcel.RouteId = route.Id;
+
+                // Transition parcel status to match route status
+                switch (route.Status)
+                {
+                    case RouteStatus.Draft:
+                        // Keep as Sorted — will be transitioned when dispatched
+                        break;
+                    case RouteStatus.Dispatched:
+                        parcel.TransitionToStatus(ParcelStatus.Staged);
+                        parcel.TransitionToStatus(ParcelStatus.Loaded);
+                        parcel.TransitionToStatus(ParcelStatus.OutForDelivery);
+                        break;
+                    case RouteStatus.InProgress:
+                        // Most parcels OutForDelivery, some Delivered, some FailedAttempt
+                        var inProgRoll = random.Next(10);
+                        if (inProgRoll < 6)
+                        {
+                            parcel.TransitionToStatus(ParcelStatus.Staged);
+                            parcel.TransitionToStatus(ParcelStatus.Loaded);
+                            parcel.TransitionToStatus(ParcelStatus.OutForDelivery);
+                        }
+                        else if (inProgRoll < 9)
+                        {
+                            parcel.TransitionToStatus(ParcelStatus.Staged);
+                            parcel.TransitionToStatus(ParcelStatus.Loaded);
+                            parcel.TransitionToStatus(ParcelStatus.OutForDelivery);
+                            parcel.TransitionToStatus(ParcelStatus.Delivered);
+                        }
+                        else
+                        {
+                            parcel.TransitionToStatus(ParcelStatus.Staged);
+                            parcel.TransitionToStatus(ParcelStatus.Loaded);
+                            parcel.TransitionToStatus(ParcelStatus.OutForDelivery);
+                            parcel.TransitionToStatus(ParcelStatus.FailedAttempt);
+                        }
+                        break;
+                    case RouteStatus.Completed:
+                        // Most Delivered, some FailedAttempt, some ReturnedToDepot
+                        var completedRoll = random.Next(10);
+                        if (completedRoll < 7)
+                        {
+                            parcel.TransitionToStatus(ParcelStatus.Staged);
+                            parcel.TransitionToStatus(ParcelStatus.Loaded);
+                            parcel.TransitionToStatus(ParcelStatus.OutForDelivery);
+                            parcel.TransitionToStatus(ParcelStatus.Delivered);
+                        }
+                        else if (completedRoll < 9)
+                        {
+                            parcel.TransitionToStatus(ParcelStatus.Staged);
+                            parcel.TransitionToStatus(ParcelStatus.Loaded);
+                            parcel.TransitionToStatus(ParcelStatus.OutForDelivery);
+                            parcel.TransitionToStatus(ParcelStatus.FailedAttempt);
+                        }
+                        else
+                        {
+                            parcel.TransitionToStatus(ParcelStatus.Staged);
+                            parcel.TransitionToStatus(ParcelStatus.Loaded);
+                            parcel.TransitionToStatus(ParcelStatus.OutForDelivery);
+                            parcel.TransitionToStatus(ParcelStatus.FailedAttempt);
+                            parcel.TransitionToStatus(ParcelStatus.ReturnedToDepot);
+                        }
+                        break;
+                }
+            }
+
+            route.EstimatedStops = available.Count;
+        }
+
+        await dbContext.RouteParcels.AddRangeAsync(routeParcels, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation("Seeded {Count} route-parcel assignments across {RouteCount} routes (all statuses)", routeParcels.Count, allRoutes.Count);
     }
 
     private async Task SeedInboundManifestsAsync(CancellationToken cancellationToken)

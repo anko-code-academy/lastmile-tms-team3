@@ -127,6 +127,7 @@ export interface ParcelListItem {
   recipientName: string;
   recipientCity: string;
   zoneName?: string;
+  depotName?: string;
   parcelType?: string;
   weight: number;
   weightUnit: WeightUnit;
@@ -241,6 +242,7 @@ export interface CreateParcelInput {
   currency?: string;
   parcelType?: string;
   notes?: string;
+  isCustomerDropOff?: boolean;
 }
 
 export interface EditParcelInput {
@@ -299,4 +301,5 @@ export const createParcelSchema = z.object({
   currency: z.string().max(3).default("USD"),
   parcelType: z.string().max(100).optional(),
   notes: z.string().max(500).optional(),
+  isCustomerDropOff: z.boolean().default(false),
 });

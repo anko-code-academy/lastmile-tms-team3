@@ -29,6 +29,57 @@ public class DeliveryRouteQuery
         => context.DeliveryRoutes
             .AsNoTracking();
 
+    // Uses explicit includes instead of [UseProjection] because GeoLocation (PostGIS Point)
+    // cannot be read through dynamic LINQ Select() — see commit 0d4f14f.
+    [Authorize(Policy = "AdminOrDispatcher")]
+    [UseFirstOrDefault]
+    public IQueryable<DeliveryRoute> GetRoute(
+        AppDbContext context,
+        Guid id)
+        => context.DeliveryRoutes
+            .AsNoTracking()
+            .Include(r => r.Depot)
+                .ThenInclude(d => d!.Address)
+            .Include(r => r.Zone)
+            .Include(r => r.Driver)
+            .Include(r => r.Vehicle)
+            .Include(r => r.RouteParcels)
+                .ThenInclude(rp => rp.Parcel)
+                    .ThenInclude(p => p!.RecipientAddress)
+            .Where(r => r.Id == id);
+
+    // Uses explicit includes for the same GeoLocation reason as GetRoute.
+    [Authorize(Policy = "AdminOrDispatcher")]
+    [UsePaging(IncludeTotalCount = true, MaxPageSize = 100)]
+    [UseFiltering(typeof(DeliveryRouteFilterInput))]
+    [UseSorting(typeof(DeliveryRouteSortInput))]
+    public IQueryable<DeliveryRoute> GetRoutes(AppDbContext context)
+        => context.DeliveryRoutes
+            .AsNoTracking()
+            .Include(r => r.Depot)
+                .ThenInclude(d => d!.Address)
+            .Include(r => r.Zone)
+            .Include(r => r.Driver)
+            .Include(r => r.Vehicle)
+            .Include(r => r.RouteParcels);
+
+    [Authorize(Policy = "AdminOrDepotOperator")]
+    public async Task<List<DeliveryRoute>> GetRoutesForMap(
+        AppDbContext context,
+        DateOnly date,
+        CancellationToken cancellationToken)
+    {
+        return await context.DeliveryRoutes
+            .AsNoTracking()
+            .Include(r => r.Depot).ThenInclude(d => d!.Address)
+            .Include(r => r.Driver)
+            .Include(r => r.Vehicle)
+            .Include(r => r.RouteParcels)
+                .ThenInclude(rp => rp.Parcel).ThenInclude(p => p.RecipientAddress)
+            .Where(r => r.Date == date)
+            .ToListAsync(cancellationToken);
+    }
+
     [Authorize(Policy = "AdminOrDepotOperator")]
     public async Task<StagingStatusDto?> GetStagingStatus(
         AppDbContext context,
@@ -44,11 +95,13 @@ public class DeliveryRouteQuery
 
         // Expected: sorted parcels in this zone not yet assigned to another route,
         // plus parcels already staged to this route. Excludes parcels assigned to a
-        // different route in the same zone to avoid inflation when routes share a zone.
+        // different route in the same zone, and excludes exception/cancelled parcels.
+        var excludedStatuses = new[] { ParcelStatus.Exception, ParcelStatus.Cancelled };
         var expectedCount = await context.Parcels
-            .Where(p => p.ZoneId == route.ZoneId &&
-                        (p.Status == ParcelStatus.Sorted && !p.RouteId.HasValue) ||
-                         p.RouteId == routeId)
+            .Where(p => !excludedStatuses.Contains(p.Status) &&
+                        p.ZoneId == route.ZoneId &&
+                        ((p.Status == ParcelStatus.Sorted && !p.RouteId.HasValue) ||
+                         p.RouteId == routeId))
             .CountAsync(cancellationToken);
 
         var stagedCount = await context.Parcels

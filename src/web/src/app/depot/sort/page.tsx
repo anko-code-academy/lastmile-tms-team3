@@ -26,6 +26,7 @@ interface ScanRecord {
   trackingNumber: string;
   outcome: ScanOutcome;
   zoneName: string | null;
+  binCode: string | null;
   errorMessage?: string;
   scannedAt: Date;
 }
@@ -65,6 +66,7 @@ export default function SortScanPage() {
   const [pageHistory, setPageHistory] = useState<(string | null)[]>([null]);
   const [listResult, setListResult] = useState<PagedResult<ParcelListItem> | null>(null);
   const [listLoading, setListLoading] = useState(false);
+  const [listRefreshKey, setListRefreshKey] = useState(0);
 
   // Debounce list search
   useEffect(() => {
@@ -103,7 +105,7 @@ export default function SortScanPage() {
       .catch(() => { if (!cancelled) setListResult(null); })
       .finally(() => { if (!cancelled) setListLoading(false); });
     return () => { cancelled = true; };
-  }, [listSearchDebounced, currentCursor]);
+  }, [listSearchDebounced, currentCursor, listRefreshKey]);
 
   // ── Handlers ─────────────────────────────────────────────────────────────
   const handleScan = useCallback((tracking: string) => {
@@ -139,6 +141,7 @@ export default function SortScanPage() {
             trackingNumber: result.trackingNumber,
             outcome,
             zoneName: result.zoneName,
+            binCode: result.binCode,
             scannedAt: new Date(),
           },
           ...prev.slice(0, 49),
@@ -146,6 +149,7 @@ export default function SortScanPage() {
 
         // Refresh pick-list so sorted parcel disappears
         setPageHistory([null]);
+        setListRefreshKey((k) => k + 1);
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Unknown error";
         setLastError(msg);
@@ -155,6 +159,7 @@ export default function SortScanPage() {
             trackingNumber: trackingValue,
             outcome: "error",
             zoneName: null,
+            binCode: null,
             errorMessage: msg,
             scannedAt: new Date(),
           },
@@ -188,6 +193,10 @@ export default function SortScanPage() {
   }, [pageHistory]);
 
   return (
+    <>
+      <style>{`
+        .tm-input:focus { border-color: rgba(245,158,11,.45) !important; box-shadow: 0 0 0 2px rgba(245,158,11,.08); }
+      `}</style>
     <div
       style={{
         minHeight: "100vh",
@@ -227,7 +236,7 @@ export default function SortScanPage() {
               margin: 0,
             }}
           >
-            Sort &amp; Zone Assignment
+            Sort &amp; Bin Assignment
           </h1>
           <p
             style={{
@@ -238,7 +247,7 @@ export default function SortScanPage() {
               color: "#647a96",
             }}
           >
-            Scan parcels to assign zones and bins for delivery.
+            Scan parcels to assign bins for storage based on zone.
           </p>
         </div>
 
@@ -279,7 +288,7 @@ export default function SortScanPage() {
               <input
                 value={listSearch}
                 onChange={(e) => setListSearch(e.target.value)}
-                placeholder="Search tracking number…"
+                placeholder="Search tracking number"
                 className="tm-input"
                 style={{
                   width: "100%",
@@ -371,6 +380,85 @@ export default function SortScanPage() {
                   Next →
                 </button>
               </div>
+
+              {/* Scan history — below parcel list */}
+              {scanHistory.length > 0 && (
+                <div style={{ marginTop: ".5rem" }}>
+                  <p
+                    style={{
+                      fontSize: "10px",
+                      letterSpacing: ".16em",
+                      color: "#475569",
+                      textTransform: "uppercase",
+                      marginBottom: ".25rem",
+                    }}
+                  >
+                    Recent Scans
+                  </p>
+                  <div
+                    style={{
+                      background: "rgba(255,255,255,.03)",
+                      border: "1px solid rgba(255,255,255,.06)",
+                      borderRadius: "12px",
+                      padding: "1rem",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: ".5rem",
+                        maxHeight: "250px",
+                        overflowY: "auto",
+                      }}
+                    >
+                      {scanHistory.map((scan) => (
+                        <div
+                          key={scan.id}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            padding: ".5rem .75rem",
+                            background: "rgba(255,255,255,.03)",
+                            borderRadius: "6px",
+                            borderLeft: `3px solid ${outcomeColor[scan.outcome]}`,
+                          }}
+                        >
+                          <div>
+                            <p
+                              style={{
+                                fontSize: "12px",
+                                color: "#cbd5e1",
+                                marginBottom: "2px",
+                              }}
+                            >
+                              {scan.trackingNumber}
+                            </p>
+                            <p style={{ fontSize: "10px", color: "#475569" }}>
+                              {scan.zoneName
+                                ? scan.binCode
+                                  ? `${scan.zoneName} → ${scan.binCode}`
+                                  : scan.zoneName
+                                : scan.errorMessage ?? "—"}
+                            </p>
+                          </div>
+                          <span
+                            style={{
+                              fontSize: "9px",
+                              letterSpacing: ".12em",
+                              color: outcomeColor[scan.outcome],
+                              textTransform: "uppercase",
+                            }}
+                          >
+                            {outcomeLabel[scan.outcome]}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* ── Right: Scan Panel ───────────────────────────────── */}
@@ -378,9 +466,9 @@ export default function SortScanPage() {
               {/* Scan input */}
               <div
                 style={{
-                  background: "rgba(255,255,255,.04)",
-                  border: "1px solid rgba(255,255,255,.08)",
-                  borderRadius: "12px",
+                  background: "rgba(255,255,255,.025)",
+                  border: "1px solid rgba(255,255,255,.07)",
+                  borderRadius: 12,
                   padding: "1.5rem",
                 }}
               >
@@ -389,46 +477,38 @@ export default function SortScanPage() {
                     display: "block",
                     fontSize: "10px",
                     letterSpacing: ".16em",
-                    color: "#64748b",
+                    color: "#4a5f7a",
                     textTransform: "uppercase",
                     marginBottom: ".5rem",
                   }}
                 >
-                  Scan Parcel Barcode
+                  Scan Tracking Number
                 </label>
-                <input
-                  ref={trackingRef}
-                  autoFocus
-                  value={trackingInput}
-                  onChange={(e) => setTrackingInput(e.target.value)}
-                  onKeyDown={handleTrackingKeyDown}
-                  disabled={isPending}
-                  placeholder="Scan or enter tracking number…"
-                  style={{
-                    width: "100%",
-                    background: "rgba(255,255,255,.06)",
-                    border: "1px solid rgba(255,255,255,.12)",
-                    borderRadius: "8px",
-                    padding: ".625rem 1rem",
-                    color: "#e2e8f0",
-                    fontFamily: mono,
-                    fontSize: "14px",
-                    outline: "none",
-                    boxSizing: "border-box",
-                    marginBottom: ".75rem",
-                  }}
-                />
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                  }}
-                >
-                  <p style={{ fontSize: "11px", color: "#475569" }}>
-                    Press <kbd style={{ color: "#94a3b8", background: "rgba(255,255,255,.06)", padding: "1px 5px", borderRadius: 3, border: "1px solid rgba(255,255,255,.1)" }}>Enter</kbd> or click Sort to assign zone &amp; bin.
-                  </p>
+                <div style={{ display: "flex", gap: ".5rem" }}>
+                  <input
+                    ref={trackingRef}
+                    autoFocus
+                    value={trackingInput}
+                    onChange={(e) => setTrackingInput(e.target.value)}
+                    onKeyDown={handleTrackingKeyDown}
+                    disabled={isPending}
+                    placeholder="Scan or enter parcel tracking number"
+                    className="tm-input"
+                    style={{
+                      flex: 1,
+                      background: "rgba(255,255,255,.05)",
+                      border: "1px solid rgba(255,255,255,.1)",
+                      borderRadius: 8,
+                      padding: ".625rem 1rem",
+                      color: "#e2e8f0",
+                      fontFamily: mono,
+                      fontSize: "14px",
+                      outline: "none",
+                      boxSizing: "border-box",
+                    }}
+                  />
                   <button
+                    type="button"
                     onClick={() => handleScan(trackingInput)}
                     disabled={isPending || !trackingInput.trim()}
                     style={{
@@ -439,23 +519,22 @@ export default function SortScanPage() {
                           : "#f59e0b",
                       color:
                         isPending || !trackingInput.trim()
-                          ? "#64748b"
-                          : "#0f172a",
+                          ? "#3a526e"
+                          : "#000",
                       border: "none",
-                      borderRadius: "8px",
+                      borderRadius: 6,
                       fontFamily: mono,
                       fontSize: "11px",
                       fontWeight: 700,
-                      letterSpacing: ".1em",
+                      letterSpacing: ".06em",
                       textTransform: "uppercase",
                       cursor:
                         isPending || !trackingInput.trim()
                           ? "not-allowed"
                           : "pointer",
-                      flexShrink: 0,
                     }}
                   >
-                    {isPending ? "Processing…" : "Sort"}
+                    {isPending ? "Processing..." : "Sort"}
                   </button>
                 </div>
               </div>
@@ -464,88 +543,12 @@ export default function SortScanPage() {
               {(lastResult || lastError) && (
                 <ResultCard result={lastResult} error={lastError} />
               )}
-
-              {/* Scan History */}
-              <div
-                style={{
-                  background: "rgba(255,255,255,.03)",
-                  border: "1px solid rgba(255,255,255,.06)",
-                  borderRadius: "12px",
-                  padding: "1rem",
-                }}
-              >
-                <p
-                  style={{
-                    fontSize: "10px",
-                    letterSpacing: ".16em",
-                    color: "#475569",
-                    textTransform: "uppercase",
-                    marginBottom: ".75rem",
-                  }}
-                >
-                  Recent Scans
-                </p>
-                {scanHistory.length === 0 ? (
-                  <p style={{ fontSize: "12px", color: "#334155" }}>
-                    No scans yet.
-                  </p>
-                ) : (
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: ".5rem",
-                      maxHeight: "280px",
-                      overflowY: "auto",
-                    }}
-                  >
-                    {scanHistory.map((scan) => (
-                      <div
-                        key={scan.id}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          padding: ".5rem .75rem",
-                          background: "rgba(255,255,255,.03)",
-                          borderRadius: "6px",
-                          borderLeft: `3px solid ${outcomeColor[scan.outcome]}`,
-                        }}
-                      >
-                        <div>
-                          <p
-                            style={{
-                              fontSize: "12px",
-                              color: "#cbd5e1",
-                              marginBottom: "2px",
-                            }}
-                          >
-                            {scan.trackingNumber}
-                          </p>
-                          <p style={{ fontSize: "10px", color: "#475569" }}>
-                            {scan.zoneName ?? scan.errorMessage ?? "—"}
-                          </p>
-                        </div>
-                        <span
-                          style={{
-                            fontSize: "9px",
-                            letterSpacing: ".12em",
-                            color: outcomeColor[scan.outcome],
-                            textTransform: "uppercase",
-                          }}
-                        >
-                          {outcomeLabel[scan.outcome]}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
+    </>
   );
 }
 
@@ -577,8 +580,8 @@ function ParcelPickRow({
       onClick={() => onSelect(item.trackingNumber)}
       style={{
         display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
+        flexDirection: "column",
+        alignItems: "flex-start",
         width: "100%",
         padding: ".5rem .75rem",
         background: isActive
@@ -598,6 +601,10 @@ function ParcelPickRow({
           color: isActive ? "#fcd34d" : "#cbd5e1",
           fontWeight: isActive ? 700 : 400,
           letterSpacing: ".02em",
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          maxWidth: "100%",
         }}
       >
         {item.trackingNumber}
@@ -609,11 +616,10 @@ function ParcelPickRow({
             color: "#475569",
             letterSpacing: ".06em",
             textTransform: "uppercase",
-            flexShrink: 0,
-            marginLeft: ".5rem",
+            marginTop: "2px",
           }}
         >
-          {item.zoneName.split(" — ")[1] ?? item.zoneName}
+          {item.zoneName}
         </span>
       )}
     </button>

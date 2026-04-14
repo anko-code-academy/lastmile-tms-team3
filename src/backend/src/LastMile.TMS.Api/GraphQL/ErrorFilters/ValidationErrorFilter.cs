@@ -13,8 +13,12 @@ public class ValidationErrorFilter : IErrorFilter
                 .Select(e => new { e.PropertyName, e.ErrorMessage })
                 .ToList();
 
+            var message = errors.Count > 0
+                ? errors.First().ErrorMessage
+                : validationException.Message;
+
             return error
-                .WithMessage("Validation failed")
+                .WithMessage(message)
                 .SetExtension("validationErrors", errors)
                 .SetExtension("code", "VALIDATION_ERROR");
         }

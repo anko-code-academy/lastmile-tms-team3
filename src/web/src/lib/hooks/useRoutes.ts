@@ -2,19 +2,18 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getDeliveryRoutes,
   loadParcel,
-  completeLoading,
 } from "../api/routes";
-import type { LoadParcelInput, CompleteLoadingInput } from "../types/route";
+import type { LoadParcelInput } from "../types/route";
 import {
   searchRoutesAction,
   type SearchRoutesInput,
 } from "@/lib/actions/routes";
 
 // Load-out hooks (PR #28)
-export function useDeliveryRoutes() {
+export function useDeliveryRoutes(where?: Record<string, unknown>) {
   return useQuery({
-    queryKey: ["delivery-routes"],
-    queryFn: () => getDeliveryRoutes(),
+    queryKey: ["delivery-routes", where],
+    queryFn: () => getDeliveryRoutes(where),
     select: (data) => data.deliveryRoutes,
   });
 }
@@ -25,18 +24,6 @@ export function useLoadParcel() {
   return useMutation({
     mutationFn: (input: LoadParcelInput) =>
       loadParcel(input).then((res) => res.loadParcel),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["delivery-routes"] });
-    },
-  });
-}
-
-export function useCompleteLoading() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (input: CompleteLoadingInput) =>
-      completeLoading(input).then((res) => res.completeLoading),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["delivery-routes"] });
     },

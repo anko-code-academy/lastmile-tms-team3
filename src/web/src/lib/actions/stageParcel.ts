@@ -25,11 +25,15 @@ export interface DeliveryRoute {
   zoneName: string | null;
 }
 
-export interface StagingStatus {
-  routeId: string;
-  routeName: string;
-  expectedCount: number;
-  stagedCount: number;
+export interface StagingParcel {
+  id: string;
+  trackingNumber: string;
+  status: string;
+  weight: number | null;
+  weightUnit: string | null;
+  serviceType: string | null;
+  city: string | null;
+  state: string | null;
 }
 
 const STAGE_PARCEL_MUTATION = `
@@ -61,13 +65,18 @@ const GET_DELIVERY_ROUTES_QUERY = `
   }
 `;
 
-const GET_STAGING_STATUS_QUERY = `
-  query GetStagingStatus($routeId: UUID!) {
-    stagingStatus(routeId: $routeId) {
-      routeId
-      routeName
-      expectedCount
-      stagedCount
+const GET_STAGING_PARCELS_QUERY = `
+  query GetStagingParcels($where: ParcelFilterInput) {
+    parcels(first: 100, where: $where) {
+      nodes {
+        id
+        trackingNumber
+        status
+        weight
+        weightUnit
+        serviceType
+        recipientAddress { city state }
+      }
     }
   }
 `;
@@ -104,6 +113,7 @@ export async function stageParcelAction(input: {
   locationCity: string | null;
   locationState: string | null;
   locationCountryCode: string | null;
+  forceStage?: boolean;
 }): Promise<StageParcelResult> {
   const data = await gqlRequest<{ stageParcel: StageParcelResult }>(
     STAGE_PARCEL_MUTATION,
@@ -122,7 +132,7 @@ interface DeliveryRouteRaw {
 }
 
 export async function getDeliveryRoutesAction(date?: string): Promise<DeliveryRoute[]> {
-  const where = date ? { date: { eq: date } } : null;
+  const where = date ? { date: { eq: date }, status: { eq: "DRAFT" } } : { status: { eq: "DRAFT" } };
   const data = await gqlRequest<{ deliveryRoutes: { nodes: DeliveryRouteRaw[] } }>(
     GET_DELIVERY_ROUTES_QUERY,
     { where }
@@ -137,10 +147,33 @@ export async function getDeliveryRoutesAction(date?: string): Promise<DeliveryRo
   }));
 }
 
-export async function getStagingStatusAction(routeId: string): Promise<StagingStatus | null> {
-  const data = await gqlRequest<{ stagingStatus: StagingStatus | null }>(
-    GET_STAGING_STATUS_QUERY,
-    { routeId }
+interface ParcelRaw {
+  id: string;
+  trackingNumber: string;
+  status: string;
+  weight: number | null;
+  weightUnit: string | null;
+  serviceType: string | null;
+  recipientAddress: { city: string | null; state: string | null } | null;
+}
+
+export async function getStagingParcelsAction(routeId: string, statuses?: string[]): Promise<StagingParcel[]> {
+  const where: Record<string, unknown> = { routeId: { eq: routeId } };
+  if (statuses && statuses.length > 0) {
+    where.status = statuses.length === 1 ? { eq: statuses[0] } : { in: statuses };
+  }
+  const data = await gqlRequest<{ parcels: { nodes: ParcelRaw[] } }>(
+    GET_STAGING_PARCELS_QUERY,
+    { where }
   );
-  return data.stagingStatus;
+  return data.parcels.nodes.map((p) => ({
+    id: p.id,
+    trackingNumber: p.trackingNumber,
+    status: p.status,
+    weight: p.weight,
+    weightUnit: p.weightUnit,
+    serviceType: p.serviceType,
+    city: p.recipientAddress?.city ?? null,
+    state: p.recipientAddress?.state ?? null,
+  }));
 }

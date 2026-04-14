@@ -16,7 +16,7 @@ const S = {
   panel: "rgba(255,255,255,.025)" as const,
   border: "rgba(255,255,255,.07)" as const,
   text: "#e2e8f0" as const,
-  muted: "#647a96" as const,
+  muted: "#4a5f7a" as const,
   accent: "#f59e0b" as const,
   red: "#ef4444" as const,
   inputBg: "rgba(255,255,255,.05)" as const,
@@ -123,9 +123,9 @@ export default function RoutesPage() {
         .tm-input::placeholder { color: #3a526e; }
         .rt-row:hover { background: rgba(255,255,255,.03); cursor: pointer; }
         .tm-btn-primary:hover { border-color: rgba(245,158,11,.6) !important; background: rgba(245,158,11,.18) !important; }
-        .tm-select { background: #0d1424; border: 1px solid rgba(255,255,255,.1); color: #e2e8f0; border-radius: 6px; padding: .5rem .75rem; font-size: .875rem; width: 100%; outline: none; font-family: var(--font-geist-mono,monospace); }
+        .tm-select { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); color: #e2e8f0; border-radius: 6px; padding: .5rem .75rem; font-size: .875rem; width: 100%; outline: none; }
         .tm-select:focus { border-color: rgba(245,158,11,.45); }
-        .tm-select option { background: #0d1424; color: #e2e8f0; }
+        .tm-select option { background: #0f1929; color: #e2e8f0; }
         .del-btn:hover { opacity: 1 !important; }
       `}</style>
       <div style={{ minHeight: "100vh", background: S.bg, color: S.text, position: "relative", overflow: "hidden" }}>
@@ -141,91 +141,93 @@ export default function RoutesPage() {
           <TmNavbar />
           <div style={{ maxWidth: 1300, margin: "0 auto", padding: "2rem 1.5rem" }}>
             {/* Header */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "1.5rem" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
               <div>
-                <p style={{ fontFamily: "var(--font-geist-mono,monospace)", fontSize: "10px", letterSpacing: ".2em", color: S.accent, textTransform: "uppercase", marginBottom: ".375rem" }}>
-                  Dispatch
-                </p>
-                <h1 style={{ fontFamily: "var(--font-geist-mono,monospace)", fontSize: "1.5rem", fontWeight: 800, color: S.text, letterSpacing: "-.02em", lineHeight: 1, margin: 0 }}>Delivery Routes</h1>
-                <p style={{ fontFamily: "var(--font-geist-mono,monospace)", color: S.muted, fontSize: "11px", marginTop: ".375rem", letterSpacing: ".04em" }}>
+                <h1 style={{ fontSize: "1.5rem", fontWeight: 700, margin: 0 }}>Delivery Routes</h1>
+                <p style={{ color: S.muted, fontSize: ".875rem", marginTop: 4 }}>
                   {totalCount} route{totalCount !== 1 ? "s" : ""} total
                 </p>
               </div>
-              <Link
-                href="/routes/new"
-                style={{
-                  padding: ".45rem .9rem",
-                  borderRadius: 6,
-                  background: "rgba(245,158,11,.12)",
-                  border: "1px solid rgba(245,158,11,.35)",
-                  color: S.accent,
-                  fontFamily: "var(--font-geist-mono,monospace)",
-                  fontWeight: 600,
-                  fontSize: "11px",
-                  letterSpacing: ".1em",
-                  textTransform: "uppercase",
-                  textDecoration: "none",
-                }}
-              >
-                + New Route
-              </Link>
+              <div style={{ display: "flex", gap: ".5rem" }}>
+                <Link
+                  href="/routes/map"
+                  style={{
+                    padding: ".5rem 1.25rem",
+                    borderRadius: 6,
+                    background: "rgba(255,255,255,.04)",
+                    border: `1px solid ${S.border}`,
+                    color: S.muted,
+                    fontWeight: 600,
+                    fontSize: ".875rem",
+                    textDecoration: "none",
+                  }}
+                >
+                  Map View
+                </Link>
+                <Link
+                  href="/routes/new"
+                  style={{
+                    padding: ".5rem 1.25rem",
+                    borderRadius: 6,
+                    background: "rgba(245,158,11,.12)",
+                    border: "1px solid rgba(245,158,11,.3)",
+                    color: S.accent,
+                    fontWeight: 600,
+                    fontSize: ".875rem",
+                    textDecoration: "none",
+                  }}
+                >
+                  + New Route
+                </Link>
+              </div>
             </div>
 
             {/* Filters */}
-            <div style={{ background: "rgba(255,255,255,.025)", border: `1px solid ${S.border}`, borderRadius: 10, padding: "1.25rem 1.5rem", marginBottom: "1.5rem" }}>
-              <div style={{ display: "flex", gap: ".75rem", flexWrap: "wrap", alignItems: "flex-end" }}>
-                <div>
-                  <label style={{ display: "block", fontFamily: "var(--font-geist-mono,monospace)", fontSize: "10px", letterSpacing: ".14em", color: S.muted, textTransform: "uppercase", marginBottom: ".4rem" }}>Status</label>
-                  <select
-                    className="tm-select"
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value as RouteStatus | "")}
-                    style={{ width: 160 }}
-                  >
-                    <option value="">All Statuses</option>
-                    {Object.values(RouteStatus).map((s) => (
-                      <option key={s} value={s}>{s.replace("_", " ")}</option>
-                    ))}
-                  </select>
-                </div>
-                <div style={{ flex: 1 }} />
-                <button
-                  onClick={handleSearch}
-                  className="tm-btn-primary"
-                  style={{
-                    padding: ".45rem .9rem",
-                    borderRadius: 6,
-                    background: "rgba(245,158,11,.12)",
-                    border: "1px solid rgba(245,158,11,.35)",
-                    color: S.accent,
-                    fontFamily: "var(--font-geist-mono,monospace)",
-                    fontWeight: 600,
-                    fontSize: "11px",
-                    letterSpacing: ".1em",
-                    textTransform: "uppercase",
-                    cursor: "pointer",
-                  }}
+            <div style={{ display: "flex", gap: ".75rem", marginBottom: "1.5rem", flexWrap: "wrap", alignItems: "flex-end" }}>
+              <div>
+                <label style={{ display: "block", fontSize: ".75rem", color: S.muted, marginBottom: 4 }}>Status</label>
+                <select
+                  className="tm-select"
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as RouteStatus | "")}
+                  style={{ width: 160 }}
                 >
-                  Search
-                </button>
-                <button
-                  onClick={handleClear}
-                  style={{
-                    padding: ".45rem .9rem",
-                    borderRadius: 6,
-                    background: "transparent",
-                    border: `1px solid ${S.border}`,
-                    color: S.muted,
-                    fontFamily: "var(--font-geist-mono,monospace)",
-                    fontSize: "11px",
-                    letterSpacing: ".1em",
-                    textTransform: "uppercase",
-                    cursor: "pointer",
-                  }}
-                >
-                  Clear
-                </button>
+                  <option value="">All Statuses</option>
+                  {Object.values(RouteStatus).map((s) => (
+                    <option key={s} value={s}>{s.replace("_", " ")}</option>
+                  ))}
+                </select>
               </div>
+              <button
+                onClick={handleSearch}
+                className="tm-btn-primary"
+                style={{
+                  padding: ".5rem 1rem",
+                  borderRadius: 6,
+                  background: "rgba(245,158,11,.1)",
+                  border: "1px solid rgba(245,158,11,.3)",
+                  color: S.accent,
+                  fontWeight: 600,
+                  fontSize: ".875rem",
+                  cursor: "pointer",
+                }}
+              >
+                Search
+              </button>
+              <button
+                onClick={handleClear}
+                style={{
+                  padding: ".5rem 1rem",
+                  borderRadius: 6,
+                  background: "transparent",
+                  border: `1px solid ${S.border}`,
+                  color: S.muted,
+                  fontSize: ".875rem",
+                  cursor: "pointer",
+                }}
+              >
+                Clear
+              </button>
             </div>
 
             {/* Error */}
@@ -236,26 +238,24 @@ export default function RoutesPage() {
             )}
 
             {/* Table */}
-            <div style={{ background: "rgba(255,255,255,.025)", border: `1px solid ${S.border}`, borderRadius: 10, overflow: "hidden" }}>
+            <div style={{ border: `1px solid ${S.border}`, borderRadius: 8, overflow: "hidden" }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
-                  <tr style={{ borderBottom: `1px solid ${S.border}`, background: "rgba(255,255,255,.025)" }}>
+                  <tr style={{ borderBottom: `1px solid ${S.border}` }}>
                     {COLS.map((col) => (
                       <th
                         key={col.label}
                         onClick={col.sortKey ? () => handleSort(col.sortKey as SortKey) : undefined}
                         style={{
-                          padding: ".7rem 1rem",
+                          padding: ".75rem 1rem",
                           textAlign: "left",
-                          fontFamily: "var(--font-geist-mono,monospace)",
-                          fontSize: "11px",
+                          fontSize: ".75rem",
                           fontWeight: 600,
-                          color: col.sortKey && sortColumn === col.sortKey ? S.accent : S.muted,
+                          color: S.muted,
                           textTransform: "uppercase",
-                          letterSpacing: ".12em",
+                          letterSpacing: ".06em",
                           cursor: col.sortKey ? "pointer" : "default",
                           userSelect: "none",
-                          whiteSpace: "nowrap",
                         }}
                       >
                         {col.label} {col.sortKey ? getSortIndicator(col.sortKey) : ""}
@@ -284,31 +284,31 @@ export default function RoutesPage() {
                         style={{ borderBottom: `1px solid ${S.border}` }}
                         onClick={() => router.push(`/routes/${route.id}`)}
                       >
-                        <td style={{ padding: ".75rem 1rem", fontSize: "11px", fontFamily: "var(--font-geist-mono,monospace)", color: "#647a96", letterSpacing: ".04em" }}>
+                        <td style={{ padding: ".75rem 1rem", fontSize: ".875rem", fontFamily: "var(--font-geist-mono,monospace)" }}>
                           {route.date}
                         </td>
-                        <td style={{ padding: ".75rem 1rem", fontSize: "12px", fontFamily: "var(--font-geist-mono,monospace)", color: "#38bdf8" }}>
+                        <td style={{ padding: ".75rem 1rem", fontSize: ".875rem" }}>
                           {route.depot?.name ?? "\u2014"}
                         </td>
-                        <td style={{ padding: ".75rem 1rem", fontSize: "12px", fontFamily: "var(--font-geist-mono,monospace)", color: "#38bdf8" }}>
+                        <td style={{ padding: ".75rem 1rem", fontSize: ".875rem" }}>
                           {route.zoneName ?? "\u2014"}
                         </td>
-                        <td style={{ padding: ".75rem 1rem", fontSize: "13px", color: "#93c5fd" }}>
+                        <td style={{ padding: ".75rem 1rem", fontSize: ".875rem" }}>
                           {route.driverName ?? "\u2014"}
                         </td>
-                        <td style={{ padding: ".75rem 1rem", fontSize: "13px", fontFamily: "var(--font-geist-mono,monospace)", fontWeight: 700, color: "#f59e0b" }}>
+                        <td style={{ padding: ".75rem 1rem", fontSize: ".875rem", fontFamily: "var(--font-geist-mono,monospace)" }}>
                           {route.vehiclePlate ?? "\u2014"}
                         </td>
-                        <td style={{ padding: ".75rem 1rem", fontSize: "12px", fontFamily: "var(--font-geist-mono,monospace)", color: "#6ee7b7", textAlign: "center" }}>
+                        <td style={{ padding: ".75rem 1rem", fontSize: ".875rem", textAlign: "center" }}>
                           {route.parcelCount}
                         </td>
-                        <td style={{ padding: ".75rem 1rem", fontSize: "12px", fontFamily: "var(--font-geist-mono,monospace)", color: "#6ee7b7", textAlign: "center" }}>
+                        <td style={{ padding: ".75rem 1rem", fontSize: ".875rem", textAlign: "center" }}>
                           {route.estimatedStops}
                         </td>
                         <td style={{ padding: ".75rem 1rem" }}>
                           <RouteStatusBadge status={route.status} />
                         </td>
-                        <td style={{ padding: ".75rem 1rem", fontSize: "11px", fontFamily: "var(--font-geist-mono,monospace)", color: "#647a96", letterSpacing: ".04em" }}>
+                        <td style={{ padding: ".75rem 1rem", fontSize: ".8rem", color: S.muted }}>
                           {new Date(route.createdAt).toLocaleDateString()}
                         </td>
                         <td style={{ padding: ".5rem .5rem", textAlign: "center" }}>

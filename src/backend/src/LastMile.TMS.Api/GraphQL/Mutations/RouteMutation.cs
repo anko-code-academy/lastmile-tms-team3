@@ -1,4 +1,5 @@
 using HotChocolate.Authorization;
+using LastMile.TMS.Api.Hubs;
 using LastMile.TMS.Application.Features.Routes.Commands;
 using LastMile.TMS.Application.Features.Routes.DTOs;
 using MediatR;
@@ -117,5 +118,41 @@ public class RouteMutation
     {
         return await mediator.Send(
             new DispatchRoute.Command(input), cancellationToken);
+    }
+
+    [Authorize(Policy = "AdminOrDispatcher")]
+    public async Task<RouteDto> AddParcelsToActiveRoute(
+        [Service] IMediator mediator,
+        [Service] IRouteNotificationService notifications,
+        AddParcelsToRouteDto input,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await mediator.Send(
+            new AddParcelsToActiveRoute.Command(input), cancellationToken);
+
+        await notifications.NotifyRouteUpdatedAsync(
+            result.Id, "ParcelsAdded",
+            $"{input.ParcelIds.Count} parcel(s) added to active route",
+            cancellationToken);
+
+        return result;
+    }
+
+    [Authorize(Policy = "AdminOrDispatcher")]
+    public async Task<RouteDto> RemoveParcelFromActiveRoute(
+        [Service] IMediator mediator,
+        [Service] IRouteNotificationService notifications,
+        RemoveParcelFromRouteDto input,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await mediator.Send(
+            new RemoveParcelFromActiveRoute.Command(input), cancellationToken);
+
+        await notifications.NotifyRouteUpdatedAsync(
+            result.Id, "ParcelRemoved",
+            $"Parcel {input.ParcelId} removed from active route",
+            cancellationToken);
+
+        return result;
     }
 }

@@ -31,12 +31,13 @@ public class ParcelStatusRulesTests
     [InlineData(ParcelStatus.Staged, ParcelStatus.Delivered, false)]
 
     [InlineData(ParcelStatus.Loaded, ParcelStatus.OutForDelivery, true)]
+    [InlineData(ParcelStatus.Loaded, ParcelStatus.Staged, true)]
     [InlineData(ParcelStatus.Loaded, ParcelStatus.Exception, true)]
-    [InlineData(ParcelStatus.Loaded, ParcelStatus.Staged, false)]
     [InlineData(ParcelStatus.Loaded, ParcelStatus.Delivered, false)]
 
     [InlineData(ParcelStatus.OutForDelivery, ParcelStatus.Delivered, true)]
     [InlineData(ParcelStatus.OutForDelivery, ParcelStatus.FailedAttempt, true)]
+    [InlineData(ParcelStatus.OutForDelivery, ParcelStatus.Staged, true)]
     [InlineData(ParcelStatus.OutForDelivery, ParcelStatus.Exception, true)]
     [InlineData(ParcelStatus.OutForDelivery, ParcelStatus.Cancelled, false)]
     [InlineData(ParcelStatus.OutForDelivery, ParcelStatus.Loaded, false)]
@@ -134,6 +135,22 @@ public class ParcelStatusRulesTests
         {
             ParcelStatus.Delivered,
             ParcelStatus.FailedAttempt,
+            ParcelStatus.Staged,
+            ParcelStatus.Exception
+        });
+    }
+
+    [Fact]
+    public void GetAllowedTransitions_ForLoaded_ShouldReturnCorrectList()
+    {
+        // Act
+        var result = ParcelStatusRules.GetAllowedTransitions(ParcelStatus.Loaded);
+
+        // Assert
+        result.Should().BeEquivalentTo(new[]
+        {
+            ParcelStatus.OutForDelivery,
+            ParcelStatus.Staged,
             ParcelStatus.Exception
         });
     }
