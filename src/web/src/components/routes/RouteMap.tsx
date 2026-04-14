@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { RouteStatus } from "@/lib/types/route";
+import { fetchRoundTripPath } from "@/lib/mapbox/directions";
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN!;
 
@@ -59,7 +60,7 @@ export default function RouteMap({
   const onStopSelectedRef = useRef(onStopSelected);
   onStopSelectedRef.current = onStopSelected;
 
-  // Sync markers + route line when stops change
+  // Effect: markers only (no line drawing)
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !map.isStyleLoaded()) return;
@@ -76,13 +77,6 @@ export default function RouteMap({
     });
     markersRef.current = [];
 
-    // Build route line coordinates: depot → stops → depot
-    const lineCoords: [number, number][] = [];
-    if (depotLocation) {
-      lineCoords.push([depotLocation.longitude, depotLocation.latitude]);
-    }
-
-    // Sort stops by order for the line
     const sortedStops = [...stops].sort((a, b) => a.stopOrder - b.stopOrder);
 
     // Add depot marker
@@ -133,41 +127,15 @@ export default function RouteMap({
       });
 
       markersRef.current.push(marker);
-      lineCoords.push([stop.longitude, stop.latitude]);
     });
 
-    // Close route line back to depot
-    if (depotLocation && lineCoords.length > 1) {
-      lineCoords.push([depotLocation.longitude, depotLocation.latitude]);
-    }
-
-    // Update route line source
-    const routeSource = map.getSource("route-line") as
-      | mapboxgl.GeoJSONSource
-      | undefined;
-    if (routeSource) {
-      routeSource.setData({
-        type: "FeatureCollection",
-        features:
-          lineCoords.length >= 2
-            ? [
-                {
-                  type: "Feature",
-                  geometry: {
-                    type: "LineString",
-                    coordinates: lineCoords,
-                  },
-                  properties: {},
-                },
-              ]
-            : [],
-      });
-    }
-
-    // Update route line color
-    map.setPaintProperty("route-line-layer", "line-color", color);
-
     // Fit bounds or fly to selected stop
+    const allCoords: [number, number][] = [];
+    if (depotLocation) {
+      allCoords.push([depotLocation.longitude, depotLocation.latitude]);
+    }
+    sortedStops.forEach((s) => allCoords.push([s.longitude, s.latitude]));
+
     if (selectedStopId) {
       const selected = sortedStops.find((s) => s.parcelId === selectedStopId);
       if (selected) {
@@ -177,12 +145,70 @@ export default function RouteMap({
           duration: 600,
         });
       }
-    } else if (lineCoords.length > 0) {
+    } else if (allCoords.length > 0) {
       const bounds = new mapboxgl.LngLatBounds();
-      lineCoords.forEach((c) => bounds.extend(c as mapboxgl.LngLatLike));
+      allCoords.forEach((c) => bounds.extend(c as mapboxgl.LngLatLike));
       map.fitBounds(bounds, { padding: 60, maxZoom: 15, duration: 600 });
     }
   }, [stops, selectedStopId, depotLocation, status]);
+
+  // Effect: route line — straight-line initially, then road-following
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !map.isStyleLoaded()) return;
+
+    const color = STATUS_COLORS[status] ?? "#94a3b8";
+
+    // Build straight-line coordinates as initial draw
+    const lineCoords: [number, number][] = [];
+    if (depotLocation) {
+      lineCoords.push([depotLocation.longitude, depotLocation.latitude]);
+    }
+    const sortedStops = [...stops].sort((a, b) => a.stopOrder - b.stopOrder);
+    sortedStops.forEach((s) => lineCoords.push([s.longitude, s.latitude]));
+    if (depotLocation && lineCoords.length > 1) {
+      lineCoords.push([depotLocation.longitude, depotLocation.latitude]);
+    }
+
+    // Draw straight line immediately
+    const routeSource = map.getSource("route-line") as
+      | mapboxgl.GeoJSONSource
+      | undefined;
+    if (routeSource) {
+      routeSource.setData({
+        type: "FeatureCollection",
+        features:
+          lineCoords.length >= 2
+            ? [{ type: "Feature", geometry: { type: "LineString", coordinates: lineCoords }, properties: {} }]
+            : [],
+      });
+    }
+
+    map.setPaintProperty("route-line-layer", "line-color", color);
+
+    // Then fetch road-following path
+    if (stops.length === 0) return;
+
+    let cancelled = false;
+
+    fetchRoundTripPath({
+      depot: depotLocation
+        ? { latitude: depotLocation.latitude, longitude: depotLocation.longitude }
+        : null,
+      stops: sortedStops.map((s) => ({ latitude: s.latitude, longitude: s.longitude, stopOrder: s.stopOrder })),
+    }).then((roadCoords) => {
+      if (cancelled) return;
+      const src = map.getSource("route-line") as mapboxgl.GeoJSONSource | undefined;
+      if (src && roadCoords.length >= 2) {
+        src.setData({
+          type: "FeatureCollection",
+          features: [{ type: "Feature", geometry: { type: "LineString", coordinates: roadCoords }, properties: {} }],
+        });
+      }
+    });
+
+    return () => { cancelled = true; };
+  }, [stops, depotLocation, status]);
 
   // Map init
   useEffect(() => {

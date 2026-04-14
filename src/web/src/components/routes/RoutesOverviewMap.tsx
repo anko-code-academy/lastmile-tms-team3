@@ -5,6 +5,7 @@ import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import type { RouteMapData } from "@/lib/types/route";
 import { RouteStatus } from "@/lib/types/route";
+import { fetchRoutePath, fetchRoundTripPath } from "@/lib/mapbox/directions";
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN!;
 
@@ -61,7 +62,7 @@ export default function RoutesOverviewMap({
   const onRouteSelectedRef = useRef(onRouteSelected);
   onRouteSelectedRef.current = onRouteSelected;
 
-  // Effect 1: Route lines
+  // Effect 1: Route lines (sync straight-line + async road-following)
   useEffect(() => {
     const map = mapRef.current;
     if (!mapReady || !map) return;
@@ -132,6 +133,40 @@ export default function RoutesOverviewMap({
         );
       });
     });
+
+    // Async: fetch road-following paths for each route
+    let cancelled = false;
+
+    routes.forEach(async (route) => {
+      if (route.stops.length === 0) return;
+
+      const roadCoords = await fetchRoundTripPath({
+        depot: route.depot?.address?.latitude != null
+          ? { latitude: route.depot.address.latitude, longitude: route.depot.address.longitude }
+          : null,
+        stops: [...route.stops]
+          .sort((a, b) => a.stopOrder - b.stopOrder)
+          .map((s) => ({ latitude: s.latitude, longitude: s.longitude, stopOrder: s.stopOrder })),
+      });
+
+      if (cancelled) return;
+      if (roadCoords.length < 2) return;
+
+      const sourceId = `route-line-${route.id}`;
+      const source = map.getSource(sourceId) as mapboxgl.GeoJSONSource | undefined;
+      if (source) {
+        source.setData({
+          type: "FeatureCollection",
+          features: [{
+            type: "Feature",
+            geometry: { type: "LineString", coordinates: roadCoords },
+            properties: { routeId: route.id },
+          }],
+        });
+      }
+    });
+
+    return () => { cancelled = true; };
   }, [routes, selectedRouteId, mapReady]);
 
   // Effect 2: Static markers — depot + stops (only re-runs when routes change)
@@ -249,35 +284,63 @@ export default function RoutesOverviewMap({
       const existing = driverMarkersRef.current.get(route.id);
 
       if (existing) {
-        // Animate existing marker to new position
+        // Animate existing marker along road path to new position
         const currentLngLat = existing.getLngLat();
-        const startLng = currentLngLat.lng;
-        const startLat = currentLngLat.lat;
-        const duration = 2000; // 2 seconds smooth transition
-        const startTime = performance.now();
-
-        // Cancel previous animation for this route
         const prevFrame = animFramesRef.current.get(route.id);
         if (prevFrame) cancelAnimationFrame(prevFrame);
 
-        const animate = (now: number) => {
-          const elapsed = now - startTime;
-          const t = Math.min(elapsed / duration, 1);
-          // Ease out cubic
-          const ease = 1 - Math.pow(1 - t, 3);
-
-          const lng = startLng + (targetLng - startLng) * ease;
-          const lat = startLat + (targetLat - startLat) * ease;
-          existing.setLngLat([lng, lat]);
-
-          if (t < 1) {
-            animFramesRef.current.set(route.id, requestAnimationFrame(animate));
-          } else {
-            animFramesRef.current.delete(route.id);
+        fetchRoutePath([
+          [currentLngLat.lng, currentLngLat.lat],
+          [targetLng, targetLat],
+        ]).then((roadCoords) => {
+          if (roadCoords.length < 2) {
+            existing.setLngLat([targetLng, targetLat]);
+            return;
           }
-        };
 
-        animFramesRef.current.set(route.id, requestAnimationFrame(animate));
+          // Compute cumulative distances along the road path
+          const dists: number[] = [0];
+          let totalDist = 0;
+          for (let i = 1; i < roadCoords.length; i++) {
+            const dx = roadCoords[i][0] - roadCoords[i - 1][0];
+            const dy = roadCoords[i][1] - roadCoords[i - 1][1];
+            totalDist += Math.sqrt(dx * dx + dy * dy);
+            dists.push(totalDist);
+          }
+
+          const duration = 2000;
+          const startTime = performance.now();
+
+          const animate = (now: number) => {
+            const elapsed = now - startTime;
+            const t = Math.min(elapsed / duration, 1);
+            const ease = 1 - Math.pow(1 - t, 3);
+            const targetDist = totalDist * ease;
+
+            // Find the segment the marker is on
+            let segIdx = 0;
+            for (let i = 1; i < dists.length; i++) {
+              if (dists[i] >= targetDist) { segIdx = i - 1; break; }
+              if (i === dists.length - 1) segIdx = i - 1;
+            }
+
+            const segLen = dists[segIdx + 1] - dists[segIdx];
+            const segT = segLen > 0 ? (targetDist - dists[segIdx]) / segLen : 0;
+
+            const lng = roadCoords[segIdx][0] + (roadCoords[segIdx + 1][0] - roadCoords[segIdx][0]) * segT;
+            const lat = roadCoords[segIdx][1] + (roadCoords[segIdx + 1][1] - roadCoords[segIdx][1]) * segT;
+            existing.setLngLat([lng, lat]);
+
+            if (t < 1) {
+              animFramesRef.current.set(route.id, requestAnimationFrame(animate));
+            } else {
+              existing.setLngLat([targetLng, targetLat]);
+              animFramesRef.current.delete(route.id);
+            }
+          };
+
+          animFramesRef.current.set(route.id, requestAnimationFrame(animate));
+        });
       } else {
         // Create new driver marker
         const driverEl = document.createElement("div");
